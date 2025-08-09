@@ -1,3 +1,9 @@
+/**
+ * Tooltip Components
+ *
+ * Lightweight tooltip system built on Radix Tooltip.
+ */
+
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
@@ -10,6 +16,7 @@ function TooltipProvider({
   return (<TooltipPrimitive.Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />);
 }
 
+/** Tooltip: root wrapper for a tooltip instance. */
 function Tooltip({
   ...props
 }) {
@@ -20,12 +27,14 @@ function Tooltip({
   );
 }
 
+/** Element that triggers the tooltip. */
 function TooltipTrigger({
   ...props
 }) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 
+/** The tooltip bubble content with arrow. */
 function TooltipContent({
   className,
   sideOffset = 0,

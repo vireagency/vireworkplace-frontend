@@ -1,3 +1,15 @@
+/**
+ * Sidebar System
+ *
+ * A fully featured responsive sidebar with desktop and mobile behaviors.
+ *
+ * Features:
+ * - Collapsible (icon, offcanvas) and variants (floating, inset)
+ * - Mobile drawer fallback with sheet
+ * - Keyboard shortcut (Cmd/Ctrl + b) to toggle
+ * - Context API for control and hooks
+ * - Accessible semantics and ARIA labels
+ */
 "use client";
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
@@ -33,6 +45,11 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 const SidebarContext = React.createContext(null)
 
+/**
+ * useSidebar
+ * Hook to access the sidebar context. Must be used within SidebarProvider.
+ * @returns {{state:string, open:boolean, setOpen:Function, isMobile:boolean, openMobile:boolean, setOpenMobile:Function, toggleSidebar:Function}}
+ */
 function useSidebar() {
   const context = React.useContext(SidebarContext)
   if (!context) {
@@ -42,6 +59,11 @@ function useSidebar() {
   return context
 }
 
+/**
+ * SidebarProvider
+ * Provides sidebar context and wraps the application layout.
+ * @param {{defaultOpen?:boolean, open?:boolean, onOpenChange?:Function}} props
+ */
 function SidebarProvider({
   defaultOpen = true,
   open: openProp,
@@ -129,6 +151,11 @@ function SidebarProvider({
   );
 }
 
+/**
+ * Sidebar
+ * Responsive sidebar which becomes a sheet on mobile.
+ * @param {{side?:'left'|'right', variant?:'sidebar'|'floating'|'inset', collapsible?:'offcanvas'|'icon'|'none'}} props
+ */
 function Sidebar({
   side = "left",
   variant = "sidebar",
@@ -221,6 +248,7 @@ function Sidebar({
   );
 }
 
+/** Toggle button for the sidebar. */
 function SidebarTrigger({
   className,
   onClick,
@@ -341,6 +369,10 @@ function SidebarSeparator({
   );
 }
 
+/**
+ * SidebarContent
+ * Scrollable area inside the sidebar.
+ */
 function SidebarContent({
   className,
   ...props
@@ -473,6 +505,10 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
+/**
+ * SidebarMenuButton
+ * Button used in the sidebar navigation menu with tooltip support.
+ */
 function SidebarMenuButton({
   asChild = false,
   isActive = false,

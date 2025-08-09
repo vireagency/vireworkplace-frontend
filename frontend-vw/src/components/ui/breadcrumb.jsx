@@ -1,3 +1,24 @@
+/**
+ * Breadcrumb Components
+ *
+ * A composable breadcrumb navigation with accessible semantics.
+ *
+ * Usage:
+ * ```jsx
+ * <Breadcrumb>
+ *   <BreadcrumbList>
+ *     <BreadcrumbItem>
+ *       <BreadcrumbLink href="/">Home</BreadcrumbLink>
+ *     </BreadcrumbItem>
+ *     <BreadcrumbSeparator />
+ *     <BreadcrumbItem>
+ *       <BreadcrumbPage>Settings</BreadcrumbPage>
+ *     </BreadcrumbItem>
+ *   </BreadcrumbList>
+ * </Breadcrumb>
+ * ```
+ */
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
@@ -10,6 +31,9 @@ function Breadcrumb({
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />;
 }
 
+/**
+ * BreadcrumbList: container for breadcrumb items.
+ */
 function BreadcrumbList({
   className,
   ...props
@@ -25,6 +49,9 @@ function BreadcrumbList({
   );
 }
 
+/**
+ * BreadcrumbItem: a single item in the breadcrumb.
+ */
 function BreadcrumbItem({
   className,
   ...props
@@ -37,6 +64,9 @@ function BreadcrumbItem({
   );
 }
 
+/**
+ * BreadcrumbLink: link element (or any child via asChild) for navigation.
+ */
 function BreadcrumbLink({
   asChild,
   className,
@@ -52,6 +82,9 @@ function BreadcrumbLink({
   );
 }
 
+/**
+ * BreadcrumbPage: current page indicator with aria-current.
+ */
 function BreadcrumbPage({
   className,
   ...props
@@ -67,6 +100,9 @@ function BreadcrumbPage({
   );
 }
 
+/**
+ * BreadcrumbSeparator: visual separator between items.
+ */
 function BreadcrumbSeparator({
   children,
   className,
@@ -84,6 +120,9 @@ function BreadcrumbSeparator({
   );
 }
 
+/**
+ * BreadcrumbEllipsis: shows an ellipsis for collapsed items.
+ */
 function BreadcrumbEllipsis({
   className,
   ...props

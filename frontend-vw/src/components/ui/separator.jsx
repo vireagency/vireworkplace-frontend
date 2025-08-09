@@ -3,6 +3,11 @@ import * as SeparatorPrimitive from "@radix-ui/react-separator"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Separator
+ *
+ * Horizontal or vertical rule for grouping UI content.
+ */
 function Separator({
   className,
   orientation = "horizontal",

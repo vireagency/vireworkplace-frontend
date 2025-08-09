@@ -1,3 +1,9 @@
+/**
+ * Toggle Group Components
+ *
+ * A grouped set of toggles (single or multiple selection) built on Radix Toggle Group.
+ */
+
 import * as React from "react"
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
 
@@ -9,6 +15,9 @@ const ToggleGroupContext = React.createContext({
   variant: "default",
 })
 
+/**
+ * ToggleGroup: the root component that provides context for toggle items.
+ */
 function ToggleGroup({
   className,
   variant,
@@ -33,6 +42,9 @@ function ToggleGroup({
   );
 }
 
+/**
+ * ToggleGroupItem: an item within the group that inherits size/variant from context.
+ */
 function ToggleGroupItem({
   className,
   children,

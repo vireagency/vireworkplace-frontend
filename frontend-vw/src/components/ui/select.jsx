@@ -1,3 +1,77 @@
+/**
+ * Select Components
+ * 
+ * A collection of select components built on top of Radix UI's Select primitive.
+ * Provides accessible select dropdowns with proper keyboard navigation and screen reader support.
+ * 
+ * Features:
+ * - Accessible select dropdowns
+ * - Keyboard navigation (Arrow keys, Enter, Escape)
+ * - Screen reader support
+ * - Smooth animations and transitions
+ * - Scroll buttons for long lists
+ * - Group and separator support
+ * - Customizable positioning
+ * - Dark mode support
+ * 
+ * Usage:
+ * ```jsx
+ * import { 
+ *   Select,
+ *   SelectContent,
+ *   SelectGroup,
+ *   SelectItem,
+ *   SelectLabel,
+ *   SelectSeparator,
+ *   SelectTrigger,
+ *   SelectValue
+ * } from "@/components/ui/select"
+ * 
+ * // Basic select
+ * <Select>
+ *   <SelectTrigger>
+ *     <SelectValue placeholder="Select a fruit" />
+ *   </SelectTrigger>
+ *   <SelectContent>
+ *     <SelectItem value="apple">Apple</SelectItem>
+ *     <SelectItem value="banana">Banana</SelectItem>
+ *     <SelectItem value="orange">Orange</SelectItem>
+ *   </SelectContent>
+ * </Select>
+ * 
+ * // Controlled select
+ * <Select value={selectedFruit} onValueChange={setSelectedFruit}>
+ *   <SelectTrigger>
+ *     <SelectValue placeholder="Select a fruit" />
+ *   </SelectTrigger>
+ *   <SelectContent>
+ *     <SelectItem value="apple">Apple</SelectItem>
+ *     <SelectItem value="banana">Banana</SelectItem>
+ *   </SelectContent>
+ * </Select>
+ * 
+ * // Select with groups and separators
+ * <Select>
+ *   <SelectTrigger>
+ *     <SelectValue placeholder="Select a category" />
+ *   </SelectTrigger>
+ *   <SelectContent>
+ *     <SelectGroup>
+ *       <SelectLabel>Fruits</SelectLabel>
+ *       <SelectItem value="apple">Apple</SelectItem>
+ *       <SelectItem value="banana">Banana</SelectItem>
+ *     </SelectGroup>
+ *     <SelectSeparator />
+ *     <SelectGroup>
+ *       <SelectLabel>Vegetables</SelectLabel>
+ *       <SelectItem value="carrot">Carrot</SelectItem>
+ *       <SelectItem value="broccoli">Broccoli</SelectItem>
+ *     </SelectGroup>
+ *   </SelectContent>
+ * </Select>
+ * ```
+ */
+
 "use client"
 
 import * as React from "react"
@@ -6,24 +80,96 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Select Root Component
+ * 
+ * The main container for the select dropdown. Manages the select state and accessibility.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.value] - The selected value (controlled)
+ * @param {string} [props.defaultValue] - Default selected value (uncontrolled)
+ * @param {function} [props.onValueChange] - Callback when value changes
+ * @param {boolean} [props.disabled] - Whether the select is disabled
+ * @param {boolean} [props.required] - Whether the select is required
+ * @param {string} [props.name] - Name attribute for form submission
+ * @param {...any} props - All other props are passed to Radix UI Select.Root
+ * @returns {JSX.Element} Select root container
+ * 
+ * @example
+ * <Select value={selectedValue} onValueChange={setSelectedValue}>
+ *   <SelectTrigger>Trigger</SelectTrigger>
+ *   <SelectContent>Items</SelectContent>
+ * </Select>
+ */
 function Select({
   ...props
 }) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
 
+/**
+ * Select Group Component
+ * 
+ * Groups related select items together with an optional label.
+ * 
+ * @param {Object} props - Component props
+ * @param {...any} props - All props are passed to Radix UI Select.Group
+ * @returns {JSX.Element} Select group container
+ * 
+ * @example
+ * <SelectGroup>
+ *   <SelectLabel>Fruits</SelectLabel>
+ *   <SelectItem value="apple">Apple</SelectItem>
+ *   <SelectItem value="banana">Banana</SelectItem>
+ * </SelectGroup>
+ */
 function SelectGroup({
   ...props
 }) {
   return <SelectPrimitive.Group data-slot="select-group" {...props} />;
 }
 
+/**
+ * Select Value Component
+ * 
+ * Displays the currently selected value in the select trigger.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.placeholder] - Placeholder text when no value is selected
+ * @param {...any} props - All other props are passed to Radix UI Select.Value
+ * @returns {JSX.Element} Select value display
+ * 
+ * @example
+ * <SelectValue placeholder="Select an option" />
+ */
 function SelectValue({
   ...props
 }) {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />;
 }
 
+/**
+ * Select Trigger Component
+ * 
+ * The clickable element that opens the select dropdown.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {string} [props.size="default"] - Size variant: 'default' | 'sm'
+ * @param {React.ReactNode} props.children - Trigger content
+ * @param {...any} props - All other props are passed to Radix UI Select.Trigger
+ * @returns {JSX.Element} Select trigger element
+ * 
+ * @example
+ * <SelectTrigger>
+ *   <SelectValue placeholder="Select an option" />
+ * </SelectTrigger>
+ * 
+ * @example
+ * <SelectTrigger size="sm">
+ *   <SelectValue placeholder="Small select" />
+ * </SelectTrigger>
+ */
 function SelectTrigger({
   className,
   size = "default",
@@ -47,6 +193,25 @@ function SelectTrigger({
   );
 }
 
+/**
+ * Select Content Component
+ * 
+ * The dropdown content container for select options.
+ * Includes scroll buttons and proper positioning.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {React.ReactNode} props.children - Select content
+ * @param {string} [props.position="popper"] - Positioning strategy: 'popper' | 'item'
+ * @param {...any} props - All other props are passed to Radix UI Select.Content
+ * @returns {JSX.Element} Select content container
+ * 
+ * @example
+ * <SelectContent>
+ *   <SelectItem value="option1">Option 1</SelectItem>
+ *   <SelectItem value="option2">Option 2</SelectItem>
+ * </SelectContent>
+ */
 function SelectContent({
   className,
   children,
@@ -77,6 +242,19 @@ function SelectContent({
   );
 }
 
+/**
+ * Select Label Component
+ * 
+ * A label for a group of select items.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {...any} props - All other props are passed to Radix UI Select.Label
+ * @returns {JSX.Element} Select label
+ * 
+ * @example
+ * <SelectLabel>Fruits</SelectLabel>
+ */
 function SelectLabel({
   className,
   ...props
@@ -89,6 +267,28 @@ function SelectLabel({
   );
 }
 
+/**
+ * Select Item Component
+ * 
+ * A selectable option in the select dropdown.
+ * Shows a checkmark when selected.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {React.ReactNode} props.children - Item content
+ * @param {string} props.value - The value of this option
+ * @param {boolean} [props.disabled] - Whether this item is disabled
+ * @param {...any} props - All other props are passed to Radix UI Select.Item
+ * @returns {JSX.Element} Select item
+ * 
+ * @example
+ * <SelectItem value="apple">Apple</SelectItem>
+ * 
+ * @example
+ * <SelectItem value="disabled" disabled>
+ *   Disabled Option
+ * </SelectItem>
+ */
 function SelectItem({
   className,
   children,
@@ -98,13 +298,13 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4",
         className
       )}
       {...props}>
-      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon className="h-4 w-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

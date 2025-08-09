@@ -1,7 +1,84 @@
+/**
+ * Input Component
+ * 
+ * A flexible input component with consistent styling and accessibility features.
+ * Supports all standard HTML input types and includes proper focus states.
+ * 
+ * Features:
+ * - Consistent styling across all input types
+ * - File input support with custom styling
+ * - Focus and hover states
+ * - Error state styling
+ * - Dark mode support
+ * - Accessibility features (ARIA support)
+ * - Responsive design
+ * 
+ * Usage:
+ * ```jsx
+ * import { Input } from "@/components/ui/input"
+ * 
+ * // Basic text input
+ * <Input placeholder="Enter your name" />
+ * 
+ * // Email input
+ * <Input type="email" placeholder="Enter your email" />
+ * 
+ * // Password input
+ * <Input type="password" placeholder="Enter your password" />
+ * 
+ * // File input
+ * <Input type="file" accept="image/*" />
+ * 
+ * // Input with error state
+ * <Input 
+ *   aria-invalid="true"
+ *   placeholder="Invalid input"
+ * />
+ * 
+ * // Controlled input
+ * <Input 
+ *   value={value}
+ *   onChange={(e) => setValue(e.target.value)}
+ *   placeholder="Controlled input"
+ * />
+ * ```
+ */
+
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Input Component
+ * 
+ * A styled input element that supports all HTML input types.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.className] - Additional CSS classes
+ * @param {string} [props.type] - HTML input type (text, email, password, file, etc.)
+ * @param {...any} props - All other props are passed to the underlying input element
+ * @returns {JSX.Element} Input component
+ * 
+ * @example
+ * // Basic text input
+ * <Input placeholder="Enter text" />
+ * 
+ * @example
+ * // Email input with validation
+ * <Input 
+ *   type="email" 
+ *   placeholder="Enter email"
+ *   required 
+ * />
+ * 
+ * @example
+ * // File upload input
+ * <Input 
+ *   type="file" 
+ *   accept=".pdf,.doc,.docx"
+ *   multiple 
+ * />
+ */
 function Input({
   className,
   type,

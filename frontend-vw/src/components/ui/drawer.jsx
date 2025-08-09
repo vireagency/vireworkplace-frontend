@@ -3,30 +3,52 @@ import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Drawer Components
+ *
+ * A responsive drawer (sheet) built on Vaul. Supports top/bottom/left/right.
+ *
+ * Usage:
+ * ```jsx
+ * <Drawer>
+ *   <DrawerTrigger asChild><Button>Open</Button></DrawerTrigger>
+ *   <DrawerContent>
+ *     <DrawerHeader>Title</DrawerHeader>
+ *     <DrawerFooter>Actions</DrawerFooter>
+ *   </DrawerContent>
+ * </Drawer>
+ * ```
+ */
 function Drawer({
   ...props
 }) {
   return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
 }
 
+/** Trigger to open the drawer. */
 function DrawerTrigger({
   ...props
 }) {
   return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
 
+/** Portal for rendering outside normal DOM flow. */
 function DrawerPortal({
   ...props
 }) {
   return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
 }
 
+/** Button to close the drawer. */
 function DrawerClose({
   ...props
 }) {
   return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
 }
 
+/**
+ * Drawer overlay background.
+ */
 function DrawerOverlay({
   className,
   ...props
@@ -42,6 +64,9 @@ function DrawerOverlay({
   );
 }
 
+/**
+ * DrawerContent: main panel. Direction controlled via data attr by Vaul.
+ */
 function DrawerContent({
   className,
   children,
@@ -69,6 +94,7 @@ function DrawerContent({
   );
 }
 
+/** Header region within the drawer. */
 function DrawerHeader({
   className,
   ...props
@@ -84,6 +110,7 @@ function DrawerHeader({
   );
 }
 
+/** Footer region within the drawer. */
 function DrawerFooter({
   className,
   ...props
@@ -96,6 +123,7 @@ function DrawerFooter({
   );
 }
 
+/** Title text for the drawer. */
 function DrawerTitle({
   className,
   ...props
@@ -108,6 +136,7 @@ function DrawerTitle({
   );
 }
 
+/** Description text for the drawer. */
 function DrawerDescription({
   className,
   ...props

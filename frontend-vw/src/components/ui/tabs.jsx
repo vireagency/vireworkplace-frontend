@@ -3,6 +3,23 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Tabs Components
+ *
+ * Radix Tabs wrapper with styled triggers and content.
+ *
+ * Usage:
+ * ```jsx
+ * <Tabs defaultValue="account">
+ *   <TabsList>
+ *     <TabsTrigger value="account">Account</TabsTrigger>
+ *     <TabsTrigger value="password">Password</TabsTrigger>
+ *   </TabsList>
+ *   <TabsContent value="account">...</TabsContent>
+ *   <TabsContent value="password">...</TabsContent>
+ * </Tabs>
+ * ```
+ */
 function Tabs({
   className,
   ...props
@@ -15,6 +32,7 @@ function Tabs({
   );
 }
 
+/** TabsList: container for triggers. */
 function TabsList({
   className,
   ...props
@@ -30,6 +48,7 @@ function TabsList({
   );
 }
 
+/** TabsTrigger: selectable tab button. */
 function TabsTrigger({
   className,
   ...props
@@ -45,6 +64,7 @@ function TabsTrigger({
   );
 }
 
+/** TabsContent: panel for a tab's content. */
 function TabsContent({
   className,
   ...props
