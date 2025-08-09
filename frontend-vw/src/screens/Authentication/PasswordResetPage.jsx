@@ -27,11 +27,9 @@ const PasswordResetPage = () => {
 
   // Get resetToken from location state or localStorage
   useEffect(() => {
-    console.log('🔍 PasswordReset: Initializing reset token');
     const stateData = location.state;
     
     if (stateData && stateData.resetToken) {
-      console.log('🔍 PasswordReset: Reset token from navigation state');
       // Store in localStorage for fallback
       localStorage.setItem('reset_token', stateData.resetToken);
       setResetToken(stateData.resetToken);
@@ -39,10 +37,8 @@ const PasswordResetPage = () => {
       // Fallback to localStorage if page is refreshed
       const storedToken = localStorage.getItem('reset_token');
       if (storedToken) {
-        console.log('🔍 PasswordReset: Reset token from localStorage fallback');
         setResetToken(storedToken);
       } else {
-        console.log('❌ PasswordReset: No reset token found');
         // No token found, redirect to landing page
         toast.error("Invalid access. Please start over.");
         navigate("/");
@@ -84,7 +80,6 @@ const PasswordResetPage = () => {
     setIsResetting(true);
     
     try {
-      console.log('🔍 PasswordReset: Making API call with resetToken:', resetToken);
       const response = await axios.put(
         "https://vireworkplace-backend-hpca.onrender.com/api/v1/auth/otp/reset",
         { 

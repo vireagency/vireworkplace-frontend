@@ -41,13 +41,11 @@ const ForgotPasswordPage = () => {
       );
       
       if (response.status === 200) {
-        console.log('🔍 ForgotPassword: API response:', response.data);
         
         // Extract any temporary token if provided by the API
         const tempToken = response.data.tempToken || response.data.token;
         if (tempToken) {
           localStorage.setItem('forgot_password_token', tempToken);
-          console.log('🔍 ForgotPassword: Temporary token stored:', tempToken);
         }
         
         toast.success("OTP has been sent to your email for password reset");

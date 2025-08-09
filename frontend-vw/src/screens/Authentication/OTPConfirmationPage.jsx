@@ -114,7 +114,6 @@ const OTPConfirmationPage = () => {
         
         // Get temporary token for forgot password flow
         const forgotPasswordToken = localStorage.getItem('forgot_password_token');
-        console.log('🔍 OTPConfirmation: Forgot password token:', forgotPasswordToken);
         
         if (!forgotPasswordToken) {
           toast.error("Invalid access. Please request OTP again.");
@@ -134,12 +133,10 @@ const OTPConfirmationPage = () => {
         
         if (response.status === 200) {
           const resetToken = response.data.resetToken;
-          console.log('🔍 OTPConfirmation: Reset token received:', resetToken);
           
           // Store resetToken in localStorage
           if (resetToken) {
             localStorage.setItem('reset_token', resetToken);
-            console.log('🔍 OTPConfirmation: Reset token stored in localStorage');
           }
           
           toast.success("OTP verified successfully!");

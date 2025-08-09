@@ -110,39 +110,27 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
     try {
       if (currentMode === 'login') {
         // Handle login flow
-        console.log('🔍 AuthModal: Using signIn from useAuth hook');
         const result = await signIn(formData.workId, formData.password);
         
         if (result.success) {
-          console.log('✅ AuthModal: Login successful via useAuth hook');
           toast.success('Login successful!');
           onClose();
           
           // Get the current user from localStorage (updated by useAuth)
           const currentUser = JSON.parse(localStorage.getItem('user'));
-          console.log('🔍 AuthModal: Current user from localStorage:', currentUser);
           
           // Navigate to respective dashboard based on user role
-          console.log('🔍 AuthModal: Checking role for navigation. User role:', currentUser.role);
-          console.log('🔍 AuthModal: Role type:', typeof currentUser.role);
-          console.log('🔍 AuthModal: Role length:', currentUser.role?.length);
           
           if (currentUser.role === 'Human Resource Manager' || currentUser.role === 'human resource manager') {
-            console.log('✅ AuthModal: Role matched: Human Resource Manager - Navigating to HR dashboard');
             navigate("/human-resource-manager"); // HR Dashboard
           } else if (currentUser.role === 'Staff') {
-            console.log('✅ AuthModal: Role matched: Staff - Navigating to Staff dashboard');
             navigate("/staff"); // Staff Dashboard
           } else if (currentUser.role === 'Admin') {
-            console.log('✅ AuthModal: Role matched: Admin - Navigating to Admin dashboard');
             navigate("/admin"); // Admin Dashboard
           } else {
-            console.log('❌ AuthModal: Role not matched, navigating to landing page. Role was:', currentUser.role);
-            console.log('🔍 AuthModal: Available roles to match: Human Resource Manager, human resource manager, Staff, Admin');
             navigate("/"); // Default to landing page
           }
         } else {
-          console.log('❌ AuthModal: Login failed:', result.error);
           toast.error(result.error || 'Login failed');
         }
       } else {
@@ -160,14 +148,12 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
           jobTitle: formData.jobTitle,
           password: formData.password
         };
-        console.log(signupData);
 
         // Make API call to signup endpoint
         const response = await axios.post(
           'https://vireworkplace-backend-hpca.onrender.com/api/v1/auth/signup',
           signupData
         );
-        console.log(response);
 
         if (response.status === 201 || response.status === 200) {
           // Extract tempToken from response for OTP verification

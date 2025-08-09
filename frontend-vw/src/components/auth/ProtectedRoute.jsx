@@ -20,25 +20,12 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/" replace />;
   }
 
-  // Debug: Log user role for troubleshooting
-  console.log('🔍 ProtectedRoute Debug:');
-  console.log('  - User object:', user);
-  console.log('  - User role:', user?.role);
-  console.log('  - Required role:', requiredRole);
-  console.log('  - Role comparison:', user?.role === requiredRole);
-  console.log('  - Role type (user):', typeof user?.role);
-  console.log('  - Role type (required):', typeof requiredRole);
+  // In production, avoid logging user details
 
   // Check if user has the required role
   if (requiredRole && user.role !== requiredRole) {
-    console.log('❌ Role mismatch detected:');
-    console.log('  - User role:', user.role);
-    console.log('  - Required role:', requiredRole);
-    console.log('  - Redirecting to landing page');
     return <Navigate to="/" replace />;
   }
-
-  console.log('✅ Role check passed - Rendering protected component');
 
   return <>{children}</>;
 };
