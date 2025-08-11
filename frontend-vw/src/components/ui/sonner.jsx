@@ -51,7 +51,7 @@ const Toaster = (props) => {
   return (
     <Sonner
       {...props}
-      position="top-center"
+      position="top-right"
       toastOptions={mergedToastOptions}
       style={{
         "--success-bg": "#16a34a",

@@ -8,6 +8,15 @@ const WelcomeUserPage = () => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(5);
 
+  // Debug: Log user data to understand structure
+  useEffect(() => {
+    if (user) {
+      console.log('User data in WelcomeUserPage:', user);
+      console.log('User firstName:', user.firstName);
+      console.log('User email:', user.email);
+    }
+  }, [user]);
+
   // Force dark theme for authentication pages
   useEffect(() => {
     document.documentElement.classList.remove('light')
@@ -73,7 +82,7 @@ const WelcomeUserPage = () => {
         {/* Welcome Message */}
         <div className="text-center max-w-5xl mx-auto animate-slide-up" >
           <h1 className="text-3xl md:text-3xl lg:text-3xl font-bold text-foreground mb-8 leading-tight">
-            👋 Hi, {user?.displayName || user?.email?.split('@')[0] || 'User'}! Welcome to Vire Workplace
+            👋 Hi, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Welcome to Vire Workplace
           </h1>
           
           {/* Security Information */}

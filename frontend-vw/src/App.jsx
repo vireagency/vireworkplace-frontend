@@ -31,6 +31,7 @@ import OTPRequestPage from "./screens/Authentication/OTPRequestPage";
 import WelcomeUserPage from "./screens/Authentication/WelcomUserPage";
 import PasswordResetPage from "./screens/Authentication/PasswordResetPage";
 import ForgotPasswordPage from "./screens/Authentication/ForgotPasswordPage";
+import RoleSelectionPageForAdminandHR from "./screens/Authentication/RoleSelectionPageForAdminandHR";
 
 // Dashboard Screens
 import HRDashboardPage from "./screens/UserDashboards/HRDashboard/HRDashboardPage";
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/reset-password" element={<PasswordResetPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/welcome-user" element={<WelcomeUserPage />} />
+              <Route path="/role-selection" element={<RoleSelectionPageForAdminandHR />} />
 
               {/* Protected Role-Based Dashboard Routes */}
               <Route 

@@ -82,8 +82,8 @@ export function NavUser({
     // Sign out using the useAuth hook
     signOut()
     
-    // Show success toast
-    toast.success("Signed out successfully!")
+          // Show success toast
+      toast.success("Signed out successfully!")
     
     // Navigate to landing page
     navigate("/")

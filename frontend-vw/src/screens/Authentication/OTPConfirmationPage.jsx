@@ -230,8 +230,15 @@ const OTPConfirmationPage = () => {
             <InputOTP
               maxLength={6}
               value={otp}
-              onChange={(value) => setOtp(value)}
+              onChange={(value) => {
+                // Filter out any non-numeric characters
+                const numericValue = value.replace(/\D/g, '');
+                setOtp(numericValue);
+              }}
               className="gap-2"
+              pattern="[0-9]*"
+              inputMode="numeric"
+              type="number"
             >
               <InputOTPGroup>
                 <InputOTPSlot 

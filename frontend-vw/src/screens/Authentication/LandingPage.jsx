@@ -113,13 +113,12 @@ const LandingPage = () => {
         <div className="flex items-center">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Vire Workplace</h1>
-            <p className="text-muted-foreground text-sm">Enterprise HR Management</p>
+            <p className="text-muted-foreground text-sm">Enterprise Management Platform</p>
           </div>
         </div>
         <Button 
           onClick={handleLogin}
-          variant="outline" 
-          className=" bg-black border-white/20 text-white hover:bg-white/10"
+          className="bg-black border border-white/20 text-white hover:bg-primary hover:text-black cursor-pointer transition-colors duration-200"
         >
           Login
         </Button>
@@ -194,7 +193,7 @@ const LandingPage = () => {
                   Document access
                 </li>
               </ul>
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer">
                 Join as Staff
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -222,7 +221,7 @@ const LandingPage = () => {
                   Record management
                 </li>
               </ul>
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer">
                 Join as HR
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -250,7 +249,7 @@ const LandingPage = () => {
                   System monitoring
                 </li>
               </ul>
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer">
                 Manage Workplace
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
