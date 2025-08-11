@@ -129,7 +129,7 @@ const PasswordResetPage = () => {
         <div className="flex items-center">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Vire Workplace</h1>
-            <p className="text-muted-foreground text-sm">Enterprise HR Management</p>
+            <p className="text-muted-foreground text-sm">Enterprise Management Platform</p>
           </div>
         </div>
       </nav>
