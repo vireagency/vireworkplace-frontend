@@ -76,7 +76,7 @@ const RoleSelectionPageForAdminandHR = () => {
       dashboardPath = "/admin";
     } else if (selectedRole === 'hr' && userRole === 'Human Resource Manager') {
       isValid = true;
-      dashboardPath = "/human-resource-manager";
+      dashboardPath = "/human-resource-manager/dashboard";
     }
 
     if (isValid) {

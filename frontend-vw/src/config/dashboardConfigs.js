@@ -9,6 +9,7 @@
  * - navMain: Primary navigation items (main menu)
  * - navSecondary: Secondary navigation items (settings, help, etc.)
  * - documents: Quick access document shortcuts
+ * - actionButtons: Role-specific action buttons for quick actions
  * 
  * Navigation Item Structure:
  * - title: Display name for the menu item
@@ -54,7 +55,15 @@ import {
   IconCamera,
   IconFileAi,
   IconFileDescription,
+  IconMail,
 } from "@tabler/icons-react"
+
+// Import action button configurations
+import {
+  hrActionButtons,
+  staffActionButtons,
+  adminActionButtons,
+} from "./actionButtonConfigs"
 
 /**
  * HR Dashboard Configuration
@@ -68,33 +77,51 @@ export const hrDashboardConfig = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/human-resource-manager",
+      url: "/human-resource-manager/dashboard",
       icon: IconDashboard,
     },
+  ],
+  
+  // Analytics section
+  analytics: [
     {
-      title: "Employee Management",
-      url: "#",
-      icon: IconUsers,
-    },
-    {
-      title: "Recruitment",
-      url: "#",
-      icon: IconUserCheck,
-    },
-    {
-      title: "Performance Reviews",
-      url: "#",
+      title: "Evaluations",
+      url: "/human-resource-manager/evaluations",
       icon: IconFileText,
     },
     {
-      title: "Leave Management",
-      url: "#",
-      icon: IconCalendar,
+      title: "Performance",
+      url: "/human-resource-manager/performance",
+      icon: IconChartBar,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
+      title: "Hiring",
+      url: "/human-resource-manager/hiring",
+      icon: IconUserCheck,
+      badge: "NEW",
+    },
+  ],
+  
+  // Teams section
+  teams: [
+    {
+      title: "Employees",
+      url: "/human-resource-manager/employees",
+      icon: IconUsers,
+    },
+  ],
+  
+  // Company section
+  company: [
+    {
+      title: "Messages",
+      url: "/human-resource-manager/messages",
+      icon: IconMail,
+    },
+    {
+      title: "Reports",
+      url: "/human-resource-manager/reports",
+      icon: IconReport,
     },
   ],
   
@@ -117,24 +144,8 @@ export const hrDashboardConfig = {
     },
   ],
   
-  // Quick access document shortcuts
-  documents: [
-    {
-      name: "Employee Database",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "HR Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Policy Documents",
-      url: "#",
-      icon: IconFileWord,
-    },
-  ],
+  // HR-specific action buttons
+  actionButtons: hrActionButtons,
 }
 
 /**
@@ -201,6 +212,9 @@ export const staffDashboardConfig = {
       icon: IconFileWord,
     },
   ],
+  
+  // Staff-specific action buttons
+  actionButtons: staffActionButtons,
 }
 
 // Admin Dashboard Configuration
@@ -271,4 +285,7 @@ export const adminDashboardConfig = {
       icon: IconFileWord,
     },
   ],
+  
+  // Admin-specific action buttons
+  actionButtons: adminActionButtons,
 } 

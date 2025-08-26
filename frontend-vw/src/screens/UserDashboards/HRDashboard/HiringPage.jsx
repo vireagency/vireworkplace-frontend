@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout"
 import { hrDashboardConfig } from "@/config/dashboardConfigs"
 import hrData from "./hrData.json"
 
-export default function HRDashboardPage() {
+export default function HiringPage() {
   return (
     <DashboardLayout 
       sidebarConfig={hrDashboardConfig}
@@ -11,7 +11,7 @@ export default function HRDashboardPage() {
       showDataTable={true}
       dataTableData={hrData}
     >
-      {/* HR-specific custom content can go here */}
+      {/* Hiring-specific custom content can go here */}
     </DashboardLayout>
   )
 }

@@ -34,7 +34,13 @@ import ForgotPasswordPage from "./screens/Authentication/ForgotPasswordPage";
 import RoleSelectionPageForAdminandHR from "./screens/Authentication/RoleSelectionPageForAdminandHR";
 
 // Dashboard Screens
-import HRDashboardPage from "./screens/UserDashboards/HRDashboard/HRDashboardPage";
+import HRDashboardMainPage from "./screens/UserDashboards/HRDashboard/HRDashboardMainPage";
+import EvaluationsPage from "./screens/UserDashboards/HRDashboard/EvaluationsPage";
+import PerformancePage from "./screens/UserDashboards/HRDashboard/PerformancePage";
+import HiringPage from "./screens/UserDashboards/HRDashboard/HiringPage";
+import EmployeesPage from "./screens/UserDashboards/HRDashboard/EmployeesPage";
+import MessagesPage from "./screens/UserDashboards/HRDashboard/MessagesPage";
+import ReportsPage from "./screens/UserDashboards/HRDashboard/ReportsPage";
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
 import StaffDashboardPage from "./screens/UserDashboards/StaffDashboard/StaffDashboard";
 
@@ -83,7 +89,63 @@ const App = () => (
                 path="/human-resource-manager" 
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRDashboardPage />
+                    <HRDashboardMainPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/dashboard" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <HRDashboardMainPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/evaluations" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <EvaluationsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/performance" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <PerformancePage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/hiring" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <HiringPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/employees" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <EmployeesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/messages" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <MessagesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/reports" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <ReportsPage />
                   </ProtectedRoute>
                 } 
               />

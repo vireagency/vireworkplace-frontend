@@ -16,11 +16,13 @@ import {
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react"
+import { Badge } from "@/components/ui/badge"
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { NavCategorized } from "@/components/nav-categorized"
 import {
   Sidebar,
   SidebarContent,
@@ -169,16 +171,21 @@ export function AppSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5 flex justify-center">
               <a href="#">   
-                <img src="/Vector.svg" alt="Vire Workplace" className="h-6 w-auto" />
+                <img src="/VireWorkplace.svg" alt="Vire Workplace" className="h-6 w-auto" />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={userData.navMain} />
+        <NavMain items={userData.navMain} actionButtons={userData.actionButtons} />
+        <NavCategorized 
+          analytics={userData.analytics}
+          teams={userData.teams}
+          company={userData.company}
+        />
         <NavDocuments items={userData.documents} />
         <NavSecondary items={userData.navSecondary} className="mt-auto" />
       </SidebarContent>

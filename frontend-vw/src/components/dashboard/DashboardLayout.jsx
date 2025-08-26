@@ -130,3 +130,225 @@ export default function DashboardLayout({
     </div>
   )
 } 
+
+export function HRDashboardLayout({ 
+  children,
+  sidebarConfig,
+  showSectionCards = true,
+  showChart = true,
+  showDataTable = false,
+  dataTableData = null,
+  className = "min-h-screen bg-white"
+}) {
+  /**
+   * Force light theme for dashboard pages
+   * Ensures consistent light theme across all dashboard pages
+   * and restores dark theme when component unmounts
+   */
+  useEffect(() => {
+    // Switch to light theme for dashboard
+    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('light')
+    document.documentElement.style.colorScheme = 'light'
+    
+    return () => {
+      // Restore dark theme when component unmounts
+      document.documentElement.classList.remove('light')
+      document.documentElement.classList.add('dark')
+      document.documentElement.style.colorScheme = 'dark'
+    }
+  }, [])
+
+  return (
+    <div className={className}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          }
+        }
+      >
+        {/* Sidebar with configurable navigation */}
+        <AppSidebar variant="inset" config={sidebarConfig} />
+        
+        {/* Main content area */}
+        <SidebarInset>
+          {/* Top header */}
+          <SiteHeader />
+          
+          {/* Main content container */}
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {/* Section cards - configurable */}
+                {showSectionCards && <SectionCards />}
+                
+                {/* Custom content passed as children */}
+                {children}
+                
+                {/* Chart area - configurable */}
+                {showChart && (
+                  <div className="px-4 lg:px-6">
+                    <ChartAreaInteractive />
+                  </div>
+                )}
+                
+                {/* Data table - configurable */}
+                {showDataTable && dataTableData && <DataTable data={dataTableData} />}
+              </div>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+  )
+} 
+
+export function StaffDashboardLayout({ 
+  children,
+  sidebarConfig,
+  showSectionCards = true,
+  showChart = true,
+  showDataTable = false,
+  dataTableData = null,
+  className = "min-h-screen bg-white"
+}) {
+  /**
+   * Force light theme for dashboard pages
+   * Ensures consistent light theme across all dashboard pages
+   * and restores dark theme when component unmounts
+   */
+  useEffect(() => {
+    // Switch to light theme for dashboard
+    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('light')
+    document.documentElement.style.colorScheme = 'light'
+    
+    return () => {
+      // Restore dark theme when component unmounts
+      document.documentElement.classList.remove('light')
+      document.documentElement.classList.add('dark')
+      document.documentElement.style.colorScheme = 'dark'
+    }
+  }, [])
+
+  return (
+    <div className={className}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          }
+        }
+      >
+        {/* Sidebar with configurable navigation */}
+        <AppSidebar variant="inset" config={sidebarConfig} />
+        
+        {/* Main content area */}
+        <SidebarInset>
+          {/* Top header */}
+          <SiteHeader />
+          
+          {/* Main content container */}
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {/* Section cards - configurable */}
+                {showSectionCards && <SectionCards />}
+                
+                {/* Custom content passed as children */}
+                {children}
+                
+                {/* Chart area - configurable */}
+                {showChart && (
+                  <div className="px-4 lg:px-6">
+                    <ChartAreaInteractive />
+                  </div>
+                )}
+                
+                {/* Data table - configurable */}
+                {showDataTable && dataTableData && <DataTable data={dataTableData} />}
+              </div>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+  )
+} 
+
+export function AdminDashboardLayout({ 
+  children,
+  sidebarConfig,
+  showSectionCards = true,
+  showChart = true,
+  showDataTable = false,
+  dataTableData = null,
+  className = "min-h-screen bg-white"
+}) {
+  /**
+   * Force light theme for dashboard pages
+   * Ensures consistent light theme across all dashboard pages
+   * and restores dark theme when component unmounts
+   */
+  useEffect(() => {
+    // Switch to light theme for dashboard
+    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('light')
+    document.documentElement.style.colorScheme = 'light'
+    
+    return () => {
+      // Restore dark theme when component unmounts
+      document.documentElement.classList.remove('light')
+      document.documentElement.classList.add('dark')
+      document.documentElement.style.colorScheme = 'dark'
+    }
+  }, [])
+
+  return (
+    <div className={className}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          }
+        }
+      >
+        {/* Sidebar with configurable navigation */}
+        <AppSidebar variant="inset" config={sidebarConfig} />
+        
+        {/* Main content area */}
+        <SidebarInset>
+          {/* Top header */}
+          <SiteHeader />
+          
+          {/* Main content container */}
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {/* Section cards - configurable */}
+                {showSectionCards && <SectionCards />}
+                
+                {/* Custom content passed as children */}
+                {children}
+                
+                {/* Chart area - configurable */}
+                {showChart && (
+                  <div className="px-4 lg:px-6">
+                    <ChartAreaInteractive />
+                  </div>
+                )}
+                
+                {/* Data table - configurable */}
+                {showDataTable && dataTableData && <DataTable data={dataTableData} />}
+              </div>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+  )
+} 

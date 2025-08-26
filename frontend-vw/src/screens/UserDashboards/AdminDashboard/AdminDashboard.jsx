@@ -1,10 +1,10 @@
-import DashboardLayout from "@/components/dashboard/DashboardLayout"
+import AdminDashboardLayout from "@/components/dashboard/AdminDashboardLayout"
 import { adminDashboardConfig } from "@/config/dashboardConfigs"
 import adminData from "./admindata.json"
 
 export default function AdminDashboardPage() {
   return (
-    <DashboardLayout 
+    <AdminDashboardLayout 
       sidebarConfig={adminDashboardConfig}
       showSectionCards={true}
       showChart={true}
@@ -12,6 +12,6 @@ export default function AdminDashboardPage() {
       dataTableData={adminData}
     >
       {/* Admin-specific custom content can go here */}
-    </DashboardLayout>
+    </AdminDashboardLayout>
   )
 }

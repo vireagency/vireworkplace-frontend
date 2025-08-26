@@ -1,10 +1,10 @@
-import DashboardLayout from "@/components/dashboard/DashboardLayout"
+import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout"
 import { staffDashboardConfig } from "@/config/dashboardConfigs"
 import staffData from "./staffData.json"
 
 export default function StaffDashboardPage() {
   return (
-    <DashboardLayout 
+    <StaffDashboardLayout 
       sidebarConfig={staffDashboardConfig}
       showSectionCards={true}
       showChart={true}
@@ -12,6 +12,6 @@ export default function StaffDashboardPage() {
       dataTableData={staffData}
     >
       {/* Staff-specific custom content can go here */}
-    </DashboardLayout>
+    </StaffDashboardLayout>
   )
 }
