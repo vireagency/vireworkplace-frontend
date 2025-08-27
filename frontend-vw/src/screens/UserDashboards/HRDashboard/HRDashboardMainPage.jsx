@@ -13,6 +13,16 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
+import { useNavigate } from "react-router-dom"
+import axios from "axios"
+import { 
+  Table, 
+  TableHeader, 
+  TableBody, 
+  TableHead, 
+  TableRow, 
+  TableCell 
+} from "@/components/ui/table"
 
 function getGreeting() {
   const currentHour = new Date().getHours()
@@ -21,12 +31,117 @@ function getGreeting() {
   return "Good Evening"
 }
 
+// StatusBadge component with fallback logic
+const StatusBadge = ({ status }) => {
+  const statusConfig = {
+    "Active": { 
+      bgColor: "bg-green-50", 
+      borderColor: "border-green-200", 
+      textColor: "text-green-700",
+      dotColor: "bg-green-500",
+      text: "Active" 
+    },
+    "In-active": { 
+      bgColor: "bg-orange-50", 
+      borderColor: "border-orange-200", 
+      textColor: "text-orange-700",
+      dotColor: "bg-orange-500",
+      text: "In-active" 
+    },
+    "Closed": { 
+      bgColor: "bg-red-50", 
+      borderColor: "border-red-200", 
+      textColor: "text-red-700",
+      dotColor: "bg-red-500",
+      text: "Closed" 
+    }
+  }
+  
+  const config = statusConfig[status] || statusConfig["In-active"]
+  
+  return (
+    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}>
+      <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
+      <span className={`text-sm font-medium ${config.textColor}`}>{config.text}</span>
+    </div>
+  )
+}
+
 export default function HRDashboardMainPage() {
-  const { user } = useAuth()
+  const { user, accessToken } = useAuth()
+  const navigate = useNavigate()
   const greeting = getGreeting()
   
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User"
+
+  // API configuration
+  const API_URL = "/api/v1"
+
+  // State for employee data
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Fetch employees from API
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true)
+        
+        // Check authentication
+        if (!accessToken) {
+          console.log("No access token available")
+          throw new Error("No access token available. Please log in again.")
+        }
+        
+        console.log("Making API call to:", `${API_URL}/employees/list`)
+        console.log("User:", user)
+        console.log("User role:", user?.role)
+        
+        const response = await axios.get(`${API_URL}/employees/list`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        if (response.data.success) {
+          // Transform API data to match our component structure
+          const transformedEmployees = response.data.data.map(emp => ({
+            id: emp._id,
+            name: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email,
+            role: emp.jobRole,
+            department: emp.department,
+            status: emp.attendanceStatus || "In-active", // Fallback to "In-active" if status is undefined/null
+            location: emp.locationToday,
+            checkIn: emp.checkInTime,
+            avatar: emp.avatar || null
+          }))
+          
+          setEmployees(transformedEmployees)
+          console.log("API Response:", response.data)
+          console.log("Transformed Employees:", transformedEmployees)
+          console.log("Employee statuses:", transformedEmployees.map(emp => ({ name: emp.name, status: emp.status })))
+        } else {
+          setError("Failed to fetch employees")
+        }
+      } catch (err) {
+        console.error("Error fetching employees:", err)
+        setError(`Error fetching employees: ${err.message}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEmployees()
+  }, [accessToken, API_URL, user])
+
+  // Function to handle navigation to Employees page
+  const handleSeeAllEmployees = () => {
+    navigate("/human-resource-manager/employees")
+  }
 
   return (
     <HRDashboardLayout 
@@ -244,9 +359,12 @@ export default function HRDashboardMainPage() {
               <div className="flex items-center gap-64">
                 <p className="text-sm text-gray-500">Monitor employee status, attendance, and task completion in real-time</p>
                 <div className="text-center">
-                  <a href="#" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                  <button 
+                    onClick={handleSeeAllEmployees}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
+                  >
                     See All Employees &gt;
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -254,241 +372,116 @@ export default function HRDashboardMainPage() {
 
           {/* Employee Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading employees...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="text-red-500 text-4xl mb-4">⚠️</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Employees</h3>
+                <p className="text-gray-500 mb-4">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : (
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="border-b border-gray-200">
+                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                     <div className="flex items-center gap-2">
                       Name
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                       </svg>
                     </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  </TableHead>
+                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                     <div className="flex items-center gap-2">
                       Status
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                       </svg>
                     </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  </TableHead>
+                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                     <div className="flex items-center gap-2">
                       Role
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  </TableHead>
+                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                     <div className="flex items-center gap-2">
                       Location Today
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                       </svg>
                     </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  </TableHead>
+                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                     <div className="flex items-center gap-2">
                       Check-In Time
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                       </svg>
                     </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
+                  </TableHead>
+                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                     <div className="flex items-center gap-2">
                       Tasks Completed Today
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                       </svg>
                     </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {/* Employee Row 1 */}
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">BL</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-100">
+                {employees.slice(0, 5).map((employee) => (
+                  <TableRow key={employee.id} className="hover:bg-gray-50">
+                    <TableCell className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-600">
+                            {employee.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{employee.name}</div>
+                          <div className="text-sm text-gray-500">{employee.email}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">Bless Lamptey</div>
-                        <div className="text-sm text-gray-500">blesslampt@gmail.com</div>
+                    </TableCell>
+                    <TableCell className="py-4 px-4">
+                      <StatusBadge status={employee.status} />
+                    </TableCell>
+                    <TableCell className="py-4 px-4">
+                      <span className="text-sm text-gray-900">{employee.role}</span>
+                    </TableCell>
+                    <TableCell className="py-4 px-4">
+                      <span className="text-sm text-gray-900">{employee.location}</span>
+                    </TableCell>
+                    <TableCell className="py-4 px-4">
+                      <span className="text-sm text-purple-600 font-medium">{employee.checkIn}</span>
+                    </TableCell>
+                    <TableCell className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">5</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">On Track</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-600 font-medium">Active</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Graphic Designer</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">In-person</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-purple-600 font-medium">8:30 am</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">+4</span>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">On Track</span>
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Employee Row 2 */}
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">FA</span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">Fiifi Adoko</div>
-                        <div className="text-sm text-gray-500">adoko@gmail.com</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-600 font-medium">Active</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Graphic Designer</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">In-person</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-purple-600 font-medium">9:10 am</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">3</span>
-                      <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">Low Input</span>
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Employee Row 3 */}
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">MQ</span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">Maame Esi Quansah</div>
-                        <div className="text-sm text-gray-500">quansahesi@gmail.com</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm text-orange-600 font-medium">In-active</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Admin Assistant</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Remote</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-orange-600 font-medium">10:00 am</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">5</span>
-                      <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">Incomplete</span>
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Employee Row 4 */}
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">WO</span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">William Ofosu Parwar</div>
-                        <div className="text-sm text-gray-500">william677@gmail.com</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-600 font-medium">Active</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Software Developer</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Remote</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-purple-600 font-medium">9:00 am</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">5</span>
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Completed</span>
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Employee Row 5 */}
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">JJ</span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">Jerry John Richman</div>
-                        <div className="text-sm text-gray-500">johnjerry@gmail.com</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-sm text-red-600 font-medium">Closed</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Software Developer</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-900">Remote</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-orange-600 font-medium">9:35 am</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">4</span>
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Completed</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            )}
           </div>
         </div>
       </div>

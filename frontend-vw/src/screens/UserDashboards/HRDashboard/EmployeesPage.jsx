@@ -221,7 +221,7 @@ export default function EmployeesPage() {
     const config = statusConfig[status] || statusConfig["In-active"]
     
     return (
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${config.bgColor} ${config.borderColor}`}>
+      <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}>
         <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
         <span className={`text-sm font-medium ${config.textColor}`}>{config.text}</span>
       </div>
@@ -479,20 +479,7 @@ export default function EmployeesPage() {
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{selectedEmployee.name}</h3>
                   <p className="text-gray-600 mb-3">{selectedEmployee.role}</p>
-                  {(() => {
-                    const statusConfig = {
-                      active: { bgColor: "bg-green-50", borderColor: "border-green-200", textColor: "text-green-700", dotColor: "bg-green-500", text: "Active" },
-                      inactive: { bgColor: "bg-orange-50", borderColor: "border-orange-200", textColor: "text-orange-700", dotColor: "bg-orange-500", text: "Inactive" },
-                      closed: { bgColor: "bg-red-50", borderColor: "border-red-200", textColor: "text-red-700", dotColor: "bg-red-500", text: "Closed" }
-                    }
-                    const config = statusConfig[selectedEmployee.status] || statusConfig.active
-                    return (
-                      <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full ${config.bgColor} ${config.borderColor}`}>
-                        <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
-                        <span className={`text-sm font-medium ${config.textColor}`}>{config.text}</span>
-                      </div>
-                    )
-                  })()}
+                  <StatusBadge status={selectedEmployee.status} />
                 </div>
               </div>
 
