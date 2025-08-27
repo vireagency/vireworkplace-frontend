@@ -45,11 +45,14 @@ npm run preview
 
 1. **Connect Repository**: Link your GitHub repository to Vercel
 2. **Configure Build Settings**:
-   - Build Command: `npm run build:prod`
+   - Build Command: `npm run build:prod` (or use vercel.json)
    - Output Directory: `dist`
    - Install Command: `npm install`
+   - Framework Preset: Vite
 3. **Set Environment Variables**: Add the production environment variables
 4. **Deploy**: Click deploy and wait for build completion
+
+**Note**: The `vercel.json` file is already configured with the correct build command and output directory.
 
 ### 3. Post-Deployment
 
