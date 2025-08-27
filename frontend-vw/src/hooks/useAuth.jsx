@@ -28,6 +28,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // API base URL for authentication endpoints
 const API_URL = 'https://vireworkplace-backend-hpca.onrender.com/api/v1'; 
@@ -56,6 +58,61 @@ export const AuthProvider = ({ children }) => {
   
   // Loading state for authentication operations
   const [loading, setLoading] = useState(true);
+
+  // Check if token is expired
+  const isTokenExpired = (token) => {
+    if (!token) return true;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      return payload.exp < currentTime;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+      return true;
+    }
+  };
+
+  // Setup axios interceptor for automatic logout on 401
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.log('Token expired or invalid, logging out user');
+          toast.error('Session expired. Please log in again.');
+          signOut();
+          // Redirect to landing page
+          window.location.href = '/';
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
+  // Check token expiration on mount and set up periodic checks
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      if (accessToken && isTokenExpired(accessToken)) {
+        console.log('Token expired, logging out user');
+        toast.error('Session expired. Please log in again.');
+        signOut();
+        window.location.href = '/';
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiration();
+
+    // Check every 5 minutes
+    const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [accessToken]);
 
   // Do not fetch on mount. Keep loading false after initial render.
   useEffect(() => {
@@ -124,6 +181,31 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
+  };
+
+  /**
+   * Check if current token is valid and not expired
+   * 
+   * @returns {boolean} True if token is valid and not expired
+   */
+  const isTokenValid = () => {
+    return accessToken && !isTokenExpired(accessToken);
+  };
+
+  /**
+   * Get token expiration time (for debugging)
+   * 
+   * @returns {Date | null} Expiration date or null if invalid token
+   */
+  const getTokenExpiration = () => {
+    if (!accessToken) return null;
+    
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      return new Date(payload.exp * 1000);
+    } catch (error) {
+      return null;
+    }
   };
 
   /**
@@ -200,7 +282,10 @@ export const AuthProvider = ({ children }) => {
         signUp, 
         signOut, 
         fetchUserProfile,
-        updateProfile 
+        updateProfile,
+        isTokenValid,
+        isTokenExpired,
+        getTokenExpiration
       }}
     >
       {children}

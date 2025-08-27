@@ -14,6 +14,14 @@ export default defineConfig({
   server: {
     hmr: {
       overlay: false
+    },
+    proxy: {
+      '/api': {
+        target: 'https://vireworkplace-backend-hpca.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
     }
   }
 })

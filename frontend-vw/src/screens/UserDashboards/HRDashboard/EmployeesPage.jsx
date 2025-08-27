@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import DashboardLayout from "@/components/dashboard/DashboardLayout"
 import { hrDashboardConfig } from "@/config/dashboardConfigs"
 import { Card } from "@/components/ui/card"
@@ -11,224 +11,111 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Search, Filter, MapPin, Clock, MoreVertical, Edit, Eye, Users, Mail, Briefcase, X } from "lucide-react"
+import axios from "axios"
+import { useAuth } from "@/hooks/useAuth"
 
-// Sample employee data matching the UI
-const employees = [
-  {
-    id: 1,
-    name: "Bless Lamptey",
-    email: "blesslampt@gmail.com",
-    role: "Graphic Designer",
-    department: "Design",
-    status: "active",
-    location: "In-person",
-    checkIn: "8:30 am",
-    avatar: null
-  },
-  {
-    id: 2,
-    name: "Fiifi Adoko",
-    email: "adoko@gmail.com",
-    role: "Graphic Designer",
-    department: "Design",
-    status: "active",
-    location: "In-person",
-    checkIn: "9:10 am",
-    avatar: null
-  },
-  {
-    id: 3,
-    name: "Maame Esi Quansah",
-    email: "quansahesi@gmail.com",
-    role: "Admin Assistant",
-    department: "Administration",
-    status: "inactive",
-    location: "Remote",
-    checkIn: "10:00 am",
-    avatar: null
-  },
-  {
-    id: 4,
-    name: "William Ofosu Parwar",
-    email: "william677@gmail.com",
-    role: "Software Developer",
-    department: "Engineering",
-    status: "active",
-    location: "Remote",
-    checkIn: "9:00 am",
-    avatar: null
-  },
-  {
-    id: 5,
-    name: "Jerry John Richman",
-    email: "johnjerry@gmail.com",
-    role: "Software Developer",
-    department: "Engineering",
-    status: "closed",
-    location: "Remote",
-    checkIn: "9:35 am",
-    avatar: null
-  },
-  {
-    id: 6,
-    name: "Lemuel Oti",
-    email: "lee@gmail.com",
-    role: "Software Developer",
-    department: "Engineering",
-    status: "active",
-    location: "In-person",
-    checkIn: "9:10 am",
-    avatar: null
-  },
-  {
-    id: 7,
-    name: "Agnes Doe",
-    email: "agnes1@gmail.com",
-    role: "Graphic Designer",
-    department: "Design",
-    status: "inactive",
-    location: "Remote",
-    checkIn: "10:00 am",
-    avatar: null
-  },
-  {
-    id: 8,
-    name: "Emerald Doe",
-    email: "emy67@gmail.com",
-    role: "Intern",
-    department: "Engineering",
-    status: "active",
-    location: "Remote",
-    checkIn: "9:00 am",
-    avatar: null
-  },
-  {
-    id: 9,
-    name: "Sarah Johnson",
-    email: "sarah.j@company.com",
-    role: "Marketing Manager",
-    department: "Marketing",
-    status: "active",
-    location: "In-person",
-    checkIn: "8:45 am",
-    avatar: null
-  },
-  {
-    id: 10,
-    name: "Michael Chen",
-    email: "mchen@company.com",
-    role: "Data Analyst",
-    department: "Engineering",
-    status: "active",
-    location: "Remote",
-    checkIn: "9:15 am",
-    avatar: null
-  },
-  {
-    id: 11,
-    name: "Lisa Rodriguez",
-    email: "lisa.r@company.com",
-    role: "HR Specialist",
-    department: "Administration",
-    status: "inactive",
-    location: "In-person",
-    checkIn: "10:30 am",
-    avatar: null
-  },
-  {
-    id: 12,
-    name: "David Kim",
-    email: "dkim@company.com",
-    role: "Product Manager",
-    department: "Engineering",
-    status: "active",
-    location: "Remote",
-    checkIn: "8:55 am",
-    avatar: null
-  },
-  {
-    id: 13,
-    name: "Emma Wilson",
-    email: "emma.w@company.com",
-    role: "UX Designer",
-    department: "Design",
-    status: "active",
-    location: "In-person",
-    checkIn: "9:20 am",
-    avatar: null
-  },
-  {
-    id: 14,
-    name: "James Brown",
-    email: "jbrown@company.com",
-    role: "Sales Representative",
-    department: "Sales",
-    status: "closed",
-    location: "Remote",
-    checkIn: "9:40 am",
-    avatar: null
-  },
-  {
-    id: 15,
-    name: "Maria Garcia",
-    email: "mgarcia@company.com",
-    role: "Content Writer",
-    department: "Marketing",
-    status: "active",
-    location: "Remote",
-    checkIn: "8:50 am",
-    avatar: null
-  },
-  {
-    id: 16,
-    name: "Robert Taylor",
-    email: "rtaylor@company.com",
-    role: "DevOps Engineer",
-    department: "Engineering",
-    status: "active",
-    location: "In-person",
-    checkIn: "9:05 am",
-    avatar: null
-  },
-  {
-    id: 17,
-    name: "Jennifer Lee",
-    email: "jlee@company.com",
-    role: "Financial Analyst",
-    department: "Administration",
-    status: "inactive",
-    location: "Remote",
-    checkIn: "10:15 am",
-    avatar: null
-  },
-  {
-    id: 18,
-    name: "Thomas Anderson",
-    email: "tanderson@company.com",
-    role: "QA Engineer",
-    department: "Engineering",
-    status: "active",
-    location: "In-person",
-    checkIn: "9:25 am",
-    avatar: null
-  }
-]
+// API configuration - using the same API_URL as useAuth
+  const API_URL = "/api/v1"
 
+// Sample departments for filtering
 const departments = ["Design", "Engineering", "Social Media", "Marketing", "Production"]
 
 export default function EmployeesPage() {
+  const { accessToken, user, isAuthenticated, isTokenValid, getTokenExpiration } = useAuth()
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [departmentFilter, setDepartmentFilter] = useState("all")
   const [viewFilter, setViewFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
+  const itemsPerPage = 5
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
 
+  // Fetch employees from API
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true)
+        
+        // Check authentication
+        if (!accessToken) {
+          console.log("Authentication status:", { isAuthenticated, hasToken: !!accessToken })
+          throw new Error("No access token available. Please log in again.")
+        }
+        
+        console.log("Making API call to:", `${API_URL}/employees/list`)
+        console.log("User:", user)
+        console.log("User role:", user?.role)
+        console.log("Access token:", accessToken)
+        console.log("Token length:", accessToken?.length)
+        console.log("Token starts with:", accessToken?.substring(0, 20))
+        console.log("Token valid:", isTokenValid())
+        console.log("Token expires at:", getTokenExpiration())
+        
+        const response = await axios.get(`${API_URL}/employees/list`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        console.log("Response received:", response)
+        
+        if (response.data.success) {
+          // Transform API data to match our component structure
+          const transformedEmployees = response.data.data.map(emp => ({
+            id: emp._id,
+            name: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email, // Use the actual email field from API
+            role: emp.jobRole,
+            department: emp.department, // Use the actual department field from API
+            status: emp.attendanceStatus,
+            location: emp.locationToday,
+            checkIn: emp.checkInTime,
+            avatar: emp.avatar || null
+          }))
+          
+          setEmployees(transformedEmployees)
+          console.log("API Response:", response.data)
+          console.log("Transformed Employees:", transformedEmployees)
+          console.log("Employees state set to:", transformedEmployees.length, "employees")
+        } else {
+          setError("Failed to fetch employees")
+        }
+      } catch (err) {
+        console.error("Error fetching employees:", err)
+        console.error("Error details:", {
+          message: err.message,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data
+        })
+        
+        // Log the full error response for debugging
+        if (err.response?.data) {
+          console.error("Backend error response:", err.response.data)
+        }
+        
+        // Set a more specific error message
+        if (err.response?.status === 403) {
+          setError("Access denied. You may not have permission to view employee data.")
+        } else {
+          setError(`Error fetching employees: ${err.message}`)
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEmployees()
+  }, [])
+
   // Filter employees based on search and filters
   const filteredEmployees = useMemo(() => {
-    return employees.filter(employee => {
+    console.log("Filtering employees:", employees.length, "total employees")
+    const filtered = employees.filter(employee => {
       const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           employee.role.toLowerCase().includes(searchTerm.toLowerCase())
@@ -238,12 +125,22 @@ export default function EmployeesPage() {
       
       return matchesSearch && matchesStatus && matchesDepartment
     })
-  }, [searchTerm, statusFilter, departmentFilter])
+    console.log("Filtered employees:", filtered.length, "employees after filtering")
+    return filtered
+  }, [employees, searchTerm, statusFilter, departmentFilter])
 
   // Pagination
   const totalItems = filteredEmployees.length
   const currentEmployees = filteredEmployees.slice(0, currentPage * itemsPerPage)
-  const hasMoreItems = currentEmployees.length < totalItems
+  const hasMoreItems = currentEmployees.length < totalItems && totalItems > 0
+  
+  console.log("Pagination debug:", {
+    totalItems,
+    currentPage,
+    itemsPerPage,
+    currentEmployeesLength: currentEmployees.length,
+    hasMoreItems
+  })
 
   const handleLoadMore = () => {
     setCurrentPage(prev => prev + 1)
@@ -254,23 +151,65 @@ export default function EmployeesPage() {
     setIsModalOpen(true)
   }
 
+  // Loading state
+  if (loading) {
+    return (
+      <DashboardLayout 
+        sidebarConfig={hrDashboardConfig}
+        showSectionCards={false}
+        showChart={false}
+        showDataTable={false}
+      >
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading employees...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <DashboardLayout 
+        sidebarConfig={hrDashboardConfig}
+        showSectionCards={false}
+        showChart={false}
+        showDataTable={false}
+      >
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Employees</h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} className="bg-green-500 hover:bg-green-600">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   const StatusBadge = ({ status }) => {
     const statusConfig = {
-      active: { 
+      "Active": { 
         bgColor: "bg-green-50", 
         borderColor: "border-green-200", 
         textColor: "text-green-700",
         dotColor: "bg-green-500",
         text: "Active" 
       },
-      inactive: { 
+      "In-active": { 
         bgColor: "bg-orange-50", 
         borderColor: "border-orange-200", 
         textColor: "text-orange-700",
         dotColor: "bg-orange-500",
-        text: "Inactive" 
+        text: "In-active" 
       },
-      closed: { 
+      "Closed": { 
         bgColor: "bg-red-50", 
         borderColor: "border-red-200", 
         textColor: "text-red-700",
@@ -279,7 +218,7 @@ export default function EmployeesPage() {
       }
     }
     
-    const config = statusConfig[status] || statusConfig.inactive
+    const config = statusConfig[status] || statusConfig["In-active"]
     
     return (
       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${config.bgColor} ${config.borderColor}`}>

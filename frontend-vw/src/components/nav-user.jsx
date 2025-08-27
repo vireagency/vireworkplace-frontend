@@ -164,7 +164,10 @@ export function NavUser({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout}>
+                  <AlertDialogAction 
+                    onClick={handleLogout}
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                  >
                     Log out
                   </AlertDialogAction>
                 </AlertDialogFooter>

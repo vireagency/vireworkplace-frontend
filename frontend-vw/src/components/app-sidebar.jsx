@@ -171,8 +171,8 @@ export function AppSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5 flex justify-center">
-              <a href="#">   
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+              <a href="#" className="flex items-center">   
                 <img src="/VireWorkplace.svg" alt="Vire Workplace" className="h-6 w-auto" />
               </a>
             </SidebarMenuButton>

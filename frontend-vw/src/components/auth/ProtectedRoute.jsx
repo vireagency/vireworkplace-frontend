@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isTokenValid } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  if (!user) {
+  if (!user || !isTokenValid()) {
     return <Navigate to="/" replace />;
   }
 
