@@ -43,6 +43,7 @@ import MessagesPage from "./screens/UserDashboards/HRDashboard/MessagesPage";
 import ReportsPage from "./screens/UserDashboards/HRDashboard/ReportsPage";
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
 import StaffDashboardPage from "./screens/UserDashboards/StaffDashboard/StaffDashboard";
+import NotFound from "./screens/NotFound";
 
 // Initialize React Query client for data fetching and caching
 const queryClient = new QueryClient();
@@ -166,8 +167,8 @@ const App = () => (
                 } 
               />
               
-              {/* TODO: Add 404 Not Found page */}
-              {/* <Route path="*" element={<NotFound />} /> */}
+              {/* 404 Not Found page */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>

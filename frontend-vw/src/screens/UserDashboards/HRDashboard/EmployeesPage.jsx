@@ -14,8 +14,9 @@ import { Search, Filter, MapPin, Clock, MoreVertical, Edit, Eye, Users, Mail, Br
 import axios from "axios"
 import { useAuth } from "@/hooks/useAuth"
 
-// API configuration - using the same API_URL as useAuth
-  const API_URL = "/api/v1"
+// API configuration - using the centralized API config
+import { getApiUrl } from "@/config/apiConfig"
+const API_URL = getApiUrl()
 
 // Sample departments for filtering
 const departments = ["Design", "Engineering", "Social Media", "Marketing", "Production"]

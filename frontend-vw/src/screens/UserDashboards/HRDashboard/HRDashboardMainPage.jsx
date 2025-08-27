@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/hooks/useAuth"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
+import { getApiUrl } from "@/config/apiConfig"
 import { 
   Table, 
   TableHeader, 
@@ -76,7 +77,7 @@ export default function HRDashboardMainPage() {
   const userName = user?.firstName || "User"
 
   // API configuration
-  const API_URL = "/api/v1"
+  const API_URL = getApiUrl()
 
   // State for employee data
   const [employees, setEmployees] = useState([])
