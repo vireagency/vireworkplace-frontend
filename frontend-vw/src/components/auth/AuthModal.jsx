@@ -281,6 +281,9 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
             localStorage.setItem('temp_token', tempToken);
           }
           
+          // Store user's first name in localStorage for welcome page
+          localStorage.setItem('signup_firstName', formData.firstName);
+          
           toast.success('Account created successfully! Please check your email for OTP verification.');
           onClose();
           

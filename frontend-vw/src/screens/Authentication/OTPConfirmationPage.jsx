@@ -238,35 +238,34 @@ const OTPConfirmationPage = () => {
               className="gap-2"
               pattern="[0-9]*"
               inputMode="numeric"
-              type="number"
             >
               <InputOTPGroup>
                 <InputOTPSlot 
                   index={0} 
-                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg"
+                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
                 <InputOTPSlot 
                   index={1} 
-                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg"
+                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
                 <InputOTPSlot 
                   index={2} 
-                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg"
+                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
               </InputOTPGroup>
               <InputOTPSeparator />
               <InputOTPGroup>
                 <InputOTPSlot 
                   index={3} 
-                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg"
+                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
                 <InputOTPSlot 
                   index={4} 
-                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg"
+                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
                 <InputOTPSlot 
                   index={5} 
-                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg"
+                  className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
               </InputOTPGroup>
             </InputOTP>
@@ -276,7 +275,7 @@ const OTPConfirmationPage = () => {
           <Button
             onClick={handleVerify}
             disabled={isVerifying || !validateOTP(otp)}
-            className="w-full max-w-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold mb-6"
+            className="w-full max-w-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold mb-6 cursor-pointer"
           >
             {isVerifying ? "Verifying..." : "Verify"}
           </Button>
@@ -286,7 +285,7 @@ const OTPConfirmationPage = () => {
             Didn't receive the code?{" "}
             <button
               onClick={handleResendOTP}
-              className="text-foreground text-green-500 hover:text-primary underline"
+              className="text-foreground text-green-500 hover:text-primary underline cursor-pointer"
             >
               Resend OTP
             </button>

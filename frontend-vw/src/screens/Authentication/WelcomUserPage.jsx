@@ -17,6 +17,19 @@ const WelcomeUserPage = () => {
     }
   }, [user]);
 
+  // Clean up signup firstName from localStorage after displaying welcome message
+  useEffect(() => {
+    const signupFirstName = localStorage.getItem('signup_firstName');
+    if (signupFirstName) {
+      // Remove the signup firstName from localStorage after a short delay
+      const timer = setTimeout(() => {
+        localStorage.removeItem('signup_firstName');
+      }, 1000); // Remove after 1 second
+      
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // Force dark theme for authentication pages
   useEffect(() => {
     document.documentElement.classList.remove('light')
@@ -82,7 +95,7 @@ const WelcomeUserPage = () => {
         {/* Welcome Message */}
         <div className="text-center max-w-5xl mx-auto animate-slide-up" >
           <h1 className="text-3xl md:text-3xl lg:text-3xl font-bold text-foreground mb-8 leading-tight">
-            👋 Hi, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Welcome to Vire Workplace
+            👋 Hi, {user?.firstName || localStorage.getItem('signup_firstName') || user?.email?.split('@')[0] || 'User'}! Welcome to Vire Workplace
           </h1>
           
           {/* Security Information */}
