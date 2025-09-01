@@ -75,6 +75,7 @@ export default function EmployeesPage() {
             status: emp.attendanceStatus,
             location: emp.locationToday,
             checkIn: emp.checkInTime,
+            isLate: emp.isLate, // Use the isLate field from API
             avatar: emp.avatar || null
           }))
           
@@ -150,6 +151,17 @@ export default function EmployeesPage() {
   const handleViewEmployee = (employee) => {
     setSelectedEmployee(employee)
     setIsModalOpen(true)
+  }
+
+  // Function to determine arrival status based on isLate field from API
+  const getArrivalStatus = (isLate) => {
+    if (isLate === true) {
+      return { status: 'Late', color: 'bg-red-100 text-red-600' }
+    } else if (isLate === false) {
+      return { status: 'On Time', color: 'bg-green-100 text-green-600' }
+    } else {
+      return { status: 'Unknown', color: 'bg-gray-100 text-gray-600' }
+    }
   }
 
   // Loading state
@@ -480,7 +492,15 @@ export default function EmployeesPage() {
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{selectedEmployee.name}</h3>
                   <p className="text-gray-600 mb-3">{selectedEmployee.role}</p>
-                  <StatusBadge status={selectedEmployee.status} />
+                  <div className="flex items-center space-x-20">
+                    <StatusBadge status={selectedEmployee.status} />
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">Arrival:</span>
+                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getArrivalStatus(selectedEmployee.isLate).color}`}>
+                        {getArrivalStatus(selectedEmployee.isLate).status}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -488,36 +508,36 @@ export default function EmployeesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    <div>
+                    <Mail className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium text-gray-900">{selectedEmployee.email}</p>
+                      <p className="font-medium text-gray-900 truncate break-all">{selectedEmployee.email}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <Briefcase className="w-5 h-5 text-gray-400" />
-                    <div>
+                    <Briefcase className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Department</p>
-                      <p className="font-medium text-gray-900">{selectedEmployee.department}</p>
+                      <p className="font-medium text-gray-900 truncate">{selectedEmployee.department}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-5 h-5 text-gray-400" />
-                    <div>
+                    <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Work Location</p>
-                      <p className="font-medium text-gray-900">{selectedEmployee.location}</p>
+                      <p className="font-medium text-gray-900 truncate">{selectedEmployee.location}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <Clock className="w-5 h-5 text-gray-400" />
-                    <div>
+                    <Clock className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Last Check-in</p>
-                      <p className="font-medium text-gray-900">{selectedEmployee.checkIn}</p>
+                      <p className="font-medium text-gray-900 truncate">{selectedEmployee.checkIn}</p>
                     </div>
                   </div>
                 </div>
