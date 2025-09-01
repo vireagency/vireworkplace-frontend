@@ -1,127 +1,131 @@
-# 🚀 Vercel Deployment Guide
+# 🚀 Vercel Deployment Guide for Vire Workplace HR App
 
-## Prerequisites
+## Overview
+This guide helps resolve common deployment issues when deploying the Vire Workplace HR App to Vercel.
 
-- Node.js 18+ installed
-- Vercel account
-- Git repository connected to Vercel
+## ✅ Pre-Deployment Checklist
 
-## Environment Setup
+### 1. Dependencies Check
+- [ ] Vite is in `dependencies` (not `devDependencies`)
+- [ ] `@vitejs/plugin-react` is in `dependencies`
+- [ ] All required packages are properly installed
 
-### 1. Production Environment Variables
+### 2. Build Scripts
+- [ ] `build:vercel` script exists and works locally
+- [ ] `prebuild` script cleans the dist directory
+- [ ] Build command uses production mode
 
-Create the following environment variables in your Vercel project:
+### 3. Configuration Files
+- [ ] `vercel.json` is properly configured
+- [ ] `.nvmrc` specifies Node.js version (18+)
+- [ ] `.vercelignore` excludes unnecessary files
 
+## 🔧 Common Issues & Solutions
+
+### Issue: "vite: command not found"
+**Cause**: Vite is in `devDependencies` instead of `dependencies`
+
+**Solution**: 
 ```bash
-VITE_API_URL=https://vireworkplace-backend-hpca.onrender.com/api/v1
-VITE_APP_ENV=production
-NODE_ENV=production
+# Move vite to dependencies
+npm install vite @vitejs/plugin-react
+npm uninstall vite @vitejs/plugin-react --save-dev
 ```
 
-### 2. Build Configuration
+### Issue: Build fails with exit code 127
+**Cause**: Missing dependencies or incorrect Node.js version
 
-The app is configured to:
-- Use production API endpoints in production
-- Use development proxy in development
-- Optimize bundle size with code splitting
-- Remove console logs in production
+**Solution**:
+1. Check Node.js version: `node --version` (should be 18+)
+2. Clear cache: `npm cache clean --force`
+3. Delete node_modules: `rm -rf node_modules package-lock.json`
+4. Reinstall: `npm install`
 
-## Deployment Steps
+### Issue: Environment variables not available
+**Cause**: Missing environment configuration
+
+**Solution**:
+1. Set environment variables in Vercel dashboard
+2. Use `VITE_` prefix for client-side variables
+3. Ensure `.env` files are not in `.vercelignore`
+
+## 🚀 Deployment Steps
 
 ### 1. Local Build Test
-
 ```bash
-# Install dependencies
-npm install
+# Test build locally first
+npm run build:vercel
 
-# Build for production
-npm run build:prod
-
-# Preview production build
-npm run preview
+# Verify dist folder is created
+ls -la dist/
 ```
 
-### 2. Vercel Deployment
-
-1. **Connect Repository**: Link your GitHub repository to Vercel
-2. **Configure Build Settings**:
-   - Build Command: `npm run build:prod` (or use vercel.json)
-   - Output Directory: `dist`
-   - Install Command: `npm install`
-   - Framework Preset: Vite
-3. **Set Environment Variables**: Add the production environment variables
-4. **Deploy**: Click deploy and wait for build completion
-
-**Note**: The `vercel.json` file is already configured with the correct build command and output directory.
-
-### 3. Post-Deployment
-
-- Verify all routes work correctly
-- Test authentication flows
-- Check API connectivity
-- Monitor performance metrics
-
-## Route Structure
-
-### Public Routes
-- `/` - Landing page
-- `/otp-request` - OTP request
-- `/otp-confirmation` - OTP confirmation
-- `/forgot-password` - Password reset
-- `/reset-password` - Password reset form
-- `/welcome-user` - Welcome page
-- `/role-selection` - Role selection
-
-### Protected Routes
-- `/human-resource-manager/*` - HR Dashboard routes
-- `/admin` - Admin Dashboard
-- `/staff` - Staff Dashboard
-
-## API Configuration
-
-- **Development**: Uses Vite proxy (`/api/v1`)
-- **Production**: Direct API calls to backend
-- **Fallback**: Graceful error handling for API failures
-
-## Performance Optimizations
-
-- Code splitting for vendor libraries
-- Asset optimization and compression
-- Cache headers for static assets
-- Tree shaking for unused code
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Build Failures**: Check Node.js version (18+ required)
-2. **Routing Issues**: Verify vercel.json configuration
-3. **API Errors**: Check environment variables
-4. **Performance**: Monitor bundle size and loading times
-
-### Debug Commands
-
+### 2. Vercel CLI Deployment
 ```bash
-# Check build output
-npm run build:prod
+# Install Vercel CLI
+npm i -g vercel
 
-# Lint code
-npm run lint
+# Login to Vercel
+vercel login
 
-# Clean build directory
-npm run clean
+# Deploy
+vercel --prod
 ```
 
-## Monitoring
+### 3. GitHub Integration
+1. Connect your GitHub repository to Vercel
+2. Set build command: `npm run build:vercel`
+3. Set output directory: `dist`
+4. Set Node.js version: 18.x
 
-- Use Vercel Analytics for performance monitoring
-- Monitor API response times
-- Track user authentication success rates
-- Monitor error rates and user experience
+## 📁 File Structure
+```
+frontend-vw/
+├── package.json          # Dependencies and scripts
+├── vercel.json          # Vercel configuration
+├── .nvmrc              # Node.js version
+├── .vercelignore       # Excluded files
+├── vite.config.js      # Vite configuration
+└── src/                # Source code
+```
 
-## Security
+## 🔍 Troubleshooting
 
-- All routes are properly protected
-- Authentication tokens are handled securely
-- API calls use HTTPS in production
-- Environment variables are properly secured
+### Check Build Logs
+1. Go to Vercel dashboard
+2. Select your project
+3. Click on the latest deployment
+4. Check build logs for specific errors
+
+### Common Error Messages
+- **"vite: command not found"** → Move vite to dependencies
+- **"Exit code 127"** → Check Node.js version and dependencies
+- **"Module not found"** → Check import paths and dependencies
+- **"Build timeout"** → Optimize build process or increase timeout
+
+### Performance Optimization
+1. Enable build caching in Vercel
+2. Use `npm ci` for faster installs
+3. Optimize bundle size with code splitting
+4. Enable compression and caching headers
+
+## 📞 Support
+If issues persist:
+1. Check Vercel status page
+2. Review build logs for specific errors
+3. Test build locally with `npm run build:vercel`
+4. Verify all dependencies are properly installed
+
+## 🔄 Rollback
+If deployment fails:
+1. Go to Vercel dashboard
+2. Select previous successful deployment
+3. Click "Promote to Production"
+4. Investigate and fix the issue
+5. Redeploy when ready
+
+---
+
+**Last Updated**: December 2024  
+**Version**: 1.0.0  
+**Maintainer**: Vire Development Team

@@ -1,7 +1,8 @@
 {
-  "buildCommand": "npm run build:prod",
+  "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist",
   "framework": "vite",
+  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/(.*)",
@@ -17,6 +18,28 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
     }
-  ]
+  ],
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 }
