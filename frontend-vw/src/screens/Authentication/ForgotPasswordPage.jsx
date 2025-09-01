@@ -132,7 +132,7 @@ const ForgotPasswordPage = () => {
             <Button
               type="submit"
               disabled={isRequesting}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
             >
               {isRequesting ? "Sending..." : "Request OTP"}
             </Button>

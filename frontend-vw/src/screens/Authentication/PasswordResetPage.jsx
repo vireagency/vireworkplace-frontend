@@ -181,7 +181,7 @@ const PasswordResetPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   {showNewPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -205,7 +205,7 @@ const PasswordResetPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -219,7 +219,7 @@ const PasswordResetPage = () => {
             <Button
               type="submit"
               disabled={isResetting || !newPassword || !confirmPassword}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
             >
               {isResetting ? "Resetting..." : "Reset"}
             </Button>

@@ -249,14 +249,14 @@ const columns = [
           </Label>
           <Select>
             <SelectTrigger
-              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
+              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate cursor-pointer"
               size="sm"
               id={`${row.original.id}-reviewer`}>
               <SelectValue placeholder="Assign reviewer" />
             </SelectTrigger>
             <SelectContent align="end">
-              <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-              <SelectItem value="Jamik Tashpulatov">
+              <SelectItem value="Eddie Lake" className="cursor-pointer">Eddie Lake</SelectItem>
+              <SelectItem value="Jamik Tashpulatov" className="cursor-pointer">
                 Jamik Tashpulatov
               </SelectItem>
             </SelectContent>
@@ -279,11 +279,11 @@ const columns = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Make a copy</DropdownMenuItem>
-          <DropdownMenuItem>Favorite</DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer">Edit</DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer">Make a copy</DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer">Favorite</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" className="cursor-pointer">Delete</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -381,26 +381,26 @@ export function DataTable({
           View
         </Label>
         <Select defaultValue="outline">
-          <SelectTrigger className="flex w-fit @4xl/main:hidden" size="sm" id="view-selector">
+          <SelectTrigger className="flex w-fit @4xl/main:hidden cursor-pointer" size="sm" id="view-selector">
             <SelectValue placeholder="Select a view" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="outline">Outline</SelectItem>
-            <SelectItem value="past-performance">Past Performance</SelectItem>
-            <SelectItem value="key-personnel">Key Personnel</SelectItem>
-            <SelectItem value="focus-documents">Focus Documents</SelectItem>
+            <SelectItem value="outline" className="cursor-pointer">Outline</SelectItem>
+            <SelectItem value="past-performance" className="cursor-pointer">Past Performance</SelectItem>
+            <SelectItem value="key-personnel" className="cursor-pointer">Key Personnel</SelectItem>
+            <SelectItem value="focus-documents" className="cursor-pointer">Focus Documents</SelectItem>
           </SelectContent>
         </Select>
         <TabsList
           className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
-          <TabsTrigger value="outline">Outline</TabsTrigger>
-          <TabsTrigger value="past-performance">
+          <TabsTrigger value="outline" className="cursor-pointer">Outline</TabsTrigger>
+          <TabsTrigger value="past-performance" className="cursor-pointer">
             Past Performance <Badge variant="secondary">3</Badge>
           </TabsTrigger>
-          <TabsTrigger value="key-personnel">
+          <TabsTrigger value="key-personnel" className="cursor-pointer">
             Key Personnel <Badge variant="secondary">2</Badge>
           </TabsTrigger>
-          <TabsTrigger value="focus-documents">Focus Documents</TabsTrigger>
+          <TabsTrigger value="focus-documents" className="cursor-pointer">Focus Documents</TabsTrigger>
         </TabsList>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -422,7 +422,7 @@ export function DataTable({
                   return (
                     <DropdownMenuCheckboxItem
                       key={column.id}
-                      className="capitalize"
+                      className="capitalize cursor-pointer"
                       checked={column.getIsVisible()}
                       onCheckedChange={(value) =>
                         column.toggleVisibility(!!value)
@@ -498,12 +498,12 @@ export function DataTable({
                 onValueChange={(value) => {
                   table.setPageSize(Number(value))
                 }}>
-                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                <SelectTrigger size="sm" className="w-20 cursor-pointer" id="rows-per-page">
                   <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent side="top">
                   {[10, 20, 30, 40, 50].map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`}>
+                    <SelectItem key={pageSize} value={`${pageSize}`} className="cursor-pointer">
                       {pageSize}
                     </SelectItem>
                   ))}
@@ -667,39 +667,39 @@ function TableCellViewer({
               <div className="flex flex-col gap-3">
                 <Label htmlFor="type">Type</Label>
                 <Select defaultValue={item.type}>
-                  <SelectTrigger id="type" className="w-full">
+                  <SelectTrigger id="type" className="w-full cursor-pointer">
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Table of Contents">
+                    <SelectItem value="Table of Contents" className="cursor-pointer">
                       Table of Contents
                     </SelectItem>
-                    <SelectItem value="Executive Summary">
+                    <SelectItem value="Executive Summary" className="cursor-pointer">
                       Executive Summary
                     </SelectItem>
-                    <SelectItem value="Technical Approach">
+                    <SelectItem value="Technical Approach" className="cursor-pointer">
                       Technical Approach
                     </SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Capabilities">Capabilities</SelectItem>
-                    <SelectItem value="Focus Documents">
+                    <SelectItem value="Design" className="cursor-pointer">Design</SelectItem>
+                    <SelectItem value="Capabilities" className="cursor-pointer">Capabilities</SelectItem>
+                    <SelectItem value="Focus Documents" className="cursor-pointer">
                       Focus Documents
                     </SelectItem>
-                    <SelectItem value="Narrative">Narrative</SelectItem>
-                    <SelectItem value="Cover Page">Cover Page</SelectItem>
+                    <SelectItem value="Narrative" className="cursor-pointer">Narrative</SelectItem>
+                    <SelectItem value="Cover Page" className="cursor-pointer">Cover Page</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex flex-col gap-3">
                 <Label htmlFor="status">Status</Label>
                 <Select defaultValue={item.status}>
-                  <SelectTrigger id="status" className="w-full">
+                  <SelectTrigger id="status" className="w-full cursor-pointer">
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Done">Done</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Not Started">Not Started</SelectItem>
+                    <SelectItem value="Done" className="cursor-pointer">Done</SelectItem>
+                    <SelectItem value="In Progress" className="cursor-pointer">In Progress</SelectItem>
+                    <SelectItem value="Not Started" className="cursor-pointer">Not Started</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -717,24 +717,24 @@ function TableCellViewer({
             <div className="flex flex-col gap-3">
               <Label htmlFor="reviewer">Reviewer</Label>
               <Select defaultValue={item.reviewer}>
-                <SelectTrigger id="reviewer" className="w-full">
+                <SelectTrigger id="reviewer" className="w-full cursor-pointer">
                   <SelectValue placeholder="Select a reviewer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                  <SelectItem value="Jamik Tashpulatov">
+                  <SelectItem value="Eddie Lake" className="cursor-pointer">Eddie Lake</SelectItem>
+                  <SelectItem value="Jamik Tashpulatov" className="cursor-pointer">
                     Jamik Tashpulatov
                   </SelectItem>
-                  <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
+                  <SelectItem value="Emily Whalen" className="cursor-pointer">Emily Whalen</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </form>
         </div>
         <DrawerFooter>
-          <Button>Submit</Button>
+          <Button className="cursor-pointer">Submit</Button>
           <DrawerClose asChild>
-            <Button variant="outline">Done</Button>
+            <Button variant="outline" className="cursor-pointer">Done</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>

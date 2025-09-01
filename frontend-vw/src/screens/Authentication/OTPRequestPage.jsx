@@ -111,7 +111,7 @@ const OTPRequestPage = () => {
             <Button
               type="submit"
               disabled={isResending}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
             >
               {isResending ? "Sending..." : "Resend OTP"}
             </Button>

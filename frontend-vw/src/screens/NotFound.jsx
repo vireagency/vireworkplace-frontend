@@ -26,14 +26,14 @@ export default function NotFound() {
             <Button 
               onClick={() => navigate(-1)} 
               variant="outline" 
-              className="flex-1"
+              className="flex-1 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </Button>
             <Button 
               onClick={() => navigate("/")} 
-              className="flex-1 bg-green-500 hover:bg-green-600"
+              className="flex-1 bg-green-500 hover:bg-green-600 cursor-pointer"
             >
               <Home className="w-4 h-4 mr-2" />
               Go Home

@@ -1,32 +1,7 @@
-"use client"
-
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-/**
- * Table Components
- *
- * Primitive, accessible table wrappers with Tailwind styling hooks.
- *
- * Usage:
- * ```jsx
- * <Table>
- *   <TableHeader>
- *     <TableRow>
- *       <TableHead>Name</TableHead>
- *       <TableHead>Role</TableHead>
- *     </TableRow>
- *   </TableHeader>
- *   <TableBody>
- *     <TableRow>
- *       <TableCell>Jane</TableCell>
- *       <TableCell>Engineer</TableCell>
- *     </TableRow>
- *   </TableBody>
- * </Table>
- * ```
- */
 function Table({
   className,
   ...props
@@ -41,7 +16,6 @@ function Table({
   );
 }
 
-/** TableHeader: wraps the thead element. */
 function TableHeader({
   className,
   ...props
@@ -54,7 +28,6 @@ function TableHeader({
   );
 }
 
-/** TableBody: wraps the tbody element. */
 function TableBody({
   className,
   ...props
@@ -67,7 +40,6 @@ function TableBody({
   );
 }
 
-/** TableFooter: wraps the tfoot element. */
 function TableFooter({
   className,
   ...props
@@ -80,7 +52,6 @@ function TableFooter({
   );
 }
 
-/** TableRow: single row with hover and selected styles. */
 function TableRow({
   className,
   ...props
@@ -96,7 +67,6 @@ function TableRow({
   );
 }
 
-/** TableHead: header cell (th). */
 function TableHead({
   className,
   ...props
@@ -112,7 +82,6 @@ function TableHead({
   );
 }
 
-/** TableCell: data cell (td). */
 function TableCell({
   className,
   ...props
@@ -128,7 +97,6 @@ function TableCell({
   );
 }
 
-/** TableCaption: caption text below the table. */
 function TableCaption({
   className,
   ...props

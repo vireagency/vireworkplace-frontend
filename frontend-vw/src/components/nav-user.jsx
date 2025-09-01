@@ -74,6 +74,21 @@ export function NavUser({
   const { signOut } = useAuth()
   const navigate = useNavigate()
 
+  // Compute initials from user name or email
+  const getUserInitials = () => {
+    if (user && typeof user.name === "string" && user.name.trim().length > 0) {
+      const parts = user.name.trim().split(/\s+/)
+      const firstInitial = parts[0]?.[0] || ""
+      const lastInitial = parts.length > 1 ? parts[parts.length - 1]?.[0] : ""
+      const initials = `${firstInitial}${lastInitial}` || firstInitial
+      return (initials || "U").toUpperCase()
+    }
+    if (user && typeof user.email === "string" && user.email.length > 0) {
+      return user.email[0].toUpperCase()
+    }
+    return "U"
+  }
+
   /**
    * Handle logout confirmation
    * Signs out the user, shows success message, and navigates to landing page
@@ -99,7 +114,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg bg-gray-200 text-gray-700 font-medium text-sm">{getUserInitials()}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -119,7 +134,7 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg bg-gray-200 text-gray-700 font-medium text-sm">{getUserInitials()}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
@@ -131,15 +146,15 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
                 <IconUserCircle />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
                 <IconCreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
                 <IconNotification />
                 Notifications
               </DropdownMenuItem>
@@ -149,7 +164,7 @@ export function NavUser({
             {/* Logout with Alert Dialog Confirmation */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
                   <IconLogout />
                   Log out
                 </DropdownMenuItem>
@@ -163,10 +178,10 @@ export function NavUser({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleLogout}
-                    className="bg-red-500 hover:bg-red-600 text-white"
+                    className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
                   >
                     Log out
                   </AlertDialogAction>

@@ -470,7 +470,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                   {/* Country Code Dropdown - Takes 1 column on mobile, 1 on desktop */}
                   <div className="relative">
                     <Select value={countryCode} onValueChange={setCountryCode}>
-                      <SelectTrigger className="glass border-white/20 text-white h-10">
+                      <SelectTrigger className="glass border-white/20 text-white h-10 cursor-pointer">
                         <SelectValue>
                           <div className="flex items-center space-x-2">
                             <span>{countryCodes.find(c => c.code === countryCode)?.flag}</span>

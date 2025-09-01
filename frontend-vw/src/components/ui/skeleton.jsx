@@ -1,11 +1,5 @@
 import { cn } from "@/lib/utils"
 
-/**
- * Skeleton
- *
- * Animated placeholder for loading states.
- */
-
 function Skeleton({
   className,
   ...props

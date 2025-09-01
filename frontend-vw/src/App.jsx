@@ -36,11 +36,13 @@ import RoleSelectionPageForAdminandHR from "./screens/Authentication/RoleSelecti
 // Dashboard Screens
 import HRDashboardMainPage from "./screens/UserDashboards/HRDashboard/HRDashboardMainPage";
 import EvaluationsPage from "./screens/UserDashboards/HRDashboard/EvaluationsPage";
+import EvaluationCreator from "./screens/UserDashboards/HRDashboard/EvaluationCreator";
 import PerformancePage from "./screens/UserDashboards/HRDashboard/PerformancePage";
 import HiringPage from "./screens/UserDashboards/HRDashboard/HiringPage";
 import EmployeesPage from "./screens/UserDashboards/HRDashboard/EmployeesPage";
 import MessagesPage from "./screens/UserDashboards/HRDashboard/MessagesPage";
 import ReportsPage from "./screens/UserDashboards/HRDashboard/ReportsPage";
+import HRSettingsPage from "./screens/UserDashboards/HRDashboard/HRSettingsPage";
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
 import StaffDashboardPage from "./screens/UserDashboards/StaffDashboard/StaffDashboard";
 import NotFound from "./screens/NotFound";
@@ -111,6 +113,14 @@ const App = () => (
                 } 
               />
               <Route 
+                path="/human-resource-manager/evaluations/create" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <EvaluationCreator />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/human-resource-manager/performance" 
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
@@ -147,6 +157,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <ReportsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/human-resource-manager/settings/profile" 
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <HRSettingsPage />
                   </ProtectedRoute>
                 } 
               />

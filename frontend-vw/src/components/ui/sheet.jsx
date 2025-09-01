@@ -1,44 +1,33 @@
-"use client"
-
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-/**
- * Sheet Components
- *
- * Sliding panel built on Radix Dialog with four possible sides.
- */
 function Sheet({
   ...props
 }) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
-/** Trigger for opening the sheet. */
 function SheetTrigger({
   ...props
 }) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
 }
 
-/** Close button for the sheet. */
 function SheetClose({
   ...props
 }) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
 }
 
-/** Portal for sheet content. */
 function SheetPortal({
   ...props
 }) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
-/** Dim background overlay. */
 function SheetOverlay({
   className,
   ...props
@@ -54,9 +43,6 @@ function SheetOverlay({
   );
 }
 
-/**
- * SheetContent: main panel. Use side prop to control placement.
- */
 function SheetContent({
   className,
   children,
@@ -92,7 +78,6 @@ function SheetContent({
   );
 }
 
-/** Regions */
 function SheetHeader({
   className,
   ...props

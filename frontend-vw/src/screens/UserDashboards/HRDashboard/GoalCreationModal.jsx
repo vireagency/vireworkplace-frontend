@@ -131,23 +131,23 @@ export function GoalCreationModal({
                 value={selectedPriority}
                 onValueChange={(value) => setValue("priority", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="High Priority">
+                  <SelectItem value="High Priority" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-red-500"></div>
                       High Priority
                     </div>
                   </SelectItem>
-                  <SelectItem value="Medium Priority">
+                  <SelectItem value="Medium Priority" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                       Medium Priority
                     </div>
                   </SelectItem>
-                  <SelectItem value="Low Priority">
+                  <SelectItem value="Low Priority" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       Low Priority
@@ -165,14 +165,14 @@ export function GoalCreationModal({
                 value={selectedCategory}
                 onValueChange={(value) => setValue("category", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => {
                     const Icon = category.icon;
                     return (
-                      <SelectItem key={category.value} value={category.value}>
+                      <SelectItem key={category.value} value={category.value} className="cursor-pointer">
                         <div className="flex items-center gap-2">
                           <Icon className="size-4" />
                           {category.label}
@@ -197,12 +197,12 @@ export function GoalCreationModal({
               <Select
                 onValueChange={(value) => setValue("owner", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="Select owner" />
                 </SelectTrigger>
                 <SelectContent>
                   {ownerOptions.map((owner) => (
-                    <SelectItem key={owner} value={owner}>
+                    <SelectItem key={owner} value={owner} className="cursor-pointer">
                       <div className="flex items-center gap-2">
                         <Users className="size-4" />
                         {owner}
@@ -257,13 +257,13 @@ export function GoalCreationModal({
               type="button" 
               variant="outline" 
               onClick={handleClose}
-              className="px-6"
+              className="px-6 cursor-pointer"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
-              className="px-6 bg-[#00db12] hover:bg-[#00c010] text-white"
+              className="px-6 bg-[#00db12] hover:bg-[#00c010] text-white cursor-pointer"
             >
               {isEditing ? "Update Goal" : "Create Goal"}
             </Button>

@@ -88,8 +88,8 @@ const GoalCard = ({ goal }) => {
 
         {/* Actions */}
         <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Edit</button>
-          <button className="text-sm text-red-600 hover:text-red-700 font-medium">Delete</button>
+          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer">Edit</button>
+          <button className="text-sm text-red-600 hover:text-red-700 font-medium cursor-pointer">Delete</button>
         </div>
       </CardContent>
     </Card>

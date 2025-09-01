@@ -129,7 +129,7 @@ export const hrDashboardConfig = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/human-resource-manager/settings/profile",
       icon: IconSettings,
     },
     {

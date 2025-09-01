@@ -26,9 +26,26 @@ import {
   ArrowDown,
   Minus
 } from "lucide-react"
+import EvaluationCreator from "./EvaluationCreator"
 
 export default function EvaluationsPage() {
   const [activeTab, setActiveTab] = useState("overview")
+  const [showEvaluationCreator, setShowEvaluationCreator] = useState(false)
+
+  const handleNewEvaluation = () => {
+    setShowEvaluationCreator(true)
+  }
+
+  const handleBackToEvaluations = () => {
+    setShowEvaluationCreator(false)
+  }
+
+  // If evaluation creator is active, show it instead of the evaluations overview
+  if (showEvaluationCreator) {
+    return (
+      <EvaluationCreator onBack={handleBackToEvaluations} />
+    )
+  }
 
   return (
     <DashboardLayout 
@@ -52,7 +69,10 @@ export default function EvaluationsPage() {
                 <Download className="h-4 w-4" />
                 Export
               </Button>
-              <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+              <Button 
+                className="flex items-center gap-2 bg-green-500 hover:bg-green-600"
+                onClick={handleNewEvaluation}
+              >
                 <Plus className="h-4 w-4" />
                 New Evaluation
               </Button>
@@ -132,19 +152,19 @@ export default function EvaluationsPage() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger 
               value="overview"
-              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white`}
+              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white cursor-pointer`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger 
               value="recent"
-              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white`}
+              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white cursor-pointer`}
             >
               Recent Submissions
             </TabsTrigger>
             <TabsTrigger 
               value="upcoming"
-              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white`}
+              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white cursor-pointer`}
             >
               Upcoming Deadlines
             </TabsTrigger>
@@ -401,7 +421,7 @@ export default function EvaluationsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-lg font-semibold">Recent Submissions (7)</CardTitle>
-                <Button variant="ghost" className="flex items-center gap-2 text-slate-600">
+                <Button variant="ghost" className="flex items-center gap-2 text-slate-600 cursor-pointer">
                   Sort by Score
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
@@ -475,7 +495,7 @@ export default function EvaluationsPage() {
                         <TableCell className="py-3 px-4 text-slate-600">Engineering</TableCell>
                         <TableCell className="py-3 px-4">
                           <div className="flex items-center space-x-2">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer">
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

@@ -1,160 +1,33 @@
-/**
- * Dialog Components
- * 
- * A collection of modal dialog components built on top of Radix UI's Dialog primitive.
- * Provides accessible modal dialogs with proper focus management and keyboard navigation.
- * 
- * Features:
- * - Accessible modal dialogs
- * - Focus trap and keyboard navigation
- * - Backdrop overlay with click-to-close
- * - Smooth animations and transitions
- * - Responsive design
- * - Customizable close button
- * - Screen reader support
- * 
- * Usage:
- * ```jsx
- * import { 
- *   Dialog, 
- *   DialogTrigger, 
- *   DialogContent, 
- *   DialogHeader, 
- *   DialogTitle, 
- *   DialogDescription, 
- *   DialogFooter 
- * } from "@/components/ui/dialog"
- * 
- * // Basic dialog
- * <Dialog>
- *   <DialogTrigger asChild>
- *     <Button>Open Dialog</Button>
- *   </DialogTrigger>
- *   <DialogContent>
- *     <DialogHeader>
- *       <DialogTitle>Dialog Title</DialogTitle>
- *       <DialogDescription>
- *         This is a description of the dialog content.
- *       </DialogDescription>
- *     </DialogHeader>
- *     <div>Dialog content goes here</div>
- *     <DialogFooter>
- *       <Button variant="outline">Cancel</Button>
- *       <Button>Save</Button>
- *     </DialogFooter>
- *   </DialogContent>
- * </Dialog>
- * 
- * // Dialog without close button
- * <DialogContent showCloseButton={false}>
- *   <DialogHeader>
- *     <DialogTitle>No Close Button</DialogTitle>
- *   </DialogHeader>
- *   <div>Content</div>
- * </DialogContent>
- * ```
- */
-
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-/**
- * Dialog Root Component
- * 
- * The main container for the dialog. Manages the dialog state and accessibility.
- * 
- * @param {Object} props - Component props
- * @param {...any} props - All props are passed to Radix UI Dialog.Root
- * @returns {JSX.Element} Dialog root container
- * 
- * @example
- * <Dialog open={isOpen} onOpenChange={setIsOpen}>
- *   <DialogContent>Content</DialogContent>
- * </Dialog>
- */
 function Dialog({
   ...props
 }) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
-/**
- * Dialog Trigger Component
- * 
- * The element that triggers the dialog to open when clicked.
- * 
- * @param {Object} props - Component props
- * @param {...any} props - All props are passed to Radix UI Dialog.Trigger
- * @returns {JSX.Element} Dialog trigger element
- * 
- * @example
- * <DialogTrigger asChild>
- *   <Button>Open Dialog</Button>
- * </DialogTrigger>
- */
 function DialogTrigger({
   ...props
 }) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
-/**
- * Dialog Portal Component
- * 
- * Portals the dialog content to the document body to avoid z-index issues.
- * 
- * @param {Object} props - Component props
- * @param {...any} props - All props are passed to Radix UI Dialog.Portal
- * @returns {JSX.Element} Dialog portal
- * 
- * @example
- * <DialogPortal>
- *   <DialogContent>Content</DialogContent>
- * </DialogPortal>
- */
 function DialogPortal({
   ...props
 }) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
-/**
- * Dialog Close Component
- * 
- * A button that closes the dialog when clicked.
- * 
- * @param {Object} props - Component props
- * @param {...any} props - All props are passed to Radix UI Dialog.Close
- * @returns {JSX.Element} Dialog close button
- * 
- * @example
- * <DialogClose asChild>
- *   <Button variant="outline">Cancel</Button>
- * </DialogClose>
- */
 function DialogClose({
   ...props
 }) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
-/**
- * Dialog Overlay Component
- * 
- * The backdrop overlay that appears behind the dialog.
- * Provides visual separation and can be clicked to close the dialog.
- * 
- * @param {Object} props - Component props
- * @param {string} [props.className] - Additional CSS classes
- * @param {...any} props - All other props are passed to Radix UI Dialog.Overlay
- * @returns {JSX.Element} Dialog overlay
- * 
- * @example
- * <DialogOverlay className="bg-black/60" />
- */
 function DialogOverlay({
   className,
   ...props
@@ -170,32 +43,6 @@ function DialogOverlay({
   );
 }
 
-/**
- * Dialog Content Component
- * 
- * The main content container for the dialog.
- * Includes the overlay and optional close button.
- * 
- * @param {Object} props - Component props
- * @param {string} [props.className] - Additional CSS classes
- * @param {React.ReactNode} props.children - Dialog content
- * @param {boolean} [props.showCloseButton=true] - Whether to show the close button
- * @param {...any} props - All other props are passed to Radix UI Dialog.Content
- * @returns {JSX.Element} Dialog content container
- * 
- * @example
- * <DialogContent>
- *   <DialogHeader>
- *     <DialogTitle>Title</DialogTitle>
- *   </DialogHeader>
- *   <div>Content</div>
- * </DialogContent>
- * 
- * @example
- * <DialogContent showCloseButton={false}>
- *   <div>Content without close button</div>
- * </DialogContent>
- */
 function DialogContent({
   className,
   children,
@@ -226,23 +73,6 @@ function DialogContent({
   );
 }
 
-/**
- * Dialog Header Component
- * 
- * Container for the dialog title and description.
- * Provides consistent spacing and responsive text alignment.
- * 
- * @param {Object} props - Component props
- * @param {string} [props.className] - Additional CSS classes
- * @param {...any} props - All other props are passed to the underlying div element
- * @returns {JSX.Element} Dialog header container
- * 
- * @example
- * <DialogHeader>
- *   <DialogTitle>Dialog Title</DialogTitle>
- *   <DialogDescription>Description text</DialogDescription>
- * </DialogHeader>
- */
 function DialogHeader({
   className,
   ...props
@@ -255,25 +85,6 @@ function DialogHeader({
   );
 }
 
-/**
- * Dialog Footer Component
- * 
- * Container for dialog action buttons.
- * Provides responsive layout with buttons stacked on mobile and side-by-side on desktop.
- * 
- * @param {Object} props - Component props
- * @param {string} [props.className] - Additional CSS classes
- * @param {...any} props - All other props are passed to the underlying div element
- * @returns {JSX.Element} Dialog footer container
- * 
- * @example
- * <DialogFooter>
- *   <DialogClose asChild>
- *     <Button variant="outline">Cancel</Button>
- *   </DialogClose>
- *   <Button>Save Changes</Button>
- * </DialogFooter>
- */
 function DialogFooter({
   className,
   ...props
@@ -286,20 +97,6 @@ function DialogFooter({
   );
 }
 
-/**
- * Dialog Title Component
- * 
- * The main title of the dialog.
- * Styled with semibold font weight and proper heading semantics.
- * 
- * @param {Object} props - Component props
- * @param {string} [props.className] - Additional CSS classes
- * @param {...any} props - All other props are passed to Radix UI Dialog.Title
- * @returns {JSX.Element} Dialog title
- * 
- * @example
- * <DialogTitle>Confirm Action</DialogTitle>
- */
 function DialogTitle({
   className,
   ...props
@@ -312,22 +109,6 @@ function DialogTitle({
   );
 }
 
-/**
- * Dialog Description Component
- * 
- * Secondary text that provides additional context for the dialog.
- * Styled with muted foreground color and smaller text size.
- * 
- * @param {Object} props - Component props
- * @param {string} [props.className] - Additional CSS classes
- * @param {...any} props - All other props are passed to Radix UI Dialog.Description
- * @returns {JSX.Element} Dialog description
- * 
- * @example
- * <DialogDescription>
- * This action cannot be undone. This will permanently delete your account.
- * </DialogDescription>
- */
 function DialogDescription({
   className,
   ...props

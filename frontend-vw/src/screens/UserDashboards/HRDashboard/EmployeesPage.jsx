@@ -310,25 +310,25 @@ export default function EmployeesPage() {
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-32">
+                <SelectTrigger className="w-full sm:w-32 cursor-pointer">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="all" className="cursor-pointer">All Status</SelectItem>
+                  <SelectItem value="active" className="cursor-pointer">Active</SelectItem>
+                  <SelectItem value="inactive" className="cursor-pointer">Inactive</SelectItem>
+                  <SelectItem value="closed" className="cursor-pointer">Closed</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger className="w-full sm:w-36">
+                <SelectTrigger className="w-full sm:w-36 cursor-pointer">
                   <SelectValue placeholder="All Department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Department</SelectItem>
+                  <SelectItem value="all" className="cursor-pointer">All Department</SelectItem>
                   {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    <SelectItem key={dept} value={dept} className="cursor-pointer">{dept}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -426,15 +426,15 @@ export default function EmployeesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
                               <Eye className="w-4 h-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer">
                               Send Message
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -565,18 +565,18 @@ export default function EmployeesPage() {
               {/* Action Buttons */}
               <div className="pt-4 border-t border-gray-200 space-y-4">
                 <div className="flex justify-center space-x-3">
-                  <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">
+                  <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer">
                     <Mail className="w-4 h-4 mr-2" />
                     Send Message
                   </Button>
-                  <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">
+                  <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer">
                     <Edit className="w-4 h-4 mr-2" />
                     Quick Edit
                   </Button>
                 </div>
                 <div className="flex justify-center">
                   <Button 
-                    className="bg-[#04b435] hover:bg-[#04b435]/90 text-white px-6 py-2"
+                    className="bg-[#04b435] hover:bg-[#04b435]/90 text-white px-6 py-2 cursor-pointer"
                   >
                     View Complete Profile
                   </Button>
