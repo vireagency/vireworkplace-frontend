@@ -1,8 +1,28 @@
+/**
+ * @fileoverview JavaScript Configuration for Vire Workplace HR App Frontend
+ * @description Path mapping and module resolution configuration for the project
+ * @author Vire Development Team
+ * @version 1.0.0
+ * @since 2024
+ * @see {@link https://code.visualstudio.com/docs/languages/jsconfig jsconfig.json Documentation}
+ */
 {
-    "compilerOptions": {
-      "baseUrl": ".",
-      "paths": {
-        "@/*": ["./src/*"]
-      }
+  // ============================================================================
+  // COMPILER OPTIONS
+  // ============================================================================
+  
+  "compilerOptions": {
+    // Base directory for module resolution
+    "baseUrl": ".",
+    
+    // ========================================================================
+    // PATH MAPPING
+    // ========================================================================
+    
+    "paths": {
+      // Map @ alias to src directory for cleaner imports
+      // This allows imports like: import Component from "@/components/Component"
+      "@/*": ["./src/*"]
     }
   }
+}

@@ -1,59 +1,138 @@
+/**
+ * @fileoverview Categorized Navigation Component for Vire Workplace HR App
+ * @description Renders categorized navigation sections for dashboards with grouped navigation items
+ * @author Vire Development Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
+// React core library for component creation
 import React from "react";
+
+// ============================================================================
+// ROUTING IMPORTS
+// ============================================================================
+
+// React Router hooks for navigation and location
 import { useNavigate, useLocation } from "react-router-dom";
+
+// ============================================================================
+// SIDEBAR COMPONENT IMPORTS
+// ============================================================================
+
+// Sidebar components for navigation structure
 import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarGroup,           // Sidebar group container
+  SidebarGroupContent,    // Sidebar group content area
+  SidebarMenu,            // Sidebar menu container
+  SidebarMenuButton,      // Sidebar menu button
+  SidebarMenuItem,        // Sidebar menu item
 } from "@/components/ui/sidebar";
 
 /**
  * NavCategorized Component
+ * @description Renders categorized navigation sections for dashboards with grouped navigation items
+ * @component
+ * @param {Object} props - Component props
+ * @param {Array} [props.analytics=[]] - Analytics section navigation items
+ * @param {Array} [props.teams=[]] - Teams section navigation items
+ * @param {Array} [props.company=[]] - Company section navigation items
+ * @returns {JSX.Element} The categorized navigation component
  * 
- * Renders categorized navigation sections for dashboards.
- * Each section has a title and contains navigation items.
+ * Navigation Item Structure:
+ * @param {string} item.title - Navigation item title
+ * @param {string} item.url - Navigation URL
+ * @param {React.Component} item.icon - Navigation item icon
+ * @param {string|number} [item.badge] - Optional badge for notifications/counts
  * 
- * Props:
- * @param {Array} analytics - Analytics section items
- * @param {Array} teams - Teams section items
- * @param {Array} company - Company section items
+ * Features:
+ * - Categorized navigation sections (Analytics, Teams, Company)
+ * - Conditional rendering of sections based on data availability
+ * - Active state highlighting for current route
+ * - Hover effects with green theme colors
+ * - Badge support for analytics items
+ * - Responsive design with consistent spacing
+ * - Tooltip support for navigation items
+ * 
+ * Section Categories:
+ * - Analytics: Data analysis and reporting tools
+ * - Teams: Team management and collaboration features
+ * - Company: Company-wide settings and information
  */
 export function NavCategorized({
-  analytics = [],
-  teams = [],
-  company = [],
+  analytics = [],          // Analytics section navigation items
+  teams = [],              // Teams section navigation items
+  company = [],            // Company section navigation items
 }) {
+  // ============================================================================
+  // HOOKS
+  // ============================================================================
+  
+  // Navigation function for programmatic routing
   const navigate = useNavigate();
+  
+  // Current location for active state management
   const location = useLocation();
   
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+  
+  /**
+   * Handle navigation to specified URL
+   * @description Navigates to the specified URL if it's valid
+   * @param {string} url - URL to navigate to
+   */
   const handleNavigation = (url) => {
+    // Only navigate if URL exists and is not a placeholder
     if (url && url !== "#") {
       navigate(url);
     }
   };
   
   return (
+    // ============================================================================
+    // CATEGORIZED NAVIGATION CONTAINER
+    // ============================================================================
+    
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-4">
-        {/* Analytics Section */}
+        
+        {/* ========================================================================
+             ANALYTICS SECTION
+             ========================================================================
+             
+             Analytics and reporting navigation items
+             ======================================================================== */}
+        
         {analytics && analytics.length > 0 && (
           <div>
+            {/* Analytics section header */}
             <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Analytics
             </h3>
+            
+            {/* Analytics navigation menu */}
             <SidebarMenu>
+              {/* Map through analytics items */}
               {analytics.map((item) => {
+                // Determine if current analytics item is active
                 const isActive = location.pathname === item.url;
+                
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
-                      tooltip={item.title}
-                      onClick={() => handleNavigation(item.url)}
+                      tooltip={item.title}          // Tooltip for navigation item
+                      onClick={() => handleNavigation(item.url)}  // Navigation handler
                       className={`cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 ${isActive ? "text-[#00DB12]" : ""}`}
                     >
+                      {/* Render analytics icon if provided */}
                       {item.icon && <item.icon />}
+                      
+                      {/* Analytics item title */}
                       <span>{item.title}</span>
+                      
+                      {/* Optional badge for notifications or counts */}
                       {item.badge && (
                         <span className="ml-auto px-2 py-0.5 text-xs font-medium text-blue-600 border border-blue-600 rounded-full">
                           {item.badge}
@@ -67,23 +146,38 @@ export function NavCategorized({
           </div>
         )}
 
-        {/* Teams Section */}
+        {/* ========================================================================
+             TEAMS SECTION
+             ========================================================================
+             
+             Team management and collaboration navigation items
+             ======================================================================== */}
+        
         {teams && teams.length > 0 && (
           <div>
+            {/* Teams section header */}
             <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Teams
             </h3>
+            
+            {/* Teams navigation menu */}
             <SidebarMenu>
+              {/* Map through teams items */}
               {teams.map((item) => {
+                // Determine if current teams item is active
                 const isActive = location.pathname === item.url;
+                
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
-                      tooltip={item.title}
-                      onClick={() => handleNavigation(item.url)}
+                      tooltip={item.title}          // Tooltip for navigation item
+                      onClick={() => handleNavigation(item.url)}  // Navigation handler
                       className={`cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 ${isActive ? "text-[#00DB12]" : ""}`}
                     >
+                      {/* Render teams icon if provided */}
                       {item.icon && <item.icon />}
+                      
+                      {/* Teams item title */}
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -93,23 +187,38 @@ export function NavCategorized({
           </div>
         )}
 
-        {/* Company Section */}
+        {/* ========================================================================
+             COMPANY SECTION
+             ========================================================================
+             
+             Company-wide settings and information navigation items
+             ======================================================================== */}
+        
         {company && company.length > 0 && (
           <div>
+            {/* Company section header */}
             <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Company
             </h3>
+            
+            {/* Company navigation menu */}
             <SidebarMenu>
+              {/* Map through company items */}
               {company.map((item) => {
+                // Determine if current company item is active
                 const isActive = location.pathname === item.url;
+                
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
-                      tooltip={item.title}
-                      onClick={() => handleNavigation(item.url)}
+                      tooltip={item.title}          // Tooltip for navigation item
+                      onClick={() => handleNavigation(item.url)}  // Navigation handler
                       className={`cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 ${isActive ? "text-[#00DB12]" : ""}`}
                     >
+                      {/* Render company icon if provided */}
                       {item.icon && <item.icon />}
+                      
+                      {/* Company item title */}
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

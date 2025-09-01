@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-// HRSettingsPage - Profile settings for HR Manager
+// HRProfileSettings - Profile settings for HR Manager
 import { HRDashboardLayout } from "@/components/dashboard/DashboardLayout"
 import { hrDashboardConfig } from "@/config/dashboardConfigs"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ import {
   IconShield
 } from "@tabler/icons-react"
 
-export default function HRSettingsPage() {
+export default function HRProfileSettings() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState("personal")
   const [selectedDate, setSelectedDate] = useState(null)
