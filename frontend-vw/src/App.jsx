@@ -4,7 +4,7 @@
  * @author Vire Development Team
  * @version 1.0.0
  * @since 2024
- * 
+ *
  * Features:
  * - React Query for data fetching and caching
  * - Dark theme by default with theme management
@@ -68,6 +68,8 @@ import RoleSelectionPageForAdminandHR from "./screens/Authentication/RoleSelecti
 // Dashboard Screens
 // ============================================================================
 
+// Staff Dashboard Components
+
 // HR Dashboard Components
 import HRDashboardMainPage from "./screens/UserDashboards/HRDashboard/HRDashboardMainPage";
 import EvaluationsPage from "./screens/UserDashboards/HRDashboard/EvaluationsPage";
@@ -107,20 +109,20 @@ const queryClient = new QueryClient();
 
 /**
  * App Component - Root Application Wrapper
- * 
+ *
  * @description The main application component that wraps the entire app with necessary providers
  * and defines the routing structure for authentication and role-based dashboards.
- * 
+ *
  * @component
  * @returns {JSX.Element} The complete application with providers and routing
- * 
+ *
  * Provider Hierarchy (from outermost to innermost):
  * 1. QueryClientProvider - For data fetching, caching, and server state management
  * 2. ThemeProvider - For dark/light theme management and persistence
  * 3. AuthProvider - For authentication state management and user context
  * 4. TooltipProvider - For tooltip functionality and accessibility
  * 5. BrowserRouter - For client-side routing and navigation
- * 
+ *
  * Route Structure:
  * - Public routes: Landing, OTP flows, Password reset (accessible without authentication)
  * - Protected routes: Role-based dashboards (HR, Admin, Staff) requiring authentication
@@ -138,7 +140,7 @@ const App = () => (
           {/* Toast notification system for user feedback */}
           <Toaster />
           <Sonner />
-          
+
           {/* Client-side routing configuration */}
           <BrowserRouter>
             <Routes>
@@ -146,153 +148,159 @@ const App = () => (
                    PUBLIC AUTHENTICATION ROUTES
                    These routes are accessible without authentication
                    ======================================================================== */}
-              
+
               {/* Landing page - Entry point for all users */}
-              <Route path="/" element={<LandingPage/>} />
-              
+              <Route path="/" element={<LandingPage />} />
+
               {/* OTP (One-Time Password) authentication flow */}
-              <Route path="/otp-confirmation" element={<OTPConfirmationPage />} />
+              <Route
+                path="/otp-confirmation"
+                element={<OTPConfirmationPage />}
+              />
               <Route path="/otp-request" element={<OTPRequestPage />} />
-              
+
               {/* Password management and recovery */}
               <Route path="/reset-password" element={<PasswordResetPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              
+
               {/* User onboarding and welcome */}
               <Route path="/welcome-user" element={<WelcomeUserPage />} />
-              
+
               {/* Role selection for users with multiple roles */}
-              <Route path="/role-selection" element={<RoleSelectionPageForAdminandHR />} />
+              <Route
+                path="/role-selection"
+                element={<RoleSelectionPageForAdminandHR />}
+              />
 
               {/* ========================================================================
                    PROTECTED ROLE-BASED DASHBOARD ROUTES
                    These routes require authentication and specific role permissions
                    ======================================================================== */}
-              
+
               {/* HR Manager Dashboard Routes */}
-              <Route 
-                path="/human-resource-manager" 
+              <Route
+                path="/human-resource-manager"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <HRDashboardMainPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/dashboard" 
+              <Route
+                path="/human-resource-manager/dashboard"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <HRDashboardMainPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/evaluations" 
+              <Route
+                path="/human-resource-manager/evaluations"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <EvaluationsPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/evaluations/create" 
+              <Route
+                path="/human-resource-manager/evaluations/create"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <EvaluationCreator />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/performance" 
+              <Route
+                path="/human-resource-manager/performance"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <PerformancePage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/hiring" 
+              <Route
+                path="/human-resource-manager/hiring"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <HiringPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/employees" 
+              <Route
+                path="/human-resource-manager/employees"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <EmployeesPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/messages" 
+              <Route
+                path="/human-resource-manager/messages"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <MessagesPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/reports" 
+              <Route
+                path="/human-resource-manager/reports"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <ReportsPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              
+
               {/* HR Settings and Configuration Routes */}
-              <Route 
-                path="/human-resource-manager/settings/profile" 
+              <Route
+                path="/human-resource-manager/settings/profile"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <HRProfileSettings />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/settings/password" 
+              <Route
+                path="/human-resource-manager/settings/password"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <HRPasswordSettings />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/human-resource-manager/settings/notifications" 
+              <Route
+                path="/human-resource-manager/settings/notifications"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
                     <HRNotificationSettings />
                   </ProtectedRoute>
-                } 
+                }
               />
-              
+
               {/* Admin Dashboard Route */}
-              <Route 
-                path="/admin" 
+              <Route
+                path="/admin"
                 element={
                   <ProtectedRoute requiredRole="Admin">
                     <AdminDashboardPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              
+
               {/* Staff Dashboard Route */}
-              <Route 
-                path="/staff" 
+              <Route
+                path="/staff"
                 element={
                   <ProtectedRoute requiredRole="Staff">
                     <StaffDashboardPage />
                   </ProtectedRoute>
-                } 
+                }
               />
-              
+
               {/* ========================================================================
                    FALLBACK ROUTES
                    ======================================================================== */}
-              
+
               {/* 404 Not Found page - Catch-all for unmatched routes */}
               <Route path="*" element={<NotFound />} />
             </Routes>
