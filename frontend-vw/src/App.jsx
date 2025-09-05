@@ -89,6 +89,13 @@ import HRNotificationSettings from "./screens/UserDashboards/HRDashboard/HRNotif
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
 import StaffDashboardPage from "./screens/UserDashboards/StaffDashboard/StaffDashboard";
 
+// Staff Dashboard Components
+import StaffLandingPage from "./screens/UserDashboards/StaffDashboard/pages/StaffLandingPage";
+import CheckIn from "./screens/UserDashboards/StaffDashboard/pages/CheckIn";
+import CheckOut from "./screens/UserDashboards/StaffDashboard/pages/CheckOut";
+import Tasks from "./screens/UserDashboards/StaffDashboard/pages/Tasks";
+import Evaluation from "./screens/UserDashboards/StaffDashboard/pages/Evaluation";
+
 // Error and fallback pages
 import NotFound from "./screens/NotFound";
 
@@ -287,12 +294,58 @@ const App = () => (
                 }
               />
 
-              {/* Staff Dashboard Route */}
+              {/* Staff Dashboard Routes */}
               <Route
                 path="/staff"
                 element={
                   <ProtectedRoute requiredRole="Staff">
+                    <StaffLandingPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
                     <StaffDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Staff Features */}
+              <Route
+                path="/staff/check-in"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <CheckIn />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/check-out"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <CheckOut />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/tasks"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <Tasks />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/evaluation"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <Evaluation />
                   </ProtectedRoute>
                 }
               />
