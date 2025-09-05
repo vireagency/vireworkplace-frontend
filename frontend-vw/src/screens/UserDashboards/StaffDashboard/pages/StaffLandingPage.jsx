@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-
+import { Badge } from "@/components/ui/badge";
 export default function StaffLandingPage() {
   const navigate = useNavigate();
 
@@ -60,16 +60,9 @@ export default function StaffLandingPage() {
                 borderRadius: "50%",
               }}
             />
-            {/* Badge */}
-            <div
-              className="relative px-4 py-1 rounded-full text-sm font-bold shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, #004400 0%, #008800 100%)",
-                color: "#CCFFCC",
-              }}
-            >
+            <Badge className="mb-6 bg-primary/20 text-primary border-primary/30">
               Vire Workplace
-            </div>
+            </Badge>
           </div>
         </div>
 
