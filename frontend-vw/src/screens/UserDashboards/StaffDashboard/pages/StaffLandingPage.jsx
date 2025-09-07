@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+
 export default function StaffLandingPage() {
   const navigate = useNavigate();
 
@@ -30,9 +31,8 @@ export default function StaffLandingPage() {
     },
   ];
 
-  const handleCardClick = (route, title) => {
-    console.log(`Navigating to ${title}: ${route}`);
-    navigate(route);
+  const handleCardClick = (activity) => {
+    navigate(activity.route);
   };
 
   return (
@@ -51,7 +51,6 @@ export default function StaffLandingPage() {
         {/* Top Badge with Glow */}
         <div className="flex justify-center mt-2 mb-12">
           <div className="relative">
-            {/* Glowing aura */}
             <div
               className="absolute inset-0 blur-xl opacity-70 scale-150"
               style={{
@@ -82,7 +81,7 @@ export default function StaffLandingPage() {
             <div
               key={activity.id}
               className="bg-[#0A0A0A] border border-[#00FF00] rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,0,0.4)] group"
-              onClick={() => handleCardClick(activity.route, activity.title)}
+              onClick={() => handleCardClick(activity)}
             >
               <div className="text-center">
                 <h3 className="text-lg font-bold text-white mb-3">
