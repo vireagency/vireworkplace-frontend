@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function StaffLandingPage() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export default function StaffLandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Radial green glow background */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -46,8 +47,24 @@ export default function StaffLandingPage() {
         }}
       />
 
+      {/* Navigation header */}
+      <nav className="relative z-10 flex items-center justify-between p-6 lg:px-8">
+        <div className="flex items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Vire Workplace</h1>
+            <p className="text-gray-400 text-sm">Staff Portal</p>
+          </div>
+        </div>
+        <Button 
+          onClick={() => navigate("/")}
+          className="bg-black border border-white/20 text-white hover:bg-primary hover:text-black cursor-pointer transition-colors duration-200"
+        >
+          Back to Home
+        </Button>
+      </nav>
+
       {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 lg:px-8 pt-16 pb-24 flex flex-col items-center justify-center">
         {/* Top Badge with Glow */}
         <div className="flex justify-center mt-2 mb-12">
           <div className="relative">
