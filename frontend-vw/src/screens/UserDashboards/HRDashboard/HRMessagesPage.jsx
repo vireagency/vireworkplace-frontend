@@ -4,6 +4,7 @@ import { hrDashboardConfig } from "@/config/dashboardConfigs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Filter, Clock, Settings } from "lucide-react";
 
 export default function HRMessagesPage() {
@@ -20,7 +21,6 @@ export default function HRMessagesPage() {
       priorityText: "High",
       sender: "Richard Mensah",
       senderInitials: "RM",
-      avatarColor: "bg-green-500",
       description: "Please review and approve the medical leave request from Sarah Johnson for next week.",
       timestamp: "Sep 09, 2025 at 9:30 AM",
       isSystem: false
@@ -33,7 +33,6 @@ export default function HRMessagesPage() {
       priorityText: "Medium",
       sender: "System",
       senderInitials: "S",
-      avatarColor: "bg-gray-500",
       description: "Monthly payroll has been processed successfully. Reports are now available in the system.",
       timestamp: "Sep 09, 2025 at 8:00 AM",
       isSystem: true
@@ -46,7 +45,6 @@ export default function HRMessagesPage() {
       priorityText: "Medium",
       sender: "Felix Otu",
       senderInitials: "FO",
-      avatarColor: "bg-blue-500",
       description: "Annual performance reviews for Marketing team are due by end of this week.",
       timestamp: "Sep 09, 2025 at 10:15 AM",
       isSystem: false
@@ -59,7 +57,6 @@ export default function HRMessagesPage() {
       priorityText: "Urgent",
       sender: "System",
       senderInitials: "S",
-      avatarColor: "bg-gray-500",
       description: "Multiple failed login attempts detected. Please review security logs immediately.",
       timestamp: "Sep 09, 2025 at 1:45 PM",
       isSystem: true
@@ -72,7 +69,6 @@ export default function HRMessagesPage() {
       priorityText: "Low",
       sender: "Kwaku Manu",
       senderInitials: "KM",
-      avatarColor: "bg-pink-500",
       description: "Please prepare onboarding materials for new Software Engineer starting Monday.",
       timestamp: "Sep 09, 2025 at 11:00 AM",
       isSystem: false
@@ -85,7 +81,6 @@ export default function HRMessagesPage() {
       priorityText: "Urgent",
       sender: "Ellis Duveh",
       senderInitials: "ED",
-      avatarColor: "bg-purple-500",
       description: "Immediate attention required for workplace harassment complaint filed today.",
       timestamp: "Sep 09, 2025 at 2:30 PM",
       isSystem: false
@@ -164,13 +159,16 @@ export default function HRMessagesPage() {
             >
               <div className="flex items-start space-x-4">
                 {/* Avatar */}
-                <div className={`w-10 h-10 rounded-full ${message.avatarColor} flex items-center justify-center text-white font-semibold text-sm flex-shrink-0`}>
-                  {message.isSystem ? (
-                    <Settings className="w-5 h-5" />
-                  ) : (
-                    message.senderInitials
-                  )}
-                </div>
+                <Avatar className="w-10 h-10 flex-shrink-0">
+                  <AvatarImage src={null} />
+                  <AvatarFallback className="bg-gray-300 text-gray-600">
+                    {message.isSystem ? (
+                      <Settings className="w-5 h-5" />
+                    ) : (
+                      message.senderInitials
+                    )}
+                  </AvatarFallback>
+                </Avatar>
 
                 {/* Message Content */}
                 <div className="flex-1 min-w-0">
