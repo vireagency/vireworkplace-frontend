@@ -145,7 +145,7 @@ export default function StaffDashboardMainPage() {
   }
 
   return (
-    <StaffDashboardLayout 
+    <StaffDashboardLayout
       sidebarConfig={staffDashboardConfig}
       showSectionCards={false}
       showChart={false}
