@@ -160,7 +160,7 @@ export const staffDashboardConfig = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/staff",
+      url: "/staff/dashboard",
       icon: IconDashboard,
     },
   ],
