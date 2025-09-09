@@ -156,37 +156,63 @@ export const hrDashboardConfig = {
  * attendance, and personal documents.
  */
 export const staffDashboardConfig = {
+  // Primary navigation menu items
   navMain: [
     {
       title: "Dashboard",
       url: "/staff",
       icon: IconDashboard,
     },
-    {
-      title: "My Profile",
-      url: "#",
-      icon: IconUsers,
-    },
-    {
-      title: "Leave Requests",
-      url: "#",
-      icon: IconCalendar,
-    },
+  ],
+  
+  // Analytics section
+  analytics: [
     {
       title: "Performance",
-      url: "#",
-      icon: IconFileText,
+      url: "/staff/performance",
+      icon: IconChartBar,
     },
     {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
+      title: "Evaluations",
+      url: "/staff/evaluations",
+      icon: IconFileText,
     },
   ],
+  
+  // Productivity section
+  productivity: [
+    {
+      title: "Tasks",
+      url: "/staff/tasks",
+      icon: IconListDetails,
+      badge: "12",
+    },
+    {
+      title: "Attendance",
+      url: "/staff/attendance",
+      icon: IconUserCheck,
+    },
+  ],
+  
+  // Company section
+  company: [
+    {
+      title: "Messages",
+      url: "/staff/messages",
+      icon: IconMail,
+    },
+    {
+      title: "Reports",
+      url: "/staff/reports",
+      icon: IconReport,
+    },
+  ],
+  
+  // Secondary navigation items (settings, help, etc.)
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/staff/settings",
       icon: IconSettings,
     },
     {
@@ -198,18 +224,6 @@ export const staffDashboardConfig = {
       title: "Search",
       url: "#",
       icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "My Documents",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Company Policies",
-      url: "#",
-      icon: IconFileWord,
     },
   ],
   

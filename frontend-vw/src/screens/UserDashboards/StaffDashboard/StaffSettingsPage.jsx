@@ -1,6 +1,6 @@
 import { useState } from "react"
-import DashboardLayout from "@/components/dashboard/DashboardLayout"
-import { hrDashboardConfig } from "@/config/dashboardConfigs"
+import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout"
+import { staffDashboardConfig } from "@/config/dashboardConfigs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,7 @@ import {
   IconClock
 } from "@tabler/icons-react"
 
-export default function SettingsPage() {
+export default function StaffSettingsPage() {
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -35,8 +35,8 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState("light")
 
   return (
-    <DashboardLayout 
-      sidebarConfig={hrDashboardConfig}
+    <StaffDashboardLayout 
+      sidebarConfig={staffDashboardConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -269,6 +269,6 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </StaffDashboardLayout>
   )
 }

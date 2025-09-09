@@ -292,10 +292,11 @@ export function AppSidebar({
         {/* Main navigation items (Dashboard, Lifecycle, Analytics, etc.) */}
         <NavMain items={userData.navMain} actionButtons={userData.actionButtons} />
         
-        {/* Categorized navigation (Analytics, Teams, Company) */}
+        {/* Categorized navigation (Analytics, Teams, Productivity, Company) */}
         <NavCategorized 
           analytics={userData.analytics}
           teams={userData.teams}
+          productivity={userData.productivity}
           company={userData.company}
         />
         

@@ -129,6 +129,9 @@ export function NavSecondary({
             // Check if user is in HR dashboard section
             const isHR = location.pathname.startsWith('/human-resource-manager');
             
+            // Check if user is in Staff dashboard section
+            const isStaff = location.pathname.startsWith('/staff');
+            
             // Check if current item is the Settings item
             const isSettings = item.title === 'Settings';
 
@@ -208,6 +211,94 @@ export function NavSecondary({
                         
                         <button 
                           onClick={() => navigate('/human-resource-manager/settings/notifications')}
+                          className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
+                        >
+                          <IconBell size={16} />
+                          <span>Notification</span>
+                        </button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </SidebarMenuItem>
+              );
+            }
+
+            // ========================================================================
+            // STAFF SETTINGS POPOVER
+            // ========================================================================
+            
+            // Custom Staff Settings popover for enhanced navigation
+            if (isStaff && isSettings) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <Popover>
+                    {/* Popover trigger button */}
+                    <PopoverTrigger asChild>
+                      <SidebarMenuButton 
+                        tooltip={item.title}
+                        className={`cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 ${isActive ? "text-[#00DB12]" : ""}`}
+                      >
+                        {/* Render icon if provided */}
+                        {item.icon && <item.icon />}
+                        
+                        {/* Navigation item title */}
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </PopoverTrigger>
+                    
+                    {/* Popover content with Staff settings options */}
+                    <PopoverContent align="start" side="right" className="w-36 p-1">
+                      <div>
+                        
+                        {/* ================================================================
+                             PROFILE SETTINGS BUTTON
+                             ================================================================
+                             
+                             Navigate to Staff profile settings page
+                             ================================================================ */}
+                        
+                        <button 
+                          onClick={() => navigate('/staff/settings/profile')}
+                          className={`w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer flex items-center space-x-2 ${
+                            location.pathname === '/staff/settings/profile' 
+                              ? 'bg-green-500 text-white hover:bg-green-500'  // Active state
+                              : 'hover:bg-green-500 hover:text-white'         // Hover state
+                          }`}
+                        >
+                          <IconUser size={16} />
+                          <span>Profile</span>
+                        </button>
+                        
+                        {/* Separator between profile and password */}
+                        <div className="h-px bg-gray-200 my-1"></div>
+                        
+                        {/* ================================================================
+                             PASSWORD SETTINGS BUTTON
+                             ================================================================
+                             
+                             Navigate to Staff password settings page
+                             ================================================================ */}
+                        
+                        <button 
+                          onClick={() => navigate('/staff/settings/password')}
+                          className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
+                        >
+                          <IconLock size={16} />
+                          <span>Password</span>
+                        </button>
+                        
+                        {/* Separator between password and notifications */}
+                        <div className="h-px bg-gray-200 my-1"></div>
+                        
+                        {/* ================================================================
+                             NOTIFICATION SETTINGS BUTTON
+                             ================================================================
+                             
+                             Navigate to Staff notification settings page
+                             ================================================================ */}
+                        
+                        <button 
+                          onClick={() => navigate('/staff/settings/notifications')}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />

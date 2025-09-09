@@ -49,36 +49,16 @@ const hrActionButtons = [
  * Staff Dashboard Action Buttons
  * 
  * Action buttons specific to Staff members.
- * Focuses on personal tasks, leave requests, and profile management.
+ * Focuses on check-in functionality as the primary action.
  */
 const staffActionButtons = [
   {
-    icon: IconClock,
-    text: "Clock In/Out",
-    tooltip: "Record Attendance",
+    icon: IconPlus,
+    text: "Check-In",
+    tooltip: "Check-In",
     variant: "primary",
-    onClick: () => console.log("Clock In/Out clicked"),
-  },
-  {
-    icon: IconCalendar,
-    text: "Request Leave",
-    tooltip: "Submit Leave Request",
-    variant: "secondary",
-    onClick: () => console.log("Request Leave clicked"),
-  },
-  {
-    icon: IconEdit,
-    text: "Update Profile",
-    tooltip: "Edit Personal Information",
-    variant: "outline",
-    onClick: () => console.log("Update Profile clicked"),
-  },
-  {
-    icon: IconFileText,
-    text: "View Payslip",
-    tooltip: "Access Pay Information",
-    variant: "ghost",
-    onClick: () => console.log("View Payslip clicked"),
+    className: "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
+    onClick: () => console.log("Check-In clicked"),
   },
 ];
 

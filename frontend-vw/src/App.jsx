@@ -81,13 +81,14 @@ import MessagesPage from "./screens/UserDashboards/HRDashboard/MessagesPage";
 import ReportsPage from "./screens/UserDashboards/HRDashboard/ReportsPage";
 
 // HR Settings and Configuration
+import HRSettingsPage from "./screens/UserDashboards/HRDashboard/HRSettingsPage";
 import HRProfileSettings from "./screens/UserDashboards/HRDashboard/HRProfileSettings";
 import HRPasswordSettings from "./screens/UserDashboards/HRDashboard/HRPasswordSettings";
 import HRNotificationSettings from "./screens/UserDashboards/HRDashboard/HRNotificationSettings";
 
 // Other Role Dashboards
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
-import StaffDashboardPage from "./screens/UserDashboards/StaffDashboard/StaffDashboard";
+import StaffDashboardMainPage from "./screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 
 // Staff Dashboard Components
 import StaffLandingPage from "./screens/UserDashboards/StaffDashboard/pages/StaffLandingPage";
@@ -95,6 +96,20 @@ import CheckIn from "./screens/UserDashboards/StaffDashboard/pages/CheckIn";
 import CheckOut from "./screens/UserDashboards/StaffDashboard/pages/CheckOut";
 import Tasks from "./screens/UserDashboards/StaffDashboard/pages/Tasks";
 import Evaluation from "./screens/UserDashboards/StaffDashboard/pages/Evaluation";
+
+// New Staff Dashboard Pages
+import StaffPerformancePage from "./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage";
+import StaffEvaluationsPage from "./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationsPage";
+import StaffTasksPage from "./screens/UserDashboards/StaffDashboard/pages/StaffTasksPage";
+import StaffAttendancePage from "./screens/UserDashboards/StaffDashboard/pages/StaffAttendancePage";
+import StaffMessagesPage from "./screens/UserDashboards/StaffDashboard/pages/StaffMessagesPage";
+import StaffReportsPage from "./screens/UserDashboards/StaffDashboard/pages/StaffReportsPage";
+
+// Staff Settings Pages
+import StaffSettingsPage from "./screens/UserDashboards/StaffDashboard/StaffSettingsPage";
+import StaffProfileSettings from "./screens/UserDashboards/StaffDashboard/StaffProfileSettings";
+import StaffPasswordSettings from "./screens/UserDashboards/StaffDashboard/StaffPasswordSettings";
+import StaffNotificationSettings from "./screens/UserDashboards/StaffDashboard/StaffNotificationSettings";
 
 // Error and fallback pages
 import NotFound from "./screens/NotFound";
@@ -260,6 +275,14 @@ const App = () => (
 
               {/* HR Settings and Configuration Routes */}
               <Route
+                path="/human-resource-manager/settings"
+                element={
+                  <ProtectedRoute requiredRole="Human Resource Manager">
+                    <HRSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/human-resource-manager/settings/profile"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
@@ -308,7 +331,7 @@ const App = () => (
                 path="/staff/dashboard"
                 element={
                   <ProtectedRoute requiredRole="Staff">
-                    <StaffDashboardPage />
+                    <StaffDashboardMainPage />
                   </ProtectedRoute>
                 }
               />
@@ -336,7 +359,7 @@ const App = () => (
                 path="/staff/tasks"
                 element={
                   <ProtectedRoute requiredRole="Staff">
-                    <Tasks />
+                    <StaffTasksPage />
                   </ProtectedRoute>
                 }
               />
@@ -346,6 +369,86 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="Staff">
                     <Evaluation />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* New Staff Dashboard Pages */}
+              <Route
+                path="/staff/performance"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffPerformancePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/evaluations"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffEvaluationsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/attendance"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffAttendancePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/messages"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffMessagesPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/reports"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Staff Settings Routes */}
+              <Route
+                path="/staff/settings"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/settings/profile"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffProfileSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/settings/password"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffPasswordSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/settings/notifications"
+                element={
+                  <ProtectedRoute requiredRole="Staff">
+                    <StaffNotificationSettings />
                   </ProtectedRoute>
                 }
               />

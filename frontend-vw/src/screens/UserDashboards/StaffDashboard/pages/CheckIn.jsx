@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertTriangle, CheckCircle, X } from "lucide-react";
-import StaffDashboardPage from "../StaffDashboard";
+import StaffDashboardMainPage from "../StaffDashboardMainPage";
 
 export default function CheckIn() {
   const navigate = useNavigate();
@@ -71,7 +71,7 @@ export default function CheckIn() {
     <div className="relative min-h-screen">
       {/* Blurred Dashboard Background */}
       <div className="absolute inset-0 blur-sm opacity-60">
-        <StaffDashboardPage />
+        <StaffDashboardMainPage />
       </div>
 
       {/* Semi-transparent overlay */}

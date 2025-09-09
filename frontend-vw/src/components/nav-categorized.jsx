@@ -62,6 +62,7 @@ import {
 export function NavCategorized({
   analytics = [],          // Analytics section navigation items
   teams = [],              // Teams section navigation items
+  productivity = [],       // Productivity section navigation items
   company = [],            // Company section navigation items
 }) {
   // ============================================================================
@@ -179,6 +180,54 @@ export function NavCategorized({
                       
                       {/* Teams item title */}
                       <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </div>
+        )}
+
+        {/* ========================================================================
+             PRODUCTIVITY SECTION
+             ========================================================================
+             
+             Productivity and task management navigation items
+             ======================================================================== */}
+        
+        {productivity && productivity.length > 0 && (
+          <div>
+            {/* Productivity section header */}
+            <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Productivity
+            </h3>
+            
+            {/* Productivity navigation menu */}
+            <SidebarMenu>
+              {/* Map through productivity items */}
+              {productivity.map((item) => {
+                // Determine if current productivity item is active
+                const isActive = location.pathname === item.url;
+                
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      tooltip={item.title}          // Tooltip for navigation item
+                      onClick={() => handleNavigation(item.url)}  // Navigation handler
+                      className={`cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 ${isActive ? "text-[#00DB12]" : ""}`}
+                    >
+                      {/* Render productivity icon if provided */}
+                      {item.icon && <item.icon />}
+                      
+                      {/* Productivity item title */}
+                      <span>{item.title}</span>
+                      
+                      {/* Optional badge for notifications or counts */}
+                      {item.badge && (
+                        <span className="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-gray-600 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
