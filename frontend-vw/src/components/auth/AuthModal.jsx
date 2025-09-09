@@ -42,6 +42,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 // Data imports
 import countryCodes from "@/data/countryCodes.json";
+// Force refresh - duplicate key fix applied
 
 // Custom Hooks and Utilities
 import useAuth from "@/hooks/useAuth";
@@ -61,22 +62,19 @@ import { useNavigate } from "react-router-dom";
  */
 const AuthModal = ({ isOpen, onClose, mode, role }) => {
   /**
-   * UI State Management
+   * Consolidated UI State Management
+   * @type {Object} All UI-related state in one object to reduce re-renders
    */
-  /** @type {boolean} Controls password visibility in password input fields */
-  const [showPassword, setShowPassword] = useState(false);
-  
-  /** @type {boolean} Indicates if form submission is in progress */
-  const [loading, setLoading] = useState(false);
-  
-  /** @type {string} Current authentication mode ('login' or 'signup') */
-  const [currentMode, setCurrentMode] = useState(mode);
-  
-  /** @type {boolean} Controls "Remember Me" checkbox state */
-  const [rememberMe, setRememberMe] = useState(false);
-  
-  /** @type {string} Selected user role for signup ('admin', 'hr', 'staff') */
-  const [selectedRole, setSelectedRole] = useState(role);
+  const [uiState, setUiState] = useState({
+    showPassword: false,        // Controls password visibility
+    loading: false,             // Form submission state
+    currentMode: mode,          // Authentication mode ('login' or 'signup')
+    rememberMe: false,          // Remember me checkbox
+    selectedRole: role,         // User role for signup
+    countryCode: '+233',        // Phone country code
+    dateOpen: false,            // Date picker popover visibility
+    selectedDate: null,         // Selected date from calendar
+  });
   
   /**
    * Form Data State
@@ -96,21 +94,6 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
   });
   
   /**
-   * Phone Number State
-   * @type {string} Country code for phone number (defaults to Ghana +233)
-   */
-  const [countryCode, setCountryCode] = useState('+233');
-  
-  /**
-   * Date Picker State
-   */
-  /** @type {boolean} Controls date picker popover visibility */
-  const [dateOpen, setDateOpen] = useState(false);
-  
-  /** @type {Date|null} Selected date from the calendar picker */
-  const [selectedDate, setSelectedDate] = useState(null);
-  
-  /**
    * Navigation and Authentication
    */
   /** @type {function} React Router navigation function */
@@ -118,6 +101,45 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
   
   /** @type {Object} Authentication functions from useAuth hook */
   const { signUp, signIn } = useAuth();
+
+  /**
+   * Helper function to update UI state
+   * @param {Object} updates - Partial state updates
+   */
+  const updateUiState = (updates) => {
+    setUiState(prev => ({ ...prev, ...updates }));
+  };
+
+  /**
+   * Helper function to update form data
+   * @param {Object} updates - Partial form data updates
+   */
+  const updateFormData = (updates) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+  };
+
+  /**
+   * Reset form to initial state
+   */
+  const resetForm = () => {
+    setFormData({
+      workId: '',
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      department: '',
+      jobTitle: '',
+      phoneNumber: '',
+      gender: '',
+      dateOfBirth: '',
+    });
+    updateUiState({
+      selectedDate: null,
+      dateOpen: false,
+      countryCode: '+233',
+    });
+  };
 
   /**
    * Effect to handle role prop changes
@@ -128,7 +150,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * @dependencies {string} role - The role prop value
    */
   useEffect(() => {
-    setSelectedRole(role);
+    updateUiState({ selectedRole: role });
   }, [role]);
 
   /**
@@ -141,24 +163,10 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * @dependencies {string} currentMode - The current authentication mode
    */
   useEffect(() => {
-    if (currentMode === 'login') {
-      // Reset form data when switching to login mode
-      setFormData({
-        workId: '',
-        email: '',
-        password: '',
-        firstName: '',
-        lastName: '',
-        department: '',
-        jobTitle: '',
-        phoneNumber: '',
-        gender: '',
-        dateOfBirth: '',
-      });
-      setSelectedDate(null);
-      setCountryCode('+233'); // Reset to default Ghana code
+    if (uiState.currentMode === 'login') {
+      resetForm();
     }
-  }, [currentMode]);
+  }, [uiState.currentMode]);
 
   /**
    * Gender options for the select dropdown
@@ -206,16 +214,16 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-            // Validate phone number length for signup
-        if (currentMode === 'signup' && formData.phoneNumber.length !== 9) {
-          toast.error('Phone number must be exactly 9 digits');
-          return;
-        }
+    // Validate phone number length for signup
+    if (uiState.currentMode === 'signup' && formData.phoneNumber.length !== 9) {
+      toast.error('Phone number must be exactly 9 digits');
+      return;
+    }
     
-    setLoading(true);
+    updateUiState({ loading: true });
 
     try {
-      if (currentMode === 'login') {
+      if (uiState.currentMode === 'login') {
         // Handle login flow
         const result = await signIn(formData.workId, formData.password);
         
@@ -248,21 +256,21 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
         const signupData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          phoneNumber: `${countryCode}${formData.phoneNumber}`, // Format: +233543466492 (country code + 9 digits)
+          phoneNumber: `${uiState.countryCode}${formData.phoneNumber}`, // Format: +233543466492 (country code + 9 digits)
           email: formData.email,
-          dateOfBirth: selectedDate ? selectedDate.toISOString().split('T')[0] : formData.dateOfBirth,
+          dateOfBirth: uiState.selectedDate ? uiState.selectedDate.toISOString().split('T')[0] : formData.dateOfBirth,
           gender: formData.gender,
           department: formData.department,
-          role: selectedRole === 'hr' ? 'Human Resource Manager' : selectedRole === 'staff' ? 'Staff' : 'Admin',
+          role: uiState.selectedRole === 'hr' ? 'Human Resource Manager' : uiState.selectedRole === 'staff' ? 'Staff' : 'Admin',
           jobTitle: formData.jobTitle,
           password: formData.password
         };
 
         // Log the phone number format for debugging
         console.log('Phone number format:', {
-          countryCode,
+          countryCode: uiState.countryCode,
           phoneNumber: formData.phoneNumber,
-          combined: `${countryCode}${formData.phoneNumber}`,
+          combined: `${uiState.countryCode}${formData.phoneNumber}`,
           expectedFormat: '+233543466492'
         });
 
@@ -300,10 +308,10 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
     } catch (error) {
       console.error('Auth error:', error);
       const errorMessage = error.response?.data?.message || 
-        (currentMode === 'login' ? 'An error occurred during login' : 'An error occurred during signup');
+        (uiState.currentMode === 'login' ? 'An error occurred during login' : 'An error occurred during signup');
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      updateUiState({ loading: false });
     }
   };
 
@@ -336,22 +344,11 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * handleSwitchToLogin() // Resets form and switches to login mode
    */
   const handleSwitchToLogin = () => {
-    setCurrentMode('login');
-    setSelectedRole(null);
-    setFormData({
-      workId: '',
-      email: '',
-      password: '',
-      firstName: '',
-      lastName: '',
-      department: '',
-      jobTitle: '',
-      phoneNumber: '',
-      gender: '',
-      dateOfBirth: '',
+    updateUiState({ 
+      currentMode: 'login',
+      selectedRole: null 
     });
-    setSelectedDate(null);
-    setCountryCode('+233'); // Reset to default Ghana code
+    resetForm();
   };
 
   /**
@@ -384,13 +381,13 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
       <DialogContent className="glass-card border-white/20 w-100 max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white text-center">
-            {currentMode === 'login' ? 'Welcome Back' : `Join as ${selectedRole === 'staff' ? 'Staff' : selectedRole === 'hr' ? 'HR Manager' : 'Admin'}`}
+            {uiState.currentMode === 'login' ? 'Welcome Back' : `Join as ${uiState.selectedRole === 'staff' ? 'Staff' : uiState.selectedRole === 'hr' ? 'HR Manager' : 'Admin'}`}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           {/* Signup Form Fields - Only visible when currentMode is 'signup' */}
-          {currentMode === 'signup' && (
+                      {uiState.currentMode === 'signup' && (
             <>
               {/* Personal Information Section */}
               <div className="grid grid-cols-2 gap-4">
@@ -404,7 +401,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                       placeholder="First name"
                       className="pl-10 glass border-white/20 text-white placeholder-muted-foreground"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      onChange={(e) => updateFormData({ firstName: e.target.value })}
                       required
                     />
                   </div>
@@ -420,7 +417,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                       placeholder="Last name"
                       className="pl-10 glass border-white/20 text-white placeholder-muted-foreground"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      onChange={(e) => updateFormData({ lastName: e.target.value })}
                       required
                     />
                   </div>
@@ -430,7 +427,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="department" className="text-white">Department</Label>
-                  <Select onValueChange={(value) => setFormData({ ...formData, department: value })}>
+                  <Select onValueChange={(value) => updateFormData({ department: value })}>
                     <SelectTrigger className="glass border-white/20 text-white cursor-pointer">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
@@ -456,7 +453,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                     placeholder="e.g. Developer"
                     className="glass border-white/20 text-white placeholder-muted-foreground"
                     value={formData.jobTitle}
-                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                    onChange={(e) => updateFormData({ jobTitle: e.target.value })}
                     required
                   />
                 </div>
@@ -469,19 +466,22 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {/* Country Code Dropdown - Takes 1 column on mobile, 1 on desktop */}
                   <div className="relative">
-                    <Select value={countryCode} onValueChange={setCountryCode}>
+                    <Select value={uiState.countryCode} onValueChange={(value) => updateUiState({ countryCode: value })}>
                       <SelectTrigger className="glass border-white/20 text-white h-10 cursor-pointer">
                         <SelectValue>
                           <div className="flex items-center space-x-2">
-                            <span>{countryCodes.find(c => c.code === countryCode)?.flag}</span>
-                            <span className="text-sm">{countryCode}</span>
+                            <span>{countryCodes.find(c => c.code === uiState.countryCode)?.flag}</span>
+                            <span className="text-sm">{uiState.countryCode}</span>
                           </div>
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-60 max-w-40">
-                        {countryCodes.map((country) => (
+                        {/* Fixed duplicate key issue - using unique keys */}
+                        {countryCodes.map((country, index) => {
+                          console.log(`Rendering country ${index}: ${country.country} with key: country-item-${index}-unique`);
+                          return (
                           <SelectItem 
-                            key={country.code} 
+                            key={`country-item-${index}-unique`} 
                             value={country.code}
                             className="hover:!bg-primary hover:!text-black cursor-pointer transition-colors duration-200 focus:!bg-primary focus:!text-black"
                           >
@@ -491,7 +491,8 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                               <span className="text-xs text-white hover:!text-black">{country.country}</span>
                             </div>
                           </SelectItem>
-                        ))}
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -509,7 +510,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                         const value = e.target.value;
                         // Only allow digits and limit to 9 characters
                         const numericValue = value.replace(/\D/g, '').slice(0, 9);
-                        setFormData({ ...formData, phoneNumber: numericValue });
+                        updateFormData({ phoneNumber: numericValue });
                       }}
                       maxLength={9}
                       pattern="[0-9]{9}"
@@ -550,26 +551,27 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <div className="space-y-2">
                   <Label htmlFor="date_of_birth" className="text-white">Date of Birth</Label>
                   {/* Calendar Popover for Date Selection */}
-                  <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                  <Popover open={uiState.dateOpen} onOpenChange={(open) => updateUiState({ dateOpen: open })}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         id="date_of_birth"
                         className="w-full justify-between font-normal glass border-white/20 text-white hover:bg-white/10 cursor-pointer"
                       >
-                        {selectedDate ? selectedDate.toLocaleDateString() : "Select date"}
+                        {uiState.selectedDate ? uiState.selectedDate.toLocaleDateString() : "Select date"}
                         <ChevronDownIcon className="h-4 w-4" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto overflow-hidden p-0 bg-popover border border-border rounded-md shadow-md" align="start">
                       <Calendar
                         mode="single"
-                        selected={selectedDate}
+                        selected={uiState.selectedDate}
                         captionLayout="dropdown"
                         onSelect={(date) => {
-                          setSelectedDate(date);
-                          setFormData({ ...formData, dateOfBirth: date ? date.toISOString().split('T')[0] : '' });
-                          setDateOpen(false);
+                          updateUiState({ selectedDate: date });
+                          if (date) {
+                            updateFormData({ dateOfBirth: date.toISOString().split('T')[0] });
+                          }
                         }}
                         className="[&_button]:hover:!bg-primary [&_button]:hover:!text-black [&_button]:cursor-pointer [&_button]:transition-colors [&_button]:duration-200 [&_button]:focus:!bg-primary [&_button]:focus:!text-black [&_button]:text-white [&_button]:rounded-md [&_button]:p-2 [&_button]:text-sm [&_button]:font-medium [&_button]:hover:!scale-105 [&_button]:transition-transform [&_button]:duration-200"
                       />
@@ -579,7 +581,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
 
                 <div className="space-y-2">
                   <Label htmlFor="gender" className="text-white">Gender</Label>
-                  <Select onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                  <Select onValueChange={(value) => updateFormData({ gender: value })}>
                     <SelectTrigger className="glass border-white/20 text-white cursor-pointer">
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
@@ -601,7 +603,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
           )}
 
           {/* Login Form Fields - Only visible when currentMode is 'login' */}
-          {currentMode === 'login' ? (
+          {uiState.currentMode === 'login' ? (
             <>
               {/* Work ID Input */}
               <div className="space-y-2">
@@ -612,7 +614,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                   placeholder="Enter your ID"
                   className="glass border-white/20 text-white placeholder-muted-foreground"
                   value={formData.workId}
-                  onChange={(e) => setFormData({ ...formData, workId: e.target.value })}
+                  onChange={(e) => updateFormData({ workId: e.target.value })}
                   required
                 />
               </div>
@@ -622,21 +624,21 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={uiState.showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     className="pr-10 glass border-white/20 text-white placeholder-muted-foreground"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => updateFormData({ password: e.target.value })}
                     required
                   />
                   {/* Password Visibility Toggle Button */}
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => updateUiState({ showPassword: !uiState.showPassword })}
                     className="absolute right-3 top-3 text-muted-foreground hover:text-white cursor-pointer"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={uiState.showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {uiState.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -645,8 +647,8 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={setRememberMe}
+                    checked={uiState.rememberMe}
+                    onCheckedChange={(checked) => updateUiState({ rememberMe: checked })}
                     className="border-white/20"
                   />
                   <Label htmlFor="remember" className="text-white text-sm">Remember Me</Label>
@@ -672,7 +674,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                     placeholder="Enter your email"
                     className="pl-10 glass border-white/20 text-white placeholder-muted-foreground"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => updateFormData({ email: e.target.value })}
                     required
                   />
                 </div>
@@ -684,21 +686,21 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={uiState.showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     className="pl-10 pr-10 glass border-white/20 text-white placeholder-muted-foreground"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => updateFormData({ password: e.target.value })}
                     required
                   />
                   {/* Password Visibility Toggle Button */}
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => updateUiState({ showPassword: !uiState.showPassword })}
                     className="absolute right-3 top-3 text-muted-foreground hover:text-white cursor-pointer"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={uiState.showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {uiState.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -709,14 +711,14 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
           <Button
             type="submit"
             className="w-full bg-primary hover:bg-primary/90 text-black font-semibold cursor-pointer"
-            disabled={loading}
-            aria-label={loading ? "Processing form submission" : currentMode === 'login' ? 'Sign in to account' : 'Create new account'}
+            disabled={uiState.loading}
+            aria-label={uiState.loading ? "Processing form submission" : uiState.currentMode === 'login' ? 'Sign in to account' : 'Create new account'}
           >
-            {loading ? "Processing..." : currentMode === 'login' ? 'Sign In' : 'Create Account'}
+            {uiState.loading ? "Processing..." : uiState.currentMode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
 
           {/* Role Selection Section - Only visible on login mode */}
-          {currentMode === 'login' ? (
+          {uiState.currentMode === 'login' ? (
             <div className="text-center space-y-3">
               <p className="text-sm text-muted-foreground">
                 Don't have an account? Sign up as
@@ -726,8 +728,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <button
                   type="button"
                   onClick={() => {
-                    setCurrentMode('signup');
-                    setSelectedRole('admin');
+                    updateUiState({ currentMode: 'signup', selectedRole: 'admin' });
                   }}
                   className="text-primary hover:underline text-sm cursor-pointer"
                 >
@@ -736,8 +737,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <button
                   type="button"
                   onClick={() => {
-                    setCurrentMode('signup');
-                    setSelectedRole('hr');
+                    updateUiState({ currentMode: 'signup', selectedRole: 'hr' });
                   }}
                   className="text-primary hover:underline text-sm cursor-pointer"
                 >
@@ -746,8 +746,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <button
                   type="button"
                   onClick={() => {
-                    setCurrentMode('signup');
-                    setSelectedRole('staff');
+                    updateUiState({ currentMode: 'signup', selectedRole: 'staff' });
                   }}
                   className="text-primary hover:underline text-sm cursor-pointer"
                 >

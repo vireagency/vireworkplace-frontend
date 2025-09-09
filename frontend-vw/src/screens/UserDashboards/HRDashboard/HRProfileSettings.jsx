@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
@@ -18,7 +22,17 @@ import {
   IconId,
   IconCertificate,
   IconFileText,
-  IconShield
+  IconShield,
+  IconSchool,
+  IconBuilding,
+  IconAward,
+  IconBrain,
+  IconChevronRight,
+  IconChevronDown,
+  IconEdit,
+  IconTrash,
+  IconX,
+  IconMapPin
 } from "@tabler/icons-react"
 
 export default function HRProfileSettings() {
@@ -26,6 +40,108 @@ export default function HRProfileSettings() {
   const [activeTab, setActiveTab] = useState("personal")
   const [selectedDate, setSelectedDate] = useState(null)
   const [dateOpen, setDateOpen] = useState(false)
+  const [isEducationOpen, setIsEducationOpen] = useState(false)
+  const [showEducationModal, setShowEducationModal] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editingEducationId, setEditingEducationId] = useState(null)
+  const [isExperienceOpen, setIsExperienceOpen] = useState(false)
+  const [showExperienceModal, setShowExperienceModal] = useState(false)
+  const [isExperienceEditMode, setIsExperienceEditMode] = useState(false)
+  const [editingExperienceId, setEditingExperienceId] = useState(null)
+  const [isLicensesOpen, setIsLicensesOpen] = useState(false)
+  const [showLicensesModal, setShowLicensesModal] = useState(false)
+  const [isLicensesEditMode, setIsLicensesEditMode] = useState(false)
+  const [editingLicensesId, setEditingLicensesId] = useState(null)
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false)
+  const [showSkillsModal, setShowSkillsModal] = useState(false)
+  const [educationForm, setEducationForm] = useState({
+    institution: "",
+    description: "",
+    duration: ""
+  })
+  const [experienceForm, setExperienceForm] = useState({
+    jobTitle: "",
+    organization: "",
+    description: "",
+    location: "",
+    skills: "",
+    duration: ""
+  })
+  const [licensesForm, setLicensesForm] = useState({
+    certificationName: "",
+    organization: "",
+    description: "",
+    issueDate: ""
+  })
+  const [skillsForm, setSkillsForm] = useState({
+    skillName: ""
+  })
+  const [educationEntries, setEducationEntries] = useState([
+    {
+      id: 1,
+      institution: "University of Ghana, Legon",
+      description: "Mathematics",
+      duration: "2018-2022"
+    },
+    {
+      id: 2,
+      institution: "University of Hong-Kong",
+      description: "Associate Diploma (Software Engineering)",
+      duration: "2020-2021"
+    }
+  ])
+  const [experienceEntries, setExperienceEntries] = useState([
+    {
+      id: 1,
+      jobTitle: "Engineering Lead",
+      organization: "VIRE Workplace",
+      employmentType: "Full-Time",
+      location: "Accra, Ghana",
+      duration: "2025 - present",
+      skills: "User-centered Design · Motion Design · UX Research · Figma (Software) · User Experience (UX) · Mobile Design"
+    },
+    {
+      id: 2,
+      jobTitle: "Senior Software Engineer",
+      organization: "Tech Solutions Ltd",
+      employmentType: "Contract",
+      location: "Accra, Ghana",
+      duration: "2023 - 2025",
+      skills: "React · JavaScript · Node.js · TypeScript · MongoDB · AWS"
+    },
+    {
+      id: 3,
+      jobTitle: "Senior Software Engineer",
+      organization: "Digital Innovations",
+      employmentType: "Contract",
+      location: "Abuja, Nigeria",
+      duration: "2024 - 2025",
+      skills: "Python · Django · PostgreSQL · Docker · Kubernetes · CI/CD"
+    }
+  ])
+  const [licensesEntries, setLicensesEntries] = useState([
+    {
+      id: 1,
+      organization: "Andela",
+      certificationName: "Nodejs Developer Course, Reactjs and Redux",
+      issueDate: "Issued July, 2022"
+    },
+    {
+      id: 2,
+      organization: "ALX",
+      certificationName: "Backend Web Development Specialization",
+      issueDate: "Issued January, 2023"
+    }
+  ])
+  const [skillsEntries, setSkillsEntries] = useState([
+    "UX research",
+    "UI design", 
+    "Prototyping",
+    "Wireframing",
+    "User-centered design",
+    "Figma",
+    "Mobile design"
+  ])
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     username: user?.email?.split('@')[0] ? `@${user.email.split('@')[0]}` : "",
@@ -557,6 +673,859 @@ export default function HRProfileSettings() {
             {/* Save Button */}
             <div className="flex justify-end mt-6">
               <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">Save</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Qualifications Tab */}
+        {activeTab === "qualifications" && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-6">Qualifications</h2>
+            
+            {/* Qualification Cards */}
+            <div className="space-y-4">
+              {/* Education Card */}
+              <Collapsible open={isEducationOpen} onOpenChange={setIsEducationOpen}>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Education Header */}
+                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <IconSchool className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">Education</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {isEducationOpen ? (
+                        <IconChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <IconChevronRight className="w-5 h-5 text-gray-400" />
+                      )}
+                      <button 
+                        className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!isEducationOpen) {
+                            setIsEducationOpen(true)
+                          }
+                          // Open modal for adding new education
+                          setIsEditMode(false)
+                          setEditingEducationId(null)
+                          setEducationForm({
+                            institution: "",
+                            description: "",
+                            duration: ""
+                          })
+                          setShowEducationModal(true)
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </CollapsibleTrigger>
+
+                  {/* Expanded Education Content */}
+                  <CollapsibleContent>
+                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                      {/* Education Entries */}
+                      <div className="space-y-3">
+                        {educationEntries.map((entry) => (
+                          <div key={entry.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                {/* Institution Name */}
+                                <h4 className="font-bold text-gray-800 text-base mb-2">
+                                  {entry.institution}
+                                </h4>
+                                
+                                {/* Description with Icon */}
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <IconSchool className="w-4 h-4 text-gray-600" />
+                                  <span className="text-gray-700 text-sm">
+                                    {entry.description}
+                                  </span>
+                                </div>
+                                
+                                {/* Duration */}
+                                <p className="text-gray-500 text-sm">
+                                  {entry.duration}
+                                </p>
+                              </div>
+                              
+                              {/* Action Buttons */}
+                              <div className="flex items-center space-x-2 ml-4">
+                                <button 
+                                  className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                  onClick={() => {
+                                    // Set edit mode and populate form
+                                    setIsEditMode(true)
+                                    setEditingEducationId(entry.id)
+                                    setEducationForm({
+                                      institution: entry.institution,
+                                      description: entry.description,
+                                      duration: entry.duration
+                                    })
+                                    setShowEducationModal(true)
+                                  }}
+                                >
+                                  <IconEdit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button 
+                                  className="p-1 hover:bg-red-50 rounded transition-colors"
+                                  onClick={() => {
+                                    // Handle delete logic
+                                    setEducationEntries(prev => prev.filter(item => item.id !== entry.id))
+                                  }}
+                                >
+                                  <IconTrash className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+
+              {/* Education Modal */}
+              <Dialog open={showEducationModal} onOpenChange={setShowEducationModal}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-gray-800">
+                      {isEditMode ? "Edit Education" : "Add Education"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 mt-4">
+                    {/* Institution Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="institution" className="text-sm font-medium text-gray-800">
+                        Institution
+                      </Label>
+                      <Input
+                        id="institution"
+                        value={educationForm.institution}
+                        onChange={(e) => setEducationForm({...educationForm, institution: e.target.value})}
+                        placeholder="University of Example"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+
+
+                    {/* Description Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="description" className="text-sm font-medium text-gray-800">
+                        Description
+                      </Label>
+                      <Input
+                        id="description"
+                        value={educationForm.description}
+                        onChange={(e) => setEducationForm({...educationForm, description: e.target.value})}
+                        placeholder="Degree and field of study"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Duration/Period Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="duration" className="text-sm font-medium text-gray-800">
+                        Duration/Period
+                      </Label>
+                      <Input
+                        id="duration"
+                        value={educationForm.duration}
+                        onChange={(e) => setEducationForm({...educationForm, duration: e.target.value})}
+                        placeholder="2020 - 2024"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEducationModal(false)}
+                      className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (isEditMode) {
+                          // Update existing education entry
+                          setEducationEntries(prev => prev.map(entry => 
+                            entry.id === editingEducationId 
+                              ? { ...entry, ...educationForm }
+                              : entry
+                          ))
+                        } else {
+                          // Add new education entry
+                          const newEntry = {
+                            id: Date.now(),
+                            ...educationForm
+                          }
+                          setEducationEntries(prev => [...prev, newEntry])
+                        }
+                        setShowEducationModal(false)
+                        setEducationForm({
+                          institution: "",
+                          description: "",
+                          duration: ""
+                        })
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      {isEditMode ? "Save Changes" : "Add Item"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Experience Card */}
+              <Collapsible open={isExperienceOpen} onOpenChange={setIsExperienceOpen}>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Experience Header */}
+                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <IconBuilding className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">Experience</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {isExperienceOpen ? (
+                        <IconChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <IconChevronRight className="w-5 h-5 text-gray-400" />
+                      )}
+                      <button 
+                        className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!isExperienceOpen) {
+                            setIsExperienceOpen(true)
+                          }
+                          // Open modal for adding new experience
+                          setIsExperienceEditMode(false)
+                          setEditingExperienceId(null)
+                          setExperienceForm({
+                            jobTitle: "",
+                            organization: "",
+                            description: "",
+                            location: "",
+                            skills: "",
+                            duration: ""
+                          })
+                          setShowExperienceModal(true)
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </CollapsibleTrigger>
+
+                  {/* Expanded Experience Content */}
+                  <CollapsibleContent>
+                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                      {/* Experience Entries */}
+                      <div className="space-y-3">
+                        {experienceEntries.map((entry) => (
+                          <div key={entry.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                {/* Building Icon */}
+                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
+                                  <IconBuilding className="w-4 h-4 text-gray-600" />
+                                </div>
+                                
+                                <div className="flex-1">
+                                  {/* Job Title */}
+                                  <h4 className="font-bold text-gray-800 text-base mb-1">
+                                    {entry.jobTitle}
+                                  </h4>
+                                  
+                                  {/* Employment Type */}
+                                  <p className="text-gray-600 text-sm mb-2">
+                                    {entry.employmentType}
+                                  </p>
+                                  
+                                  {/* Location with Map Pin Icon */}
+                                  <div className="flex items-center space-x-1 mb-1">
+                                    <IconMapPin className="w-3 h-3 text-red-500" />
+                                    <span className="text-gray-500 text-sm">
+                                      {entry.location}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Duration */}
+                                  <p className="text-gray-500 text-sm mb-2">
+                                    {entry.duration}
+                                  </p>
+                                  
+                                  {/* Skills */}
+                                  <div className="text-sm">
+                                    <span className="font-semibold text-gray-800">Skills: </span>
+                                    <span className="text-gray-500">
+                                      {entry.skills}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Action Buttons */}
+                              <div className="flex items-center space-x-2 ml-4">
+                                <button 
+                                  className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                  onClick={() => {
+                                    // Set edit mode and populate form
+                                    setIsExperienceEditMode(true)
+                                    setEditingExperienceId(entry.id)
+                                    setExperienceForm({
+                                      jobTitle: entry.jobTitle,
+                                      organization: entry.organization,
+                                      description: entry.employmentType,
+                                      location: entry.location,
+                                      skills: entry.skills,
+                                      duration: entry.duration
+                                    })
+                                    setShowExperienceModal(true)
+                                  }}
+                                >
+                                  <IconEdit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button 
+                                  className="p-1 hover:bg-red-50 rounded transition-colors"
+                                  onClick={() => {
+                                    // Handle delete logic
+                                    setExperienceEntries(prev => prev.filter(item => item.id !== entry.id))
+                                  }}
+                                >
+                                  <IconTrash className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+
+              {/* Experience Modal */}
+              <Dialog open={showExperienceModal} onOpenChange={setShowExperienceModal}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-gray-800">
+                      {isExperienceEditMode ? "Edit Experience" : "Add Experience"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 mt-4">
+                    {/* Job Title Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="jobTitle" className="text-sm font-medium text-gray-800">
+                        Job Title
+                      </Label>
+                      <Input
+                        id="jobTitle"
+                        value={experienceForm.jobTitle}
+                        onChange={(e) => setExperienceForm({...experienceForm, jobTitle: e.target.value})}
+                        placeholder="Software Engineer"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Organization/Company Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="organization" className="text-sm font-medium text-gray-800">
+                        Organization/Company
+                      </Label>
+                      <Input
+                        id="organization"
+                        value={experienceForm.organization}
+                        onChange={(e) => setExperienceForm({...experienceForm, organization: e.target.value})}
+                        placeholder="Organization name"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Description Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="description" className="text-sm font-medium text-gray-800">
+                        Description
+                      </Label>
+                      <Input
+                        id="description"
+                        value={experienceForm.description}
+                        onChange={(e) => setExperienceForm({...experienceForm, description: e.target.value})}
+                        placeholder="Job type and responsibilities"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Location Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="location" className="text-sm font-medium text-gray-800">
+                        Location
+                      </Label>
+                      <Input
+                        id="location"
+                        value={experienceForm.location}
+                        onChange={(e) => setExperienceForm({...experienceForm, location: e.target.value})}
+                        placeholder="City, Country"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Skills Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="skills" className="text-sm font-medium text-gray-800">
+                        Skills (comma-separated)
+                      </Label>
+                      <Input
+                        id="skills"
+                        value={experienceForm.skills}
+                        onChange={(e) => setExperienceForm({...experienceForm, skills: e.target.value})}
+                        placeholder="React, JavaScript, Node.js, etc."
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Duration/Period Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="duration" className="text-sm font-medium text-gray-800">
+                        Duration/Period
+                      </Label>
+                      <Input
+                        id="duration"
+                        value={experienceForm.duration}
+                        onChange={(e) => setExperienceForm({...experienceForm, duration: e.target.value})}
+                        placeholder="2020 - 2024"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowExperienceModal(false)}
+                      className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (isExperienceEditMode) {
+                          // Update existing experience entry
+                          setExperienceEntries(prev => prev.map(entry => 
+                            entry.id === editingExperienceId 
+                              ? { 
+                                  ...entry, 
+                                  jobTitle: experienceForm.jobTitle,
+                                  organization: experienceForm.organization,
+                                  employmentType: experienceForm.description,
+                                  location: experienceForm.location,
+                                  skills: experienceForm.skills,
+                                  duration: experienceForm.duration
+                                }
+                              : entry
+                          ))
+                        } else {
+                          // Add new experience entry
+                          const newEntry = {
+                            id: Date.now(),
+                            jobTitle: experienceForm.jobTitle,
+                            organization: experienceForm.organization,
+                            employmentType: experienceForm.description,
+                            location: experienceForm.location,
+                            skills: experienceForm.skills,
+                            duration: experienceForm.duration
+                          }
+                          setExperienceEntries(prev => [...prev, newEntry])
+                        }
+                        setShowExperienceModal(false)
+                        setExperienceForm({
+                          jobTitle: "",
+                          organization: "",
+                          description: "",
+                          location: "",
+                          skills: "",
+                          duration: ""
+                        })
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      {isExperienceEditMode ? "Save Changes" : "Add Item"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Licenses & Certifications Card */}
+              <Collapsible open={isLicensesOpen} onOpenChange={setIsLicensesOpen}>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Licenses Header */}
+                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <IconAward className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">Licenses & Certifications</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {isLicensesOpen ? (
+                        <IconChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <IconChevronRight className="w-5 h-5 text-gray-400" />
+                      )}
+                      <button 
+                        className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!isLicensesOpen) {
+                            setIsLicensesOpen(true)
+                          }
+                          // Open modal for adding new license
+                          setIsLicensesEditMode(false)
+                          setEditingLicensesId(null)
+                          setLicensesForm({
+                            certificationName: "",
+                            organization: "",
+                            description: "",
+                            issueDate: ""
+                          })
+                          setShowLicensesModal(true)
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </CollapsibleTrigger>
+
+                  {/* Expanded Licenses Content */}
+                  <CollapsibleContent>
+                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                      {/* License Entries */}
+                      <div className="space-y-3">
+                        {licensesEntries.map((entry) => (
+                          <div key={entry.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                {/* Award Icon */}
+                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
+                                  <IconAward className="w-4 h-4 text-gray-600" />
+                                </div>
+                                
+                                <div className="flex-1">
+                                  {/* Organization */}
+                                  <h4 className="font-bold text-gray-800 text-base mb-1">
+                                    {entry.organization}
+                                  </h4>
+                                  
+                                  {/* Certification Name */}
+                                  <p className="text-gray-700 text-sm mb-2">
+                                    {entry.certificationName}
+                                  </p>
+                                  
+                                  {/* Issue Date */}
+                                  <p className="text-gray-500 text-sm mb-3">
+                                    {entry.issueDate}
+                                  </p>
+                                  
+                                  {/* View Certification Button */}
+                                  <button className="text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded text-sm font-medium transition-colors">
+                                    View certification
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              {/* Action Buttons */}
+                              <div className="flex items-center space-x-2 ml-4">
+                                <button 
+                                  className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                  onClick={() => {
+                                    // Set edit mode and populate form
+                                    setIsLicensesEditMode(true)
+                                    setEditingLicensesId(entry.id)
+                                    setLicensesForm({
+                                      certificationName: entry.certificationName,
+                                      organization: entry.organization,
+                                      description: "",
+                                      issueDate: entry.issueDate
+                                    })
+                                    setShowLicensesModal(true)
+                                  }}
+                                >
+                                  <IconEdit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button 
+                                  className="p-1 hover:bg-red-50 rounded transition-colors"
+                                  onClick={() => {
+                                    // Handle delete logic
+                                    setLicensesEntries(prev => prev.filter(item => item.id !== entry.id))
+                                  }}
+                                >
+                                  <IconTrash className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+
+              {/* Licenses Modal */}
+              <Dialog open={showLicensesModal} onOpenChange={setShowLicensesModal}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-gray-800">
+                      {isLicensesEditMode ? "Edit License/Certification" : "Add License/Certification"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 mt-4">
+                    {/* Certification Name Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="certificationName" className="text-sm font-medium text-gray-800">
+                        Certification Name
+                      </Label>
+                      <Input
+                        id="certificationName"
+                        value={licensesForm.certificationName}
+                        onChange={(e) => setLicensesForm({...licensesForm, certificationName: e.target.value})}
+                        placeholder="AWS Certified Developer"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Organization/Company Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="organization" className="text-sm font-medium text-gray-800">
+                        Organization/Company
+                      </Label>
+                      <Input
+                        id="organization"
+                        value={licensesForm.organization}
+                        onChange={(e) => setLicensesForm({...licensesForm, organization: e.target.value})}
+                        placeholder="Organization name"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Description Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="description" className="text-sm font-medium text-gray-800">
+                        Description
+                      </Label>
+                      <Input
+                        id="description"
+                        value={licensesForm.description}
+                        onChange={(e) => setLicensesForm({...licensesForm, description: e.target.value})}
+                        placeholder="Certification details"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+
+                    {/* Issue Date Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="issueDate" className="text-sm font-medium text-gray-800">
+                        Issue Date
+                      </Label>
+                      <Input
+                        id="issueDate"
+                        value={licensesForm.issueDate}
+                        onChange={(e) => setLicensesForm({...licensesForm, issueDate: e.target.value})}
+                        placeholder="Issued January 2024"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowLicensesModal(false)}
+                      className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (isLicensesEditMode) {
+                          // Update existing license entry
+                          setLicensesEntries(prev => prev.map(entry => 
+                            entry.id === editingLicensesId 
+                              ? { 
+                                  ...entry, 
+                                  certificationName: licensesForm.certificationName,
+                                  organization: licensesForm.organization,
+                                  issueDate: licensesForm.issueDate
+                                }
+                              : entry
+                          ))
+                        } else {
+                          // Add new license entry
+                          const newEntry = {
+                            id: Date.now(),
+                            certificationName: licensesForm.certificationName,
+                            organization: licensesForm.organization,
+                            issueDate: licensesForm.issueDate
+                          }
+                          setLicensesEntries(prev => [...prev, newEntry])
+                        }
+                        setShowLicensesModal(false)
+                        setLicensesForm({
+                          certificationName: "",
+                          organization: "",
+                          description: "",
+                          issueDate: ""
+                        })
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      {isLicensesEditMode ? "Save Changes" : "Add Item"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Skills Card */}
+              <Collapsible open={isSkillsOpen} onOpenChange={setIsSkillsOpen}>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Skills Header */}
+                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <IconBrain className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">Skills</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {isSkillsOpen ? (
+                        <IconChevronDown className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <IconChevronRight className="w-5 h-5 text-gray-400" />
+                      )}
+                      <button 
+                        className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!isSkillsOpen) {
+                            setIsSkillsOpen(true)
+                          }
+                          // Open modal for adding new skill
+                          setSkillsForm({
+                            skillName: ""
+                          })
+                          setShowSkillsModal(true)
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </CollapsibleTrigger>
+
+                  {/* Expanded Skills Content */}
+                  <CollapsibleContent>
+                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                      {/* Skills Tags */}
+                      <div className="flex flex-wrap gap-2">
+                        {skillsEntries.map((skill, index) => (
+                          <div key={index} className="relative group">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                              {skill}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setSkillsEntries(prev => prev.filter((_, i) => i !== index))
+                              }}
+                              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+
+              {/* Skills Modal */}
+              <Dialog open={showSkillsModal} onOpenChange={setShowSkillsModal}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-gray-800">
+                      Add Skill
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 mt-4">
+                    {/* Skill Name Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="skillName" className="text-sm font-medium text-gray-800">
+                        Skill Name
+                      </Label>
+                      <Input
+                        id="skillName"
+                        value={skillsForm.skillName}
+                        onChange={(e) => setSkillsForm({...skillsForm, skillName: e.target.value})}
+                        placeholder="Enter skill name"
+                        className="bg-white border-gray-300 rounded-md text-gray-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowSkillsModal(false)}
+                      className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (skillsForm.skillName.trim()) {
+                          setSkillsEntries(prev => [...prev, skillsForm.skillName.trim()])
+                          setSkillsForm({ skillName: "" })
+                          setShowSkillsModal(false)
+                        }
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      Add Skill
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end mt-8">
+              <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                Save
+              </Button>
             </div>
           </div>
         )}
