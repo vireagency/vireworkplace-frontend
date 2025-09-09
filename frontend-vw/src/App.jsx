@@ -85,13 +85,13 @@ import RoleSelectionPageForAdminandHR from "./screens/Authentication/RoleSelecti
 
 // HR Dashboard Components
 import HRDashboardMainPage from "./screens/UserDashboards/HRDashboard/HRDashboardMainPage";
-import EvaluationsPage from "./screens/UserDashboards/HRDashboard/EvaluationsPage";
+import HREvaluationsPage from "./screens/UserDashboards/HRDashboard/HREvaluationsPage";
 import EvaluationCreator from "./screens/UserDashboards/HRDashboard/EvaluationCreator";
-import PerformancePage from "./screens/UserDashboards/HRDashboard/PerformancePage";
-import HiringPage from "./screens/UserDashboards/HRDashboard/HiringPage";
+import HRPerformancePage from "./screens/UserDashboards/HRDashboard/HRPerformancePage";
+import HRHiringPage from "./screens/UserDashboards/HRDashboard/HRHiringPage";
 import EmployeesPage from "./screens/UserDashboards/HRDashboard/EmployeesPage";
-import MessagesPage from "./screens/UserDashboards/HRDashboard/MessagesPage";
-import ReportsPage from "./screens/UserDashboards/HRDashboard/ReportsPage";
+import HRMessagesPage from "./screens/UserDashboards/HRDashboard/HRMessagesPage";
+import HRReportsPage from "./screens/UserDashboards/HRDashboard/HRReportsPage";
 
 // HR Settings and Configuration
 import HRSettingsPage from "./screens/UserDashboards/HRDashboard/HRSettingsPage";
@@ -233,7 +233,7 @@ const App = () => (
                 path="/human-resource-manager/evaluations"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <EvaluationsPage />
+                    <HREvaluationsPage />
                   </ProtectedRoute>
                 }
               />
@@ -249,7 +249,7 @@ const App = () => (
                 path="/human-resource-manager/performance"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <PerformancePage />
+                    <HRPerformancePage />
                   </ProtectedRoute>
                 }
               />
@@ -257,7 +257,7 @@ const App = () => (
                 path="/human-resource-manager/hiring"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HiringPage />
+                    <HRHiringPage />
                   </ProtectedRoute>
                 }
               />
@@ -273,7 +273,7 @@ const App = () => (
                 path="/human-resource-manager/messages"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <MessagesPage />
+                    <HRMessagesPage />
                   </ProtectedRoute>
                 }
               />
@@ -281,7 +281,7 @@ const App = () => (
                 path="/human-resource-manager/reports"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <ReportsPage />
+                    <HRReportsPage />
                   </ProtectedRoute>
                 }
               />

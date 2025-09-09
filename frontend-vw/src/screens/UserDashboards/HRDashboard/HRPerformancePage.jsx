@@ -9,7 +9,7 @@ import { useState } from "react"
 import { Download, TrendingUp, TrendingDown, Target } from "lucide-react"
 import { GoalCreationModal } from "@/components/auth/GoalCreationModal"
 
-export default function PerformancePage() {
+export default function HRPerformancePage() {
   const [activeTab, setActiveTab] = useState("performance")
   const [timeframe, setTimeframe] = useState("12-months")
   const [isModalOpen, setIsModalOpen] = useState(false)
