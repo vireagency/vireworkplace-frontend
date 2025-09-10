@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function StaffLandingPage() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   const activities = [
     {
@@ -36,6 +38,29 @@ export default function StaffLandingPage() {
     navigate(activity.route);
   };
 
+  // Get the user's first name using the same logic as WelcomeUserPage
+  const getUserName = () => {
+    if (loading) return "Loading...";
+    return (
+      user?.firstName ||
+      localStorage.getItem("signup_firstName") ||
+      user?.email?.split("@")[0] ||
+      "User"
+    );
+  };
+
+  // Show loading state if still loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 animate-spin border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Radial green glow background */}
@@ -55,7 +80,7 @@ export default function StaffLandingPage() {
             <p className="text-gray-400 text-sm">Staff Portal</p>
           </div>
         </div>
-        <Button 
+        <Button
           onClick={() => navigate("/")}
           className="bg-black border border-white/20 text-white hover:bg-primary hover:text-black cursor-pointer transition-colors duration-200"
         >
@@ -85,7 +110,7 @@ export default function StaffLandingPage() {
         {/* Header Section */}
         <div className="text-center mb-16">
           <h1 className="text-2xl font-bold text-white mb-4">
-            👋 Hi, William! Welcome to Vire Workplace
+            👋 Hi, {getUserName()}! Welcome to Vire Workplace
           </h1>
           <p className="text-gray-300 text-base">
             Select an activity to continue

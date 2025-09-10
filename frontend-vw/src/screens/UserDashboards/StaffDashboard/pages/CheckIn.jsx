@@ -4,7 +4,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { AlertTriangle, CheckCircle, X } from "lucide-react";
+import { AlertTriangle, CheckCircle, X, MapPin, Loader2 } from "lucide-react";
 import StaffDashboardMainPage from "../StaffDashboardMainPage";
 
 export default function CheckIn() {
@@ -16,6 +16,10 @@ export default function CheckIn() {
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [error, setError] = useState("");
+  const [location, setLocation] = useState({ latitude: null, longitude: null });
 
   // Update time every second
   useEffect(() => {
@@ -35,18 +39,161 @@ export default function CheckIn() {
     return () => clearInterval(interval);
   }, []);
 
+  // Get user's current location
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser"));
+        return;
+      }
+
+      setIsGettingLocation(true);
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLocation({ latitude, longitude });
+          setIsGettingLocation(false);
+          resolve({ latitude, longitude });
+        },
+        (error) => {
+          setIsGettingLocation(false);
+          let errorMessage = "Unable to get your location";
+
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage =
+                "Location access denied. Please enable location services.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out.";
+              break;
+            default:
+              errorMessage =
+                "An unknown error occurred while retrieving location.";
+              break;
+          }
+
+          reject(new Error(errorMessage));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        }
+      );
+    });
+  };
+
+  // API call to check in
+  const checkInToAPI = async (
+    workingLocation,
+    latitude = null,
+    longitude = null
+  ) => {
+    try {
+      // Get auth token from multiple possible sources
+      let token =
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("access_token") ||
+        sessionStorage.getItem("authToken") ||
+        sessionStorage.getItem("token") ||
+        sessionStorage.getItem("access_token");
+
+      // If no token found, throw an error
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
+      }
+
+      const requestBody = {
+        workingLocation: workingLocation,
+      };
+
+      // Add coordinates for office check-in
+      if (
+        workingLocation === "office" &&
+        latitude !== null &&
+        longitude !== null
+      ) {
+        requestBody.latitude = latitude;
+        requestBody.longitude = longitude;
+      }
+
+      const response = await fetch(
+        "https://www.api.vire.agency/api/v1/attendance/checkin",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        // Handle specific HTTP status codes
+        if (response.status === 401 || response.status === 403) {
+          // Clear invalid token and redirect to login
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("token");
+          localStorage.removeItem("access_token");
+          sessionStorage.removeItem("authToken");
+          sessionStorage.removeItem("token");
+          sessionStorage.removeItem("access_token");
+          throw new Error("Session expired. Please log in again.");
+        }
+
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   // Handle location selection and check-in
-  const handleCheckIn = () => {
-    if (selectedLocation === "office") {
-      setShowMainDialog(false);
-      setShowErrorDialog(true);
-    } else {
+  const handleCheckIn = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      if (selectedLocation === "office") {
+        // For office check-in, get location first
+        const userLocation = await getCurrentLocation();
+        await checkInToAPI(
+          "office",
+          userLocation.latitude,
+          userLocation.longitude
+        );
+      } else {
+        // For remote check-in, no location needed
+        await checkInToAPI("remote");
+      }
+
+      // Success
       setShowMainDialog(false);
       setShowSuccessToast(true);
       setTimeout(() => {
         setShowSuccessToast(false);
         navigate("/staff/dashboard");
       }, 2000);
+    } catch (error) {
+      console.error("Check-in error:", error);
+      setError(error.message);
+      setShowMainDialog(false);
+      setShowErrorDialog(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,6 +206,7 @@ export default function CheckIn() {
   const handleTryAgain = () => {
     setShowErrorDialog(false);
     setShowMainDialog(true);
+    setError("");
   };
 
   // Handle error dialog discard
@@ -108,31 +256,77 @@ export default function CheckIn() {
                   value={selectedLocation}
                   onValueChange={setSelectedLocation}
                   className="space-y-3"
+                  disabled={isLoading || isGettingLocation}
                 >
-                  <div className="flex items-center space-x-3 p-4 border-2 border-blue-500 rounded-lg bg-blue-50">
+                  <div
+                    className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-all ${
+                      selectedLocation === "office"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
                     <RadioGroupItem
                       value="office"
                       id="office"
                       className="text-blue-600"
+                      disabled={isLoading || isGettingLocation}
                     />
-                    <Label
-                      htmlFor="office"
-                      className="flex-1 cursor-pointer font-medium text-gray-900"
-                    >
-                      Office (In-person)
-                    </Label>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="office"
+                        className={`cursor-pointer font-medium flex items-center gap-2 ${
+                          selectedLocation === "office"
+                            ? "text-gray-900"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        <MapPin className="w-4 h-4" />
+                        Office (In-person)
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Requires location verification
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg bg-white">
-                    <RadioGroupItem value="remote" id="remote" />
-                    <Label
-                      htmlFor="remote"
-                      className="flex-1 cursor-pointer font-medium text-gray-400"
-                    >
-                      Home (Remote)
-                    </Label>
+
+                  <div
+                    className={`flex items-center space-x-3 p-4 border rounded-lg transition-all ${
+                      selectedLocation === "remote"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <RadioGroupItem
+                      value="remote"
+                      id="remote"
+                      disabled={isLoading || isGettingLocation}
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="remote"
+                        className={`cursor-pointer font-medium ${
+                          selectedLocation === "remote"
+                            ? "text-gray-900"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        Home (Remote)
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Work from home option
+                      </p>
+                    </div>
                   </div>
                 </RadioGroup>
               </div>
+
+              {/* Location Status */}
+              {isGettingLocation && (
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Getting your location...
+                </div>
+              )}
 
               {/* Action Buttons Section */}
               <div className="flex gap-3 pt-2">
@@ -140,14 +334,23 @@ export default function CheckIn() {
                   variant="outline"
                   onClick={handleCancel}
                   className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  disabled={isLoading || isGettingLocation}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCheckIn}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  disabled={isLoading || isGettingLocation}
                 >
-                  Check In
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Checking In...
+                    </>
+                  ) : (
+                    "Check In"
+                  )}
                 </Button>
               </div>
             </div>
@@ -161,16 +364,16 @@ export default function CheckIn() {
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm">
             <div className="p-6 space-y-4 text-center">
               <div className="flex justify-center">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-orange-500" />
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
                 </div>
               </div>
               <div>
                 <h3 className="font-semibold text-lg text-gray-900">
-                  Office check-in requires being on location.
+                  Check-in Failed
                 </h3>
-                <p className="text-gray-500 mt-1">
-                  Couldn't check in. Please try again.
+                <p className="text-gray-500 mt-1 text-sm">
+                  {error || "Something went wrong. Please try again."}
                 </p>
               </div>
               <div className="flex gap-3 pt-2">
@@ -179,7 +382,7 @@ export default function CheckIn() {
                   onClick={handleDiscard}
                   className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
-                  Discard
+                  Cancel
                 </Button>
                 <Button
                   onClick={handleTryAgain}
