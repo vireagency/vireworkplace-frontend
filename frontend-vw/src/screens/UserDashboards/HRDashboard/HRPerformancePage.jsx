@@ -9,7 +9,7 @@ import { useState } from "react"
 import { Download, TrendingUp, TrendingDown, Target } from "lucide-react"
 import { GoalCreationModal } from "@/components/auth/GoalCreationModal"
 
-export default function PerformancePage() {
+export default function HRPerformancePage() {
   const [activeTab, setActiveTab] = useState("performance")
   const [timeframe, setTimeframe] = useState("12-months")
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -305,10 +305,10 @@ export default function PerformancePage() {
 
           {/* Performance Tab Content */}
           <TabsContent value="performance" className="mt-8">
-            {/* First Row - Two Main Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            {/* First Row - Three Performance Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               {/* Overall Department Performance Card */}
-              <Card className="h-full lg:col-span-1">
+              <Card className="h-full">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg font-semibold text-slate-900">
                     Overall Department Performance
@@ -361,177 +361,157 @@ export default function PerformancePage() {
                 </CardContent>
               </Card>
 
-              {/* Employee Turnover Rates Card */}
-              <Card className="h-full lg:col-span-2">
+              {/* Top Performers Card */}
+              <Card className="h-full">
                 <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold text-slate-900">
-                      Employee Turnover Rates
-                    </CardTitle>
-                    {/* Timeframe Selection and Export Button */}
-                    <div className="flex items-center gap-4">
-                      {/* Timeframe Selection */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant={timeframe === "12-months" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTimeframe("12-months")}
-                          className="text-xs px-3 py-1"
-                        >
-                          12 Months
-                        </Button>
-                        <Button
-                          variant={timeframe === "6-months" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTimeframe("6-months")}
-                          className="text-xs px-3 py-1"
-                        >
-                          6 Months
-                        </Button>
-                        <Button
-                          variant={timeframe === "30-days" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTimeframe("30-days")}
-                          className="text-xs px-3 py-1"
-                        >
-                          30 Days
-                        </Button>
-                      </div>
-                      
-                      {/* Export Button */}
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Download className="h-4 w-4" />
-                        Export PDF
-                      </Button>
-                    </div>
-                  </div>
+                  <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Top Performers
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Metrics row */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="text-5xl font-bold text-slate-900">12%</div>
-                    <div className="flex items-center gap-1 text-red-600 font-medium">
-                      <TrendingDown className="h-5 w-5" />
-                      <span>-2% Last Year</span>
-                    </div>
-                  </div>
-
-                  {/* Turnover Chart */}
-                  <div className="h-40 bg-slate-50 rounded-lg p-4 mb-8">
-                    <div className="flex items-end justify-between h-full">
-                      {/* Chart bars representing monthly turnover rates */}
-                      <div className="flex items-end justify-between w-full h-full gap-1">
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '53%' }} title="Jan: 8%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '50%' }} title="Feb: 7.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '60%' }} title="Mar: 9%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '43%' }} title="Apr: 6.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '50%' }} title="May: 7.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '37%' }} title="Jun: 5.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '47%' }} title="Jul: 7%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '57%' }} title="Aug: 8.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '43%' }} title="Sep: 6.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '40%' }} title="Oct: 6%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '37%' }} title="Nov: 5.5%"></div>
-                        <div className="w-5 bg-purple-500 rounded-t transition-all duration-300 hover:bg-purple-600" style={{ height: '27%' }} title="Dec: 4%"></div>
+                  <div className="space-y-4">
+                    {/* Top Performer 1 */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          JS
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">John Smith</div>
+                          <div className="text-sm text-slate-600">Software Engineer</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">96%</div>
+                        <div className="text-xs text-slate-500">Performance</div>
                       </div>
                     </div>
-                    
-                    {/* X-axis labels */}
-                    <div className="flex justify-between text-xs text-slate-500 mt-3">
-                      <span className="w-5 text-center">Jan</span>
-                      <span className="w-5 text-center">Feb</span>
-                      <span className="w-5 text-center">Mar</span>
-                      <span className="w-5 text-center">Apr</span>
-                      <span className="w-5 text-center">May</span>
-                      <span className="w-5 text-center">Jun</span>
-                      <span className="w-5 text-center">Jul</span>
-                      <span className="w-5 text-center">Aug</span>
-                      <span className="w-5 text-center">Sep</span>
-                      <span className="w-5 text-center">Oct</span>
-                      <span className="w-5 text-center">Nov</span>
-                      <span className="w-5 text-center">Dec</span>
-                    </div>
-                  </div>
 
-                  {/* Chart Legend - Bottom Left */}
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span className="text-slate-600">Actual Turnover</span>
+                    {/* Top Performer 2 */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          MJ
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">Maria Johnson</div>
+                          <div className="text-sm text-slate-600">Marketing Manager</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">94%</div>
+                        <div className="text-xs text-slate-500">Performance</div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 border-2 border-dashed border-slate-400 rounded-full"></div>
-                      <span className="text-slate-600">Industry Benchmark</span>
+
+                    {/* Top Performer 3 */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          DR
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">David Rodriguez</div>
+                          <div className="text-sm text-slate-600">Sales Director</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">92%</div>
+                        <div className="text-xs text-slate-500">Performance</div>
+                      </div>
                     </div>
+
+                    {/* View All Button */}
+                    <button className="w-full mt-4 text-sm text-green-600 hover:text-green-700 font-medium flex items-center justify-center gap-2 py-2 border border-green-200 rounded-lg hover:bg-green-50 transition-colors">
+                      View All Top Performers
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Low Performers Card */}
+              <Card className="h-full">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Low Performers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Low Performer 1 */}
+                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          AB
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">Alex Brown</div>
+                          <div className="text-sm text-slate-600">Customer Support</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-orange-600">68%</div>
+                        <div className="text-xs text-slate-500">Performance</div>
+                      </div>
+                    </div>
+
+                    {/* Low Performer 2 */}
+                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          LW
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">Lisa Wilson</div>
+                          <div className="text-sm text-slate-600">Data Analyst</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-orange-600">72%</div>
+                        <div className="text-xs text-slate-500">Performance</div>
+                      </div>
+                    </div>
+
+                    {/* Low Performer 3 */}
+                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          MT
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">Mike Thompson</div>
+                          <div className="text-sm text-slate-600">Operations</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-orange-600">75%</div>
+                        <div className="text-xs text-slate-500">Performance</div>
+                      </div>
+                    </div>
+
+                    {/* View All Button */}
+                    <button className="w-full mt-4 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center justify-center gap-2 py-2 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors">
+                      View All Low Performers
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Second Row - Three New Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              {/* Development Impact Card */}
-              <Card className="h-full">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
-                    Development Impact
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-6">
-                    <div className="text-4xl font-bold text-slate-900 mb-2">70%</div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <span>Last Year</span>
-                      <div className="flex items-center gap-1 text-green-600 font-medium">
-                        <TrendingUp className="h-4 w-4" />
-                        <span>+10%</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Development Breakdown */}
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-slate-700">Leadership Training</span>
-                        <span className="text-sm font-semibold text-slate-900">85%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2.5 mb-2">
-                        <div className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '85%' }}></div>
-                      </div>
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                        High Impact
-                      </Badge>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-slate-700">Technical Skills</span>
-                        <span className="text-sm font-semibold text-slate-900">92%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2.5 mb-2">
-                        <div className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '92%' }}></div>
-                      </div>
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                        High Impact
-                      </Badge>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-slate-700">Communication Workshop</span>
-                        <span className="text-sm font-semibold text-slate-900">67%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2.5 mb-2">
-                        <div className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '67%' }}></div>
-                      </div>
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs">
-                        Medium Impact
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Second Row - Two Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
               {/* Performance Distribution Card */}
               <Card className="h-full">

@@ -30,6 +30,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // React Router for client-side navigation and routing
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+// Lazy loading for better performance
+import { lazy, Suspense } from "react";
+
+// Loading component for Suspense fallback
+const LoadingSpinner = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-8 h-8 animate-spin border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p className="text-foreground">Loading...</p>
+    </div>
+  </div>
+);
+
 // Theme management with dark/light mode support
 import { ThemeProvider } from "next-themes";
 
@@ -72,13 +85,13 @@ import RoleSelectionPageForAdminandHR from "./screens/Authentication/RoleSelecti
 
 // HR Dashboard Components
 import HRDashboardMainPage from "./screens/UserDashboards/HRDashboard/HRDashboardMainPage";
-import EvaluationsPage from "./screens/UserDashboards/HRDashboard/EvaluationsPage";
+import HREvaluationsPage from "./screens/UserDashboards/HRDashboard/HREvaluationsPage";
 import EvaluationCreator from "./screens/UserDashboards/HRDashboard/EvaluationCreator";
-import PerformancePage from "./screens/UserDashboards/HRDashboard/PerformancePage";
-import HiringPage from "./screens/UserDashboards/HRDashboard/HiringPage";
+import HRPerformancePage from "./screens/UserDashboards/HRDashboard/HRPerformancePage";
+import HRHiringPage from "./screens/UserDashboards/HRDashboard/HRHiringPage";
 import EmployeesPage from "./screens/UserDashboards/HRDashboard/EmployeesPage";
-import MessagesPage from "./screens/UserDashboards/HRDashboard/MessagesPage";
-import ReportsPage from "./screens/UserDashboards/HRDashboard/ReportsPage";
+import HRMessagesPage from "./screens/UserDashboards/HRDashboard/HRMessagesPage";
+import HRReportsPage from "./screens/UserDashboards/HRDashboard/HRReportsPage";
 
 // HR Settings and Configuration
 import HRSettingsPage from "./screens/UserDashboards/HRDashboard/HRSettingsPage";
@@ -90,26 +103,26 @@ import HRNotificationSettings from "./screens/UserDashboards/HRDashboard/HRNotif
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
 import StaffDashboardMainPage from "./screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 
-// Staff Dashboard Components
-import StaffLandingPage from "./screens/UserDashboards/StaffDashboard/pages/StaffLandingPage";
-import CheckIn from "./screens/UserDashboards/StaffDashboard/pages/CheckIn";
-import CheckOut from "./screens/UserDashboards/StaffDashboard/pages/CheckOut";
-import Tasks from "./screens/UserDashboards/StaffDashboard/pages/Tasks";
-import Evaluation from "./screens/UserDashboards/StaffDashboard/pages/Evaluation";
+// Staff Dashboard Components - Lazy loaded for better performance
+const StaffLandingPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffLandingPage"));
+const CheckIn = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/CheckIn"));
+const CheckOut = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/CheckOut"));
+const Tasks = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/Tasks"));
+const Evaluation = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/Evaluation"));
 
-// New Staff Dashboard Pages
-import StaffPerformancePage from "./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage";
-import StaffEvaluationsPage from "./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationsPage";
-import StaffTasksPage from "./screens/UserDashboards/StaffDashboard/pages/StaffTasksPage";
-import StaffAttendancePage from "./screens/UserDashboards/StaffDashboard/pages/StaffAttendancePage";
-import StaffMessagesPage from "./screens/UserDashboards/StaffDashboard/pages/StaffMessagesPage";
-import StaffReportsPage from "./screens/UserDashboards/StaffDashboard/pages/StaffReportsPage";
+// New Staff Dashboard Pages - Lazy loaded
+const StaffPerformancePage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage"));
+const StaffEvaluationsPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationsPage"));
+const StaffTasksPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffTasksPage"));
+const StaffAttendancePage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffAttendancePage"));
+const StaffMessagesPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffMessagesPage"));
+const StaffReportsPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffReportsPage"));
 
-// Staff Settings Pages
-import StaffSettingsPage from "./screens/UserDashboards/StaffDashboard/StaffSettingsPage";
-import StaffProfileSettings from "./screens/UserDashboards/StaffDashboard/StaffProfileSettings";
-import StaffPasswordSettings from "./screens/UserDashboards/StaffDashboard/StaffPasswordSettings";
-import StaffNotificationSettings from "./screens/UserDashboards/StaffDashboard/StaffNotificationSettings";
+// Staff Settings Pages - Lazy loaded
+const StaffSettingsPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffSettingsPage"));
+const StaffProfileSettings = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffProfileSettings"));
+const StaffPasswordSettings = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffPasswordSettings"));
+const StaffNotificationSettings = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffNotificationSettings"));
 
 // Error and fallback pages
 import NotFound from "./screens/NotFound";
@@ -220,7 +233,7 @@ const App = () => (
                 path="/human-resource-manager/evaluations"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <EvaluationsPage />
+                    <HREvaluationsPage />
                   </ProtectedRoute>
                 }
               />
@@ -236,7 +249,7 @@ const App = () => (
                 path="/human-resource-manager/performance"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <PerformancePage />
+                    <HRPerformancePage />
                   </ProtectedRoute>
                 }
               />
@@ -244,7 +257,7 @@ const App = () => (
                 path="/human-resource-manager/hiring"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HiringPage />
+                    <HRHiringPage />
                   </ProtectedRoute>
                 }
               />
@@ -260,7 +273,7 @@ const App = () => (
                 path="/human-resource-manager/messages"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <MessagesPage />
+                    <HRMessagesPage />
                   </ProtectedRoute>
                 }
               />
@@ -268,7 +281,7 @@ const App = () => (
                 path="/human-resource-manager/reports"
                 element={
                   <ProtectedRoute requiredRole="Human Resource Manager">
-                    <ReportsPage />
+                    <HRReportsPage />
                   </ProtectedRoute>
                 }
               />
@@ -322,7 +335,9 @@ const App = () => (
                 path="/staff"
                 element={
                   <ProtectedRoute requiredRole="Staff">
-                    <StaffLandingPage />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <StaffLandingPage />
+                    </Suspense>
                   </ProtectedRoute>
                 }
               />

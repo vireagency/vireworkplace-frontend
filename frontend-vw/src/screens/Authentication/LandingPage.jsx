@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, UserCog, ArrowRight, CheckCircle, Clock, BarChart3, ShieldCheck } from "lucide-react";
 
 // Custom Components and Hooks
-import AuthModal from "@/components/auth/AuthModal";
+import AuthModal from "@/components/auth/AuthModal_NEW";
 import { useAuth } from "@/hooks/useAuth";
 
 /**

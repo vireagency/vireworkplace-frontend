@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import EvaluationCreator from "./EvaluationCreator"
 
-export default function EvaluationsPage() {
+export default function HREvaluationsPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [showEvaluationCreator, setShowEvaluationCreator] = useState(false)
 
