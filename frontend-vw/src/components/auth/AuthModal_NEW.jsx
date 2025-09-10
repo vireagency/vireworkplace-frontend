@@ -1,6 +1,7 @@
 /**
- * @fileoverview Authentication Modal Component - UPDATED: Fixed duplicate keys
- * @updated 2025-09-10 - Fixed React key duplication warning for country codes
+ * @fileoverview Authentication Modal Component - NEW FILE: Fixed duplicate keys
+ * @updated 2025-09-10 - RENAMED FILE: Complete fix for React key duplication warning
+ * @filename AuthModal_NEW.jsx - Renamed to bypass persistent browser cache
  * @description A comprehensive modal component that handles both user login and signup functionality
  * with role-based access control (Admin, HR Manager, Staff). It provides a unified interface 
  * for authentication with role-specific form fields and integrates with the backend API for 
@@ -31,7 +32,7 @@
  */
 
 // React and UI Components
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,8 +61,9 @@ import { useNavigate } from "react-router-dom";
  * @param {string} props.role - User role for signup
  */
 const AuthModal = ({ isOpen, onClose, mode, role }) => {
-  // 🔥 CACHE BUSTER LOG - If you see this, the new code is loaded! 🔥
-  console.log('🚀 AuthModal UPDATED VERSION loaded - unique key fix applied!', new Date().toISOString());
+  // 🔥🔥🔥 NEW FILE CACHE BUSTER LOG - If you see this, the new code is loaded! 🔥🔥🔥
+  console.log('🆕🆕🆕 AuthModal_NEW LOADED - DUPLICATE KEY FIX ACTIVE!', new Date().toISOString());
+  console.log('🔑 Using memoized unique keys for country codes');
   /**
    * Consolidated UI State Management
    * @type {Object} All UI-related state in one object to reduce re-renders
@@ -106,32 +108,37 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * Each country gets a guaranteed unique key using index + sanitized country name
    */
   const countryCodesWithUniqueKeys = useMemo(() => {
-    return countryCodes.map((country, index) => ({
+    const result = countryCodes.map((country, index) => ({
       ...country,
       uniqueKey: `country-${index}-${country.country.replace(/[^a-zA-Z0-9]/g, '')}`
     }));
+    
+    // Debug: Log first few keys to verify uniqueness
+    console.log('🔍 UNIQUE KEYS GENERATED:', result.slice(0, 5).map(c => c.uniqueKey));
+    
+    return result;
   }, []);
 
   /**
    * Helper function to update UI state
    * @param {Object} updates - Partial state updates
    */
-  const updateUiState = (updates) => {
+  const updateUiState = useCallback((updates) => {
     setUiState(prev => ({ ...prev, ...updates }));
-  };
+  }, []);
 
   /**
    * Helper function to update form data
    * @param {Object} updates - Partial form data updates
    */
-  const updateFormData = (updates) => {
+  const updateFormData = useCallback((updates) => {
     setFormData(prev => ({ ...prev, ...updates }));
-  };
+  }, []);
 
   /**
    * Reset form to initial state
    */
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       workId: '',
       email: '',
@@ -147,7 +154,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
     updateUiState({
       countryCode: '+233',
     });
-  };
+  }, [updateUiState]);
 
   /**
    * Effect to handle role prop changes
@@ -219,7 +226,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * // Signup flow  
    * handleSubmit(event) // Creates account and navigates to OTP verification
    */
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     // Validate phone number length for signup
@@ -311,6 +318,8 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
               tempToken: tempToken
             } 
           });
+        } else {
+          toast.error('Signup failed. Please try again.');
         }
       }
     } catch (error) {
@@ -321,7 +330,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
     } finally {
       updateUiState({ loading: false });
     }
-  };
+  }, [uiState.currentMode, formData, uiState.countryCode, uiState.selectedRole, updateUiState, signIn, signUp, onClose, navigate]);
 
   /**
    * Handle forgot password navigation
@@ -334,10 +343,10 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * @example
    * handleForgotPassword() // Closes modal and navigates to /forgot-password
    */
-  const handleForgotPassword = () => {
+  const handleForgotPassword = useCallback(() => {
     onClose();
     navigate("/forgot-password");
-  };
+  }, [onClose, navigate]);
 
   /**
    * Handle switching back to login mode
@@ -351,13 +360,13 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * @example
    * handleSwitchToLogin() // Resets form and switches to login mode
    */
-  const handleSwitchToLogin = () => {
+  const handleSwitchToLogin = useCallback(() => {
     updateUiState({ 
       currentMode: 'login',
       selectedRole: null 
     });
     resetForm();
-  };
+  }, [updateUiState, resetForm]);
 
   /**
    * Helper function to format phone number for display
@@ -478,26 +487,29 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                       <SelectTrigger className="glass border-white/20 text-white h-10 cursor-pointer">
                         <SelectValue>
                           <div className="flex items-center space-x-2">
-                            <span>{countryCodes.find(c => c.code === uiState.countryCode)?.flag}</span>
+                            <span>{countryCodesWithUniqueKeys.find(c => c.code === uiState.countryCode)?.flag}</span>
                             <span className="text-sm">{uiState.countryCode}</span>
                           </div>
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-60 max-w-40">
                         {/* CACHE-BUSTING FIX: Using memoized unique keys - VERSION 2025-09-10 */}
-                        {countryCodesWithUniqueKeys.map((country) => (
-                          <SelectItem 
-                            key={country.uniqueKey}
-                            value={country.code}
-                            className="hover:!bg-primary hover:!text-black cursor-pointer transition-colors duration-200 focus:!bg-primary focus:!text-black"
-                          >
+                        {countryCodesWithUniqueKeys.map((country, index) => {
+                          console.log(`🔑 RENDERING COUNTRY ${index}: ${country.uniqueKey} for ${country.country}`);
+                          return (
+                            <SelectItem 
+                              key={country.uniqueKey}
+                              value={country.code}
+                              className="hover:!bg-primary hover:!text-black cursor-pointer transition-colors duration-200 focus:!bg-primary focus:!text-black"
+                            >
                             <div className="flex items-center space-x-2">
                               <span className="hover:!text-black">{country.flag}</span>
                               <span className="text-sm hover:!text-black">{country.code}</span>
                               <span className="text-xs text-white hover:!text-black">{country.country}</span>
                             </div>
                           </SelectItem>
-                        ))}
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
