@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertTriangle, CheckCircle, X, MapPin, Loader2 } from "lucide-react";
 import StaffDashboardMainPage from "@/screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CheckIn() {
   const navigate = useNavigate();
+  const { user, accessToken } = useAuth();
 
   // State management
   const [selectedLocation, setSelectedLocation] = useState("office");
@@ -29,6 +31,7 @@ export default function CheckIn() {
 
       // Get auth token from multiple possible sources
       let token =
+        accessToken ||
         localStorage.getItem("authToken") ||
         localStorage.getItem("token") ||
         localStorage.getItem("access_token") ||
@@ -74,11 +77,24 @@ export default function CheckIn() {
     } catch (error) {
       console.error("Error fetching user data:", error);
       // Use fallback data for demo purposes
+      const lsFirst =
+        localStorage.getItem("signup_firstName") ||
+        localStorage.getItem("firstName") ||
+        "";
+      const lsLast =
+        localStorage.getItem("signup_lastName") ||
+        localStorage.getItem("lastName") ||
+        "";
+      const lsEmail =
+        localStorage.getItem("signup_email") ||
+        localStorage.getItem("email") ||
+        "";
+      const lsImage = localStorage.getItem("profileImage") || null;
       setUserData({
-        firstName: "User",
-        lastName: "",
-        email: "user@example.com",
-        profileImage: null,
+        firstName: lsFirst,
+        lastName: lsLast,
+        email: lsEmail,
+        profileImage: lsImage,
       });
     } finally {
       setIsLoadingUser(false);
@@ -87,24 +103,77 @@ export default function CheckIn() {
 
   // Get user initials for avatar fallback with proper fallback logic
   const getUserInitials = () => {
-    if (!userData) return "U";
+    const safe = (s) => (typeof s === "string" ? s : "");
+    const email = safe(userData?.email);
 
-    // Try to get from firstName and lastName
-    if (userData.firstName) {
-      const firstInitial = userData.firstName.charAt(0).toUpperCase();
-      const lastInitial = userData.lastName
-        ? userData.lastName.charAt(0).toUpperCase()
-        : "";
-      return firstInitial + lastInitial;
+    const initialsFromEmail = () => {
+      if (!email) return "U";
+      const local = email.split("@")[0];
+      const parts = local.split(/[._-]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return local.slice(0, 2).toUpperCase() || "U";
+    };
+
+    const firstName = safe(userData?.firstName);
+    const lastName = safe(userData?.lastName);
+    if (firstName || lastName) {
+      const fi = firstName ? firstName.trim().charAt(0).toUpperCase() : "";
+      const li = lastName ? lastName.trim().charAt(0).toUpperCase() : "";
+      return fi + li || fi || initialsFromEmail();
     }
 
-    // Fallback to email initials
-    if (userData.email) {
-      const emailPart = userData.email.split("@")[0];
-      return emailPart.substring(0, 2).toUpperCase();
+    const name = safe(userData?.name || userData?.fullName);
+    if (name) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2)
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      if (parts[0]?.length >= 2) return parts[0].slice(0, 2).toUpperCase();
     }
 
-    return "U";
+    const lsFirst =
+      localStorage.getItem("signup_firstName") ||
+      localStorage.getItem("firstName") ||
+      "";
+    const lsLast =
+      localStorage.getItem("signup_lastName") ||
+      localStorage.getItem("lastName") ||
+      "";
+    if (lsFirst || lsLast) {
+      const fi = lsFirst ? lsFirst.trim().charAt(0).toUpperCase() : "";
+      const li = lsLast ? lsLast.trim().charAt(0).toUpperCase() : "";
+      return fi + li || fi;
+    }
+
+    return initialsFromEmail();
+  };
+
+  // Get profile image URL with proper fallback
+  const getProfileImageUrl = () => {
+    const url =
+      userData?.profileImage ||
+      userData?.profilePicture ||
+      userData?.avatar ||
+      userData?.avatarUrl ||
+      userData?.photoUrl ||
+      userData?.image ||
+      userData?.picture ||
+      null;
+
+    if (!url) return null;
+
+    // If the URL is already complete, return it
+    if (url.startsWith("http")) {
+      return url;
+    }
+
+    // If it's a relative URL, construct the full URL
+    return `https://www.api.vire.agency${url}`;
+  };
+
+  // Handle profile image load error
+  const handleImageError = (e) => {
+    console.log("Profile image failed to load, using fallback");
+    e.target.style.display = "none";
   };
 
   // Update time every second
@@ -127,8 +196,25 @@ export default function CheckIn() {
 
   // Fetch user data on component mount
   useEffect(() => {
+    if (user) {
+      setUserData({
+        firstName: user.firstName || (user.name ? user.name.split(" ")[0] : ""),
+        lastName:
+          user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
+        email: user.email || "",
+        profileImage:
+          user.profileImage ||
+          user.avatar ||
+          user.photoUrl ||
+          user.image ||
+          user.picture ||
+          null,
+      });
+      setIsLoadingUser(false);
+      return;
+    }
     fetchUserData();
-  }, []);
+  }, [user]);
 
   // Get user's current location
   const getCurrentLocation = () => {
@@ -286,9 +372,10 @@ export default function CheckIn() {
     }
   };
 
-  // Handle cancel action
+  // Handle cancel action - Navigate to staff landing page
   const handleCancel = () => {
     setShowMainDialog(false);
+    navigate("/staff");
   };
 
   // Handle error dialog retry
@@ -301,6 +388,7 @@ export default function CheckIn() {
   // Handle error dialog discard
   const handleDiscard = () => {
     setShowErrorDialog(false);
+    navigate("/staff");
   };
 
   if (isLoadingUser) {
@@ -332,13 +420,14 @@ export default function CheckIn() {
               {/* Header Section - Avatar and Time */}
               <div className="flex items-center justify-between">
                 <Avatar className="h-12 w-12">
-                  {userData?.profileImage && (
-                    <AvatarImage
-                      src={userData.profileImage}
-                      alt={`${userData.firstName} ${userData.lastName}`}
-                    />
-                  )}
-                  <AvatarFallback className="bg-orange-500 text-white text-lg font-medium">
+                  <AvatarImage
+                    src={getProfileImageUrl()}
+                    alt={`${userData?.firstName || "User"} ${
+                      userData?.lastName || ""
+                    }`}
+                    onError={handleImageError}
+                  />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-medium">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
@@ -441,14 +530,18 @@ export default function CheckIn() {
                 </Button>
                 <Button
                   onClick={handleCheckIn}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium relative overflow-hidden"
                   disabled={isLoading || isGettingLocation}
                 >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Checking In...
-                    </>
+                    <div className="flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        </div>
+                        <span className="text-sm">Checking In...</span>
+                      </div>
+                    </div>
                   ) : (
                     "Check In"
                   )}
