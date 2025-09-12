@@ -5,9 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle, X, Loader2, Clock } from "lucide-react";
 import StaffDashboardMainPage from "../StaffDashboardMainPage";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CheckOut() {
   const navigate = useNavigate();
+  const { user, accessToken } = useAuth();
 
   // State management
   const [showMainDialog, setShowMainDialog] = useState(true);
@@ -15,13 +17,186 @@ export default function CheckOut() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
-  const [dayReport, setDayReport] = useState("");
+  const [dailySummary, setDailySummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isOvertime, setIsOvertime] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  // This would come from user context/auth in a real app
-  const [userProfileImage, setUserProfileImage] = useState("/assets/staff.png");
+  // Fetch user data
+  const fetchUserData = async () => {
+    try {
+      setIsLoadingUser(true);
+
+      // Get auth token from multiple possible sources
+      let token =
+        accessToken ||
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("access_token") ||
+        sessionStorage.getItem("authToken") ||
+        sessionStorage.getItem("token") ||
+        sessionStorage.getItem("access_token");
+
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
+      }
+
+      const response = await fetch(
+        "https://www.api.vire.agency/api/v1/user/me",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          // Clear invalid token and redirect to login
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("token");
+          localStorage.removeItem("access_token");
+          sessionStorage.removeItem("authToken");
+          sessionStorage.removeItem("token");
+          sessionStorage.removeItem("access_token");
+          throw new Error("Session expired. Please log in again.");
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        setUserData(result.data);
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      // Use fallback data for demo purposes
+      const lsFirst =
+        localStorage.getItem("signup_firstName") ||
+        localStorage.getItem("firstName") ||
+        "";
+      const lsLast =
+        localStorage.getItem("signup_lastName") ||
+        localStorage.getItem("lastName") ||
+        "";
+      const lsEmail =
+        localStorage.getItem("signup_email") ||
+        localStorage.getItem("email") ||
+        "";
+      const lsImage = localStorage.getItem("profileImage") || null;
+      setUserData({
+        firstName: lsFirst,
+        lastName: lsLast,
+        email: lsEmail,
+        profileImage: lsImage,
+      });
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
+
+  // Get user initials for avatar fallback with proper fallback logic
+  const getUserInitials = () => {
+    const safe = (s) => (typeof s === "string" ? s : "");
+    const email = safe(userData?.email);
+
+    const initialsFromEmail = () => {
+      if (!email) return "U";
+      const local = email.split("@")[0];
+      const parts = local.split(/[._-]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return local.slice(0, 2).toUpperCase() || "U";
+    };
+
+    const firstName = safe(userData?.firstName);
+    const lastName = safe(userData?.lastName);
+    if (firstName || lastName) {
+      const fi = firstName ? firstName.trim().charAt(0).toUpperCase() : "";
+      const li = lastName ? lastName.trim().charAt(0).toUpperCase() : "";
+      return fi + li || fi || initialsFromEmail();
+    }
+
+    const name = safe(userData?.name || userData?.fullName);
+    if (name) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2)
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      if (parts[0]?.length >= 2) return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    const lsFirst =
+      localStorage.getItem("signup_firstName") ||
+      localStorage.getItem("firstName") ||
+      "";
+    const lsLast =
+      localStorage.getItem("signup_lastName") ||
+      localStorage.getItem("lastName") ||
+      "";
+    if (lsFirst || lsLast) {
+      const fi = lsFirst ? lsFirst.trim().charAt(0).toUpperCase() : "";
+      const li = lsLast ? lsLast.trim().charAt(0).toUpperCase() : "";
+      return fi + li || fi;
+    }
+
+    return initialsFromEmail();
+  };
+
+  // Get profile image URL with proper fallback
+  const getProfileImageUrl = () => {
+    const url =
+      userData?.profileImage ||
+      userData?.profilePicture ||
+      userData?.avatar ||
+      userData?.avatarUrl ||
+      userData?.photoUrl ||
+      userData?.image ||
+      userData?.picture ||
+      null;
+
+    if (!url) return null;
+
+    // If the URL is already complete, return it
+    if (url.startsWith("http")) {
+      return url;
+    }
+
+    // If it's a relative URL, construct the full URL
+    return `https://www.api.vire.agency${url}`;
+  };
+
+  // Handle profile image load error
+  const handleImageError = (e) => {
+    console.log("Profile image failed to load, using fallback");
+    e.target.style.display = "none";
+  };
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    if (user) {
+      setUserData({
+        firstName: user.firstName || (user.name ? user.name.split(" ")[0] : ""),
+        lastName:
+          user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
+        email: user.email || "",
+        profileImage:
+          user.profileImage ||
+          user.avatar ||
+          user.photoUrl ||
+          user.image ||
+          user.picture ||
+          null,
+      });
+      setIsLoadingUser(false);
+      return;
+    }
+    fetchUserData();
+  }, [user]);
 
   // Update time every second
   useEffect(() => {
@@ -42,7 +217,7 @@ export default function CheckOut() {
   }, []);
 
   // API call to check out
-  const checkOutToAPI = async (workSummary) => {
+  const checkOutToAPI = async (dailySummary) => {
     try {
       // Get auth token from multiple possible sources
       let token =
@@ -59,13 +234,13 @@ export default function CheckOut() {
       }
 
       const requestBody = {
-        workSummary: workSummary || "No summary provided",
+        dailySummary: dailySummary || "No summary provided",
       };
 
       const response = await fetch(
         "https://www.api.vire.agency/api/v1/attendance/checkout",
         {
-          method: "PATCH",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -99,6 +274,10 @@ export default function CheckOut() {
           );
         }
 
+        if (response.status === 500) {
+          throw new Error("Internal server error. Please try again later.");
+        }
+
         const errorData = await response.json();
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
@@ -108,7 +287,11 @@ export default function CheckOut() {
       const data = await response.json();
 
       // Check if the response indicates overtime
-      if (data.overtimeHours && data.overtimeHours > 0) {
+      if (
+        data.attendanceData &&
+        data.attendanceData.overtimeHours &&
+        data.attendanceData.overtimeHours > 0
+      ) {
         setIsOvertime(true);
       }
 
@@ -120,8 +303,8 @@ export default function CheckOut() {
 
   // Handle check out
   const handleCheckOut = async () => {
-    if (!dayReport.trim()) {
-      setError("Please provide a work summary before checking out.");
+    if (!dailySummary.trim()) {
+      setError("Please provide a daily summary before checking out.");
       setShowMainDialog(false);
       setShowErrorDialog(true);
       return;
@@ -131,18 +314,15 @@ export default function CheckOut() {
     setError("");
 
     try {
-      const result = await checkOutToAPI(dayReport);
+      const result = await checkOutToAPI(dailySummary);
 
       setShowMainDialog(false);
 
-      // Check if overtime was detected from API response or time-based logic
-      const currentHour = new Date().getHours();
-      const isLateCheckout = currentHour >= 18; // 6 PM or later
-
+      // Check if overtime was detected from API response
       if (
-        isOvertime ||
-        isLateCheckout ||
-        (result.overtimeHours && result.overtimeHours > 0)
+        result.attendanceData &&
+        result.attendanceData.overtimeHours &&
+        result.attendanceData.overtimeHours > 0
       ) {
         setShowOvertimeDialog(true);
       } else {
@@ -190,6 +370,17 @@ export default function CheckOut() {
     navigate("/staff");
   };
 
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen">
       {/* Blurred Dashboard Background */}
@@ -208,17 +399,23 @@ export default function CheckOut() {
               {/* Header Section - Avatar and Time */}
               <div className="flex items-center justify-between">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={userProfileImage} alt="User Profile" />
-                  <AvatarFallback className="bg-gray-800 text-white">
-                    👤
+                  <AvatarImage
+                    src={getProfileImageUrl()}
+                    alt={`${userData?.firstName || "User"} ${
+                      userData?.lastName || ""
+                    }`}
+                    onError={handleImageError}
+                  />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-medium">
+                    {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                  <div className="text-sm font-medium text-slate-600 flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     Closing Time:
                   </div>
-                  <div className="text-lg font-bold text-gray-900">
+                  <div className="text-lg font-bold text-slate-900">
                     {currentTime}
                   </div>
                 </div>
@@ -226,22 +423,21 @@ export default function CheckOut() {
 
               {/* Day Report Section */}
               <div className="space-y-4">
-                <div className="text-sm font-medium text-gray-700">
-                  Tell us about your day. We would like to know what tasks you
-                  completed.
+                <div className="text-sm font-medium text-slate-700">
+                  Provide your daily summary. What tasks did you complete today?
                   <span className="text-red-500 ml-1">*</span>
                 </div>
                 <Textarea
-                  placeholder="Write here ....."
-                  value={dayReport}
-                  onChange={(e) => setDayReport(e.target.value)}
-                  className="min-h-[120px] resize-none border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Write your daily summary here..."
+                  value={dailySummary}
+                  onChange={(e) => setDailySummary(e.target.value)}
+                  className="min-h-[120px] resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500"
                   disabled={isLoading}
                   required
                 />
-                {dayReport.length > 0 && (
-                  <div className="text-xs text-gray-500 text-right">
-                    {dayReport.length} characters
+                {dailySummary.length > 0 && (
+                  <div className="text-xs text-slate-500 text-right">
+                    {dailySummary.length} characters
                   </div>
                 )}
               </div>
@@ -251,21 +447,25 @@ export default function CheckOut() {
                 <Button
                   variant="outline"
                   onClick={handleCancel}
-                  className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg"
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
                   disabled={isLoading}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCheckOut}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg"
-                  disabled={isLoading || !dayReport.trim()}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium relative overflow-hidden"
+                  disabled={isLoading || !dailySummary.trim()}
                 >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Checking Out...
-                    </>
+                    <div className="flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        </div>
+                        <span className="text-sm">Checking Out...</span>
+                      </div>
+                    </div>
                   ) : (
                     "Check Out"
                   )}
@@ -290,11 +490,11 @@ export default function CheckOut() {
 
               {/* Content */}
               <div className="space-y-3">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Overtime Warning
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Overtime Detected
                 </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  You checked out at late hours. HR has been informed
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  You have worked overtime today. HR has been notified.
                 </p>
               </div>
 
@@ -315,7 +515,7 @@ export default function CheckOut() {
       {/* Error Dialog Section */}
       {showErrorDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
             <div className="p-6 space-y-4 text-center">
               <div className="flex justify-center">
                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -323,10 +523,10 @@ export default function CheckOut() {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg text-gray-900">
+                <h3 className="font-semibold text-lg text-slate-900">
                   Check-out Failed
                 </h3>
-                <p className="text-gray-500 mt-1 text-sm">
+                <p className="text-slate-500 mt-1 text-sm">
                   {error || "Something went wrong. Please try again."}
                 </p>
               </div>
@@ -334,13 +534,13 @@ export default function CheckOut() {
                 <Button
                   variant="outline"
                   onClick={handleDiscard}
-                  className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
                 >
-                  Cancel
+                  Discard
                 </Button>
                 <Button
                   onClick={handleTryAgain}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium"
                 >
                   Try Again
                 </Button>
@@ -352,14 +552,18 @@ export default function CheckOut() {
 
       {/* Success Toast Section */}
       {showSuccessToast && (
-        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 transform transition-transform duration-300 ease-in-out">
-          <CheckCircle className="w-5 h-5" />
-          <span className="font-medium">You've successfully checked out!</span>
+        <div className="fixed top-4 right-4 bg-white border border-slate-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 transform transition-all duration-300 ease-in-out">
+          <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-3 h-3 text-white" />
+          </div>
+          <span className="font-medium text-slate-900">
+            You've successfully checked out!
+          </span>
           <button
             onClick={() => setShowSuccessToast(false)}
-            className="ml-2 hover:bg-green-700 rounded p-1 transition-colors"
+            className="ml-2 hover:bg-slate-100 rounded p-1 transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-slate-500" />
           </button>
         </div>
       )}
