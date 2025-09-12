@@ -104,25 +104,53 @@ import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDas
 import StaffDashboardMainPage from "./screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 
 // Staff Dashboard Components - Lazy loaded for better performance
-const StaffLandingPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffLandingPage"));
-const CheckIn = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/CheckIn"));
-const CheckOut = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/CheckOut"));
-const Tasks = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/Tasks"));
-const Evaluation = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/Evaluation"));
+const StaffLandingPage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffLandingPage")
+);
+const CheckIn = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/CheckIn")
+);
+const CheckOut = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/CheckOut")
+);
+
+const Evaluation = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/Evaluation")
+);
 
 // New Staff Dashboard Pages - Lazy loaded
-const StaffPerformancePage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage"));
-const StaffEvaluationsPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationsPage"));
-const StaffTasksPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffTasksPage"));
-const StaffAttendancePage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffAttendancePage"));
-const StaffMessagesPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffMessagesPage"));
-const StaffReportsPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/pages/StaffReportsPage"));
+const StaffPerformancePage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage")
+);
+const StaffEvaluationsPage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationsPage")
+);
+const StaffTasksPage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffTasksPage")
+);
+const StaffAttendancePage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffAttendancePage")
+);
+const StaffMessagesPage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffMessagesPage")
+);
+const StaffReportsPage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffReportsPage")
+);
 
 // Staff Settings Pages - Lazy loaded
-const StaffSettingsPage = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffSettingsPage"));
-const StaffProfileSettings = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffProfileSettings"));
-const StaffPasswordSettings = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffPasswordSettings"));
-const StaffNotificationSettings = lazy(() => import("./screens/UserDashboards/StaffDashboard/StaffNotificationSettings"));
+const StaffSettingsPage = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/StaffSettingsPage")
+);
+const StaffProfileSettings = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/StaffProfileSettings")
+);
+const StaffPasswordSettings = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/StaffPasswordSettings")
+);
+const StaffNotificationSettings = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/StaffNotificationSettings")
+);
 
 // Error and fallback pages
 import NotFound from "./screens/NotFound";

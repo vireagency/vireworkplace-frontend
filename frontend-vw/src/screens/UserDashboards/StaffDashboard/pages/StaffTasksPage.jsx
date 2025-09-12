@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import axios from "axios";
 
 // shadcn UI Components
 import { Badge } from "@/components/ui/badge";
@@ -60,52 +61,8 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
 
-// Mock data for tasks
-const mockTasks = [
-  {
-    id: 1,
-    title: "Complete Financial Report",
-    description:
-      "Prepare comprehensive financial analysis including revenue, expenses, and projections for Q4 2024",
-    assignee: "Nana Gyamfi",
-    dueDate: "2024-01-15",
-    status: "in progress",
-    priority: "high",
-    progress: 75,
-  },
-  {
-    id: 2,
-    title: "Update Employee Handbook",
-    description:
-      "Review and update company policies, benefits, and procedures for 2024",
-    assignee: "Nana Gyamfi",
-    dueDate: "2024-01-20",
-    status: "pending",
-    priority: "medium",
-    progress: 0,
-  },
-  {
-    id: 3,
-    title: "Security System Upgrade",
-    description: "Implement new authentication protocols and security measures",
-    assignee: "William Ofosu",
-    dueDate: "2024-01-10",
-    status: "completed",
-    priority: "high",
-    progress: 100,
-  },
-  {
-    id: 4,
-    title: "Marketing Campaign Analysis",
-    description:
-      "Analyze performance metrics of the holiday marketing campaign",
-    assignee: "Michael Ansah",
-    dueDate: "2024-01-18",
-    status: "in progress",
-    priority: "low",
-    progress: 45,
-  },
-];
+// API Configuration
+import { getApiUrl } from "@/config/apiConfig";
 
 // Status Badge Component
 const StatusBadge = ({ status }) => {
@@ -132,7 +89,7 @@ const StatusBadge = ({ status }) => {
     },
   };
 
-  const config = statusConfig[status] || statusConfig["pending"];
+  const config = statusConfig[status?.toLowerCase()] || statusConfig["pending"];
   const IconComponent = config.icon;
 
   return (
@@ -165,7 +122,8 @@ const PriorityBadge = ({ priority }) => {
     },
   };
 
-  const config = priorityConfig[priority] || priorityConfig["medium"];
+  const config =
+    priorityConfig[priority?.toLowerCase()] || priorityConfig["medium"];
 
   return (
     <Badge variant={config.variant} className={config.className}>
@@ -183,24 +141,27 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
     dueDate: "",
     priority: "medium",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.title.trim()) {
-      onAddTask({
-        ...formData,
-        id: Date.now(),
-        status: "pending",
-        progress: 0,
-      });
-      setFormData({
-        title: "",
-        description: "",
-        assignee: "",
-        dueDate: "",
-        priority: "medium",
-      });
-      onClose();
+      setIsSubmitting(true);
+      try {
+        await onAddTask(formData);
+        setFormData({
+          title: "",
+          description: "",
+          assignee: "",
+          dueDate: "",
+          priority: "medium",
+        });
+        onClose();
+      } catch (error) {
+        console.error("Error adding task:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -285,11 +246,20 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-green-600 hover:bg-green-700">
-              Add Task
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Adding..." : "Add Task"}
             </Button>
           </DialogFooter>
         </form>
@@ -313,31 +283,201 @@ const EmptyState = () => (
   </div>
 );
 
+// Loading State Component
+const LoadingState = () => (
+  <div className="flex flex-col items-center justify-center py-16">
+    <div className="w-8 h-8 animate-spin border-2 border-green-500 border-t-transparent rounded-full mb-4"></div>
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      Loading tasks...
+    </h3>
+    <p className="text-gray-500 text-center">
+      Please wait while we fetch your tasks.
+    </p>
+  </div>
+);
+
+// Error State Component
+const ErrorState = ({ error, onRetry }) => (
+  <div className="flex flex-col items-center justify-center py-16">
+    <div className="text-red-500 text-4xl mb-4">⚠️</div>
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      Error Loading Tasks
+    </h3>
+    <p className="text-gray-500 text-center mb-4 max-w-md">{error}</p>
+    <Button onClick={onRetry} className="bg-green-600 hover:bg-green-700">
+      Try Again
+    </Button>
+  </div>
+);
+
 // Main Staff Tasks Page Component
 export default function StaffTasksPage() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const navigate = useNavigate();
 
-  const [tasks, setTasks] = useState(mockTasks);
+  // State management
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [dueDateFilter, setDueDateFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [showTasks, setShowTasks] = useState(true); // Toggle for demo purposes
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || task.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // API configuration
+  const API_URL = getApiUrl();
 
-  const displayedTasks = showTasks ? filteredTasks : [];
+  // Fetch tasks from API
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const handleAddTask = (newTask) => {
-    setTasks([...tasks, newTask]);
+      // Check authentication
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+      if (priorityFilter !== "all") {
+        params.append("priority", priorityFilter);
+      }
+      if (dueDateFilter) {
+        params.append("dueDate", dueDateFilter);
+      }
+
+      const queryString = params.toString();
+      const url = `${API_URL}/tasks${queryString ? `?${queryString}` : ""}`;
+
+      console.log("Fetching tasks from:", url);
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data.success) {
+        // Check if data exists and is an array
+        const apiData =
+          response.data.data || response.data.tasks || response.data || [];
+
+        if (Array.isArray(apiData)) {
+          // Transform API data to match component structure
+          const transformedTasks = apiData.map((task) => ({
+            id: task._id || task.id,
+            title: task.title || "Untitled Task",
+            description: task.description || "No description provided",
+            assignee: task.assignedTo?.name || task.assignee || "Unassigned",
+            dueDate: task.dueDate
+              ? new Date(task.dueDate).toISOString().split("T")[0]
+              : "",
+            status: task.status?.toLowerCase() || "pending",
+            priority: task.priority?.toLowerCase() || "medium",
+            progress: task.progress || 0,
+            createdBy: task.createdBy,
+            assignedTo: task.assignedTo,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+          }));
+
+          setTasks(transformedTasks);
+          console.log("Tasks fetched successfully:", transformedTasks);
+        } else {
+          console.warn("API response data is not an array:", apiData);
+          setTasks([]);
+        }
+      } else {
+        console.warn("API response indicates failure:", response.data);
+        setTasks([]);
+        if (response.data.message) {
+          throw new Error(response.data.message);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+
+      if (err.response?.status === 401) {
+        setError("Authentication failed. Please log in again.");
+      } else if (err.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (
+        err.code === "NETWORK_ERROR" ||
+        err.message.includes("Network Error")
+      ) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(
+          err.message || "An unexpected error occurred while fetching tasks."
+        );
+      }
+
+      // Set empty array on error to prevent undefined map errors
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Add new task
+  const handleAddTask = async (taskData) => {
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const response = await axios.post(
+        `${API_URL}/tasks`,
+        {
+          title: taskData.title,
+          description: taskData.description,
+          assignee: taskData.assignee,
+          dueDate: taskData.dueDate,
+          priority: taskData.priority,
+          status: "pending",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        // Refresh tasks after adding
+        await fetchTasks();
+        console.log("Task added successfully");
+      } else {
+        throw new Error(response.data.message || "Failed to add task");
+      }
+    } catch (err) {
+      console.error("Error adding task:", err);
+      setError(`Failed to add task: ${err.message}`);
+      throw err;
+    }
+  };
+
+  // Initial fetch and refetch when filters change
+  useEffect(() => {
+    fetchTasks();
+  }, [accessToken, statusFilter, priorityFilter, dueDateFilter]);
+
+  // Filter tasks based on search term
+  const filteredTasks = (tasks || []).filter((task) => {
+    const matchesSearch =
+      (task.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.assignee || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesSearch;
+  });
 
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User";
@@ -400,15 +540,38 @@ export default function StaffTasksPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="in progress">In Progress</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Select
+                  value={priorityFilter}
+                  onValueChange={setPriorityFilter}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Priorities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priorities</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  type="date"
+                  value={dueDateFilter}
+                  onChange={(e) => setDueDateFilter(e.target.value)}
+                  className="w-48"
+                  placeholder="Filter by due date"
+                />
               </div>
 
               <span className="text-sm text-gray-500">
-                {displayedTasks.length} of {tasks.length} tasks
+                {filteredTasks.length} of {(tasks || []).length} tasks
               </span>
             </div>
           </CardContent>
@@ -419,11 +582,15 @@ export default function StaffTasksPage() {
       <div className="px-4 lg:px-6">
         <Card>
           <CardContent className="p-0">
-            {displayedTasks.length === 0 ? (
+            {loading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState error={error} onRetry={fetchTasks} />
+            ) : filteredTasks.length === 0 ? (
               <EmptyState />
             ) : (
               <div className="divide-y divide-gray-100">
-                {displayedTasks.map((task) => (
+                {filteredTasks.map((task) => (
                   <div
                     key={task.id}
                     className="p-6 hover:bg-gray-50 transition-colors"
@@ -448,10 +615,12 @@ export default function StaffTasksPage() {
                             <span>{task.assignee}</span>
                           </div>
 
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Calendar className="w-4 h-4" />
-                            <span>Due: {task.dueDate}</span>
-                          </div>
+                          {task.dueDate && (
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Calendar className="w-4 h-4" />
+                              <span>Due: {task.dueDate}</span>
+                            </div>
+                          )}
 
                           {task.progress > 0 && (
                             <div className="flex items-center gap-2">
@@ -474,24 +643,6 @@ export default function StaffTasksPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Debug Controls */}
-      <div className="px-4 lg:px-6 mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Debug Controls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => setShowTasks(!showTasks)}
-              variant="outline"
-              size="sm"
-            >
-              Toggle {showTasks ? "Empty State" : "Task List"}
-            </Button>
           </CardContent>
         </Card>
       </div>
