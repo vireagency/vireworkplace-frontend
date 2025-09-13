@@ -20,6 +20,9 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Edit,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import axios from "axios";
 
@@ -50,9 +53,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 // Layout Components
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
@@ -65,7 +75,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getApiUrl } from "@/config/apiConfig";
 
 // Status Badge Component
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, onStatusChange, taskId, canEdit = false }) => {
   const statusConfig = {
     completed: {
       variant: "default",
@@ -92,8 +102,24 @@ const StatusBadge = ({ status }) => {
   const config = statusConfig[status?.toLowerCase()] || statusConfig["pending"];
   const IconComponent = config.icon;
 
+  const handleStatusClick = () => {
+    if (canEdit && onStatusChange) {
+      const statusOptions = ["pending", "in progress", "completed"];
+      const currentIndex = statusOptions.indexOf(status?.toLowerCase());
+      const nextStatus =
+        statusOptions[(currentIndex + 1) % statusOptions.length];
+      onStatusChange(taskId, nextStatus);
+    }
+  };
+
   return (
-    <Badge variant={config.variant} className={config.className}>
+    <Badge
+      variant={config.variant}
+      className={`${config.className} ${
+        canEdit ? "cursor-pointer hover:opacity-80" : ""
+      }`}
+      onClick={handleStatusClick}
+    >
       <IconComponent className="w-3 h-3 mr-1" />
       {config.text}
     </Badge>
@@ -132,14 +158,96 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
+// User Search Component
+const UserSearchSelect = ({
+  value,
+  onValueChange,
+  placeholder = "Search and select user...",
+}) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { accessToken } = useAuth();
+  const API_URL = getApiUrl();
+
+  const searchUsers = async (query) => {
+    if (!query || query.length < 2) {
+      setUsers([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${API_URL}/users/search?query=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setUsers(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error searching users:", error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      searchUsers(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  return (
+    <div className="space-y-2">
+      <Input
+        placeholder={placeholder}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full"
+      />
+      {loading && <p className="text-sm text-gray-500">Searching...</p>}
+      {users.length > 0 && (
+        <div className="max-h-32 overflow-y-auto border rounded-md">
+          {users.map((user) => (
+            <div
+              key={user._id}
+              className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+              onClick={() => {
+                onValueChange(user._id);
+                setSearchQuery(`${user.firstName} ${user.lastName}`);
+                setUsers([]);
+              }}
+            >
+              <div className="text-sm font-medium">
+                {user.firstName} {user.lastName}
+              </div>
+              <div className="text-xs text-gray-500">{user.email}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Add Task Modal Component
 const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    assignee: "",
+    assignedTo: "",
     dueDate: "",
-    priority: "medium",
+    priority: "Medium",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -152,13 +260,15 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
         setFormData({
           title: "",
           description: "",
-          assignee: "",
+          assignedTo: "",
           dueDate: "",
-          priority: "medium",
+          priority: "Medium",
         });
         onClose();
+        toast.success("Task created successfully!");
       } catch (error) {
         console.error("Error adding task:", error);
+        toast.error("Failed to create task. Please try again.");
       } finally {
         setIsSubmitting(false);
       }
@@ -167,12 +277,9 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
-          <DialogDescription>
-            Create a new task to track your work progress.
-          </DialogDescription>
+          <DialogTitle className="text-green-600">Add new Task</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -184,46 +291,48 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="Enter task title"
+              placeholder="Enter task title..."
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Task Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              placeholder="Enter task description"
+              placeholder="Provide detailed task description..."
               rows={3}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="assignee">Assignee</Label>
-            <Input
-              id="assignee"
-              value={formData.assignee}
-              onChange={(e) =>
-                setFormData({ ...formData, assignee: e.target.value })
-              }
-              placeholder="Enter assignee name"
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Department</Label>
+              <UserSearchSelect
+                value={formData.assignedTo}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, assignedTo: value })
+                }
+                placeholder="Select Department"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) =>
-                setFormData({ ...formData, dueDate: e.target.value })
-              }
-            />
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, dueDate: e.target.value })
+                }
+                placeholder="Pick a date"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -235,28 +344,30 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select priority" />
+                <SelectValue placeholder="Select Priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="Low">Low</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="High">High</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
+              className="flex items-center gap-2"
             >
+              <X className="w-4 h-4" />
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Adding..." : "Add Task"}
@@ -265,6 +376,53 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
         </form>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Task Actions Menu Component
+const TaskActionsMenu = ({
+  task,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  canEdit,
+  canDelete,
+}) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <MoreHorizontal className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {canEdit && (
+          <DropdownMenuItem onClick={() => onEdit(task)}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Task
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          onClick={() => onStatusChange(task.id, "in progress")}
+        >
+          <Clock className="w-4 h-4 mr-2" />
+          Mark In Progress
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onStatusChange(task.id, "completed")}>
+          <CheckCircle2 className="w-4 h-4 mr-2" />
+          Mark Complete
+        </DropdownMenuItem>
+        {canDelete && (
+          <DropdownMenuItem
+            onClick={() => onDelete(task.id)}
+            className="text-red-600"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Task
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -334,7 +492,6 @@ export default function StaffTasksPage() {
       setLoading(true);
       setError(null);
 
-      // Check authentication
       if (!accessToken) {
         throw new Error("No access token available. Please log in again.");
       }
@@ -364,17 +521,18 @@ export default function StaffTasksPage() {
       });
 
       if (response.data.success) {
-        // Check if data exists and is an array
         const apiData =
           response.data.data || response.data.tasks || response.data || [];
 
         if (Array.isArray(apiData)) {
-          // Transform API data to match component structure
           const transformedTasks = apiData.map((task) => ({
             id: task._id || task.id,
             title: task.title || "Untitled Task",
             description: task.description || "No description provided",
-            assignee: task.assignedTo?.name || task.assignee || "Unassigned",
+            assignee:
+              task.assignedTo?.firstName && task.assignedTo?.lastName
+                ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+                : task.assignedTo?.name || task.assignee || "Unassigned",
             dueDate: task.dueDate
               ? new Date(task.dueDate).toISOString().split("T")[0]
               : "",
@@ -385,6 +543,10 @@ export default function StaffTasksPage() {
             assignedTo: task.assignedTo,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
+            canEdit:
+              task.createdBy?._id === user?._id ||
+              task.assignedTo?._id === user?._id,
+            canDelete: task.createdBy?._id === user?._id,
           }));
 
           setTasks(transformedTasks);
@@ -418,7 +580,6 @@ export default function StaffTasksPage() {
         );
       }
 
-      // Set empty array on error to prevent undefined map errors
       setTasks([]);
     } finally {
       setLoading(false);
@@ -433,14 +594,13 @@ export default function StaffTasksPage() {
       }
 
       const response = await axios.post(
-        `${API_URL}/tasks`,
+        `${API_URL}/tasks/create`,
         {
           title: taskData.title,
           description: taskData.description,
-          assignee: taskData.assignee,
+          assignedTo: taskData.assignedTo,
           dueDate: taskData.dueDate,
           priority: taskData.priority,
-          status: "pending",
         },
         {
           headers: {
@@ -451,7 +611,6 @@ export default function StaffTasksPage() {
       );
 
       if (response.data.success) {
-        // Refresh tasks after adding
         await fetchTasks();
         console.log("Task added successfully");
       } else {
@@ -459,9 +618,80 @@ export default function StaffTasksPage() {
       }
     } catch (err) {
       console.error("Error adding task:", err);
-      setError(`Failed to add task: ${err.message}`);
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to add task";
+      setError(`Failed to add task: ${errorMessage}`);
       throw err;
     }
+  };
+
+  // Update task status
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const response = await axios.patch(
+        `${API_URL}/tasks/${taskId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        await fetchTasks();
+        toast.success("Task status updated successfully!");
+      } else {
+        throw new Error(
+          response.data.message || "Failed to update task status"
+        );
+      }
+    } catch (err) {
+      console.error("Error updating task status:", err);
+      toast.error("Failed to update task status. Please try again.");
+    }
+  };
+
+  // Delete task
+  const handleDeleteTask = async (taskId) => {
+    if (!confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const response = await axios.delete(`${API_URL}/tasks/${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data.success) {
+        await fetchTasks();
+        toast.success("Task deleted successfully!");
+      } else {
+        throw new Error(response.data.message || "Failed to delete task");
+      }
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      toast.error("Failed to delete task. Please try again.");
+    }
+  };
+
+  // Edit task (placeholder for future implementation)
+  const handleEditTask = (task) => {
+    console.log("Edit task:", task);
+    // TODO: Implement edit task modal
+    toast.info("Edit functionality coming soon!");
   };
 
   // Initial fetch and refetch when filters change
@@ -545,29 +775,6 @@ export default function StaffTasksPage() {
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <Select
-                  value={priorityFilter}
-                  onValueChange={setPriorityFilter}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All Priorities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Input
-                  type="date"
-                  value={dueDateFilter}
-                  onChange={(e) => setDueDateFilter(e.target.value)}
-                  className="w-48"
-                  placeholder="Filter by due date"
-                />
               </div>
 
               <span className="text-sm text-gray-500">
@@ -601,7 +808,12 @@ export default function StaffTasksPage() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {task.title}
                           </h3>
-                          <StatusBadge status={task.status} />
+                          <StatusBadge
+                            status={task.status}
+                            taskId={task.id}
+                            onStatusChange={handleStatusChange}
+                            canEdit={task.canEdit}
+                          />
                           <PriorityBadge priority={task.priority} />
                         </div>
 
@@ -638,6 +850,15 @@ export default function StaffTasksPage() {
                           )}
                         </div>
                       </div>
+
+                      <TaskActionsMenu
+                        task={task}
+                        onEdit={handleEditTask}
+                        onDelete={handleDeleteTask}
+                        onStatusChange={handleStatusChange}
+                        canEdit={task.canEdit}
+                        canDelete={task.canDelete}
+                      />
                     </div>
                   </div>
                 ))}
