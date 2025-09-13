@@ -24,6 +24,16 @@ export default function CheckOut() {
   const [userData, setUserData] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
+  // Check if current time is after 5:10 PM (17:10)
+  const isCurrentTimeOvertime = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Check if it's after 5:10 PM (17:10)
+    return currentHour > 17 || (currentHour === 17 && currentMinute >= 10);
+  };
+
   // Fetch user data
   const fetchUserData = async () => {
     try {
@@ -221,6 +231,7 @@ export default function CheckOut() {
     try {
       // Get auth token from multiple possible sources
       let token =
+        accessToken ||
         localStorage.getItem("authToken") ||
         localStorage.getItem("token") ||
         localStorage.getItem("access_token") ||
@@ -240,7 +251,7 @@ export default function CheckOut() {
       const response = await fetch(
         "https://www.api.vire.agency/api/v1/attendance/checkout",
         {
-          method: "POST",
+          method: "PATCH", // Using PATCH as per API documentation
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -263,8 +274,17 @@ export default function CheckOut() {
         }
 
         if (response.status === 400) {
+          const errorData = await response.json();
+          // Check if the error message indicates already checked out
+          if (
+            errorData.message &&
+            errorData.message.toLowerCase().includes("already checked out")
+          ) {
+            throw new Error("ALREADY_CHECKED_OUT");
+          }
           throw new Error(
-            "Already checked out or no check-in found for today."
+            errorData.message ||
+              "Already checked out or no check-in found for today."
           );
         }
 
@@ -318,12 +338,15 @@ export default function CheckOut() {
 
       setShowMainDialog(false);
 
-      // Check if overtime was detected from API response
-      if (
+      // Check if overtime was detected from API response OR current time is after 5:10 PM
+      const hasOvertimeFromAPI =
         result.attendanceData &&
         result.attendanceData.overtimeHours &&
-        result.attendanceData.overtimeHours > 0
-      ) {
+        result.attendanceData.overtimeHours > 0;
+
+      const hasOvertimeFromTime = isCurrentTimeOvertime();
+
+      if (hasOvertimeFromAPI || hasOvertimeFromTime) {
         setShowOvertimeDialog(true);
       } else {
         setShowSuccessToast(true);
@@ -334,6 +357,19 @@ export default function CheckOut() {
       }
     } catch (error) {
       console.error("Check-out error:", error);
+
+      // Handle already checked out scenario
+      if (error.message === "ALREADY_CHECKED_OUT") {
+        // User has already checked out, redirect to dashboard
+        setShowMainDialog(false);
+        setShowSuccessToast(true);
+        setTimeout(() => {
+          setShowSuccessToast(false);
+          navigate("/staff/dashboard");
+        }, 2000);
+        return;
+      }
+
       setError(error.message);
       setShowMainDialog(false);
       setShowErrorDialog(true);
@@ -476,29 +512,29 @@ export default function CheckOut() {
         </div>
       )}
 
-      {/* Overtime Warning Dialog - Matching Figma Design */}
+      {/* Overtime Warning Dialog - Matching the uploaded image design */}
       {showOvertimeDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4">
             <div className="p-8 space-y-6 text-center">
-              {/* Warning Icon */}
+              {/* Warning Icon - Orange triangle matching the image */}
               <div className="flex justify-center">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-8 h-8 text-amber-500" />
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-8 h-8 text-orange-500" />
                 </div>
               </div>
 
-              {/* Content */}
+              {/* Content - Matching the uploaded image */}
               <div className="space-y-3">
                 <h3 className="text-xl font-semibold text-slate-900">
-                  Overtime Detected
+                  Overtime Warning
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  You have worked overtime today. HR has been notified.
+                  You checked out at late hours. HR has been informed
                 </p>
               </div>
 
-              {/* Close Button */}
+              {/* Close Button - Red button matching the image */}
               <div className="pt-2">
                 <Button
                   onClick={handleOvertimeClose}

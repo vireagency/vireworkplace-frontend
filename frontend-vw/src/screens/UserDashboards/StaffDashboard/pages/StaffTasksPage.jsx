@@ -323,205 +323,195 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-0">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-medium text-green-600">Add new Task</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-6 w-6 p-0"
+      <DialogContent className="sm:max-w-[500px] p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-medium text-green-600">Add new Task</h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Title */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="title"
+              className="text-sm font-medium text-gray-900"
             >
-              <X className="w-4 h-4" />
-            </Button>
+              Task Title
+            </Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="Enter task title..."
+              required
+              className="w-full"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Task Title */}
+          {/* Task Description */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="description"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Description
+            </Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              placeholder="Provide detailed task description..."
+              rows={4}
+              className="w-full resize-none"
+            />
+          </div>
+
+          {/* Department and Due Date Row */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label
-                htmlFor="title"
-                className="text-sm font-medium text-gray-700"
-              >
-                Task Title
+              <Label className="text-sm font-medium text-gray-900">
+                Department
               </Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
+              <Select
+                value={formData.department}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, department: value })
                 }
-                placeholder="Enter task title..."
-                required
-                className="w-full"
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                  <SelectItem value="Finance">Finance</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Operations">Operations</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Due Date
+              </Label>
+              <Select
+                value={formData.dueDate}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, dueDate: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pick a date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    Tomorrow
+                  </SelectItem>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 7 * 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    1 Week
+                  </SelectItem>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 14 * 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    2 Weeks
+                  </SelectItem>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 30 * 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    1 Month
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Priority and Assignee Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Priority
+              </Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, priority: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Assignee
+              </Label>
+              <AssigneeSearchInput
+                value={formData.assigneeSearch}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, assigneeSearch: value })
+                }
+                selectedUser={formData.assignedTo}
+                onUserSelect={(userId) =>
+                  setFormData({ ...formData, assignedTo: userId })
+                }
+                placeholder="Search by name"
               />
             </div>
+          </div>
 
-            {/* Task Description */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="description"
-                className="text-sm font-medium text-gray-700"
-              >
-                Task Description
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Provide detailed task description..."
-                rows={4}
-                className="w-full resize-none"
-              />
-            </div>
-
-            {/* Department and Due Date Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  Department
-                </Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, department: value })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="HR">HR</SelectItem>
-                    <SelectItem value="IT">IT</SelectItem>
-                    <SelectItem value="Finance">Finance</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                    <SelectItem value="Operations">Operations</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  Due Date
-                </Label>
-                <Select
-                  value={formData.dueDate}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, dueDate: value })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pick a date" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      value={
-                        new Date(Date.now() + 86400000)
-                          .toISOString()
-                          .split("T")[0]
-                      }
-                    >
-                      Tomorrow
-                    </SelectItem>
-                    <SelectItem
-                      value={
-                        new Date(Date.now() + 7 * 86400000)
-                          .toISOString()
-                          .split("T")[0]
-                      }
-                    >
-                      1 Week
-                    </SelectItem>
-                    <SelectItem
-                      value={
-                        new Date(Date.now() + 14 * 86400000)
-                          .toISOString()
-                          .split("T")[0]
-                      }
-                    >
-                      2 Weeks
-                    </SelectItem>
-                    <SelectItem
-                      value={
-                        new Date(Date.now() + 30 * 86400000)
-                          .toISOString()
-                          .split("T")[0]
-                      }
-                    >
-                      1 Month
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Priority and Assignee Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  Priority
-                </Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, priority: value })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  Assignee
-                </Label>
-                <AssigneeSearchInput
-                  value={formData.assigneeSearch}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, assigneeSearch: value })
-                  }
-                  selectedUser={formData.assignedTo}
-                  onUserSelect={(userId) =>
-                    setFormData({ ...formData, assignedTo: userId })
-                  }
-                  placeholder="Search by name"
-                />
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Adding..." : "Add Task"}
-              </Button>
-            </div>
-          </form>
-        </div>
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Adding..." : "Add Task"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
@@ -577,7 +567,7 @@ const TaskActionsMenu = ({
 // Empty State Component
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center py-16">
-    <div className="w-16 h-16 border-2 border-gray-200 rounded-lg flex items-center justify-center mb-4">
+    <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mb-4">
       <div className="w-8 h-8 border-2 border-gray-300 rounded-full border-dashed"></div>
     </div>
     <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
