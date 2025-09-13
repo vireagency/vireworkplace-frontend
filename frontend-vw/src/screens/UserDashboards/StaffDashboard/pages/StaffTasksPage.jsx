@@ -158,28 +158,32 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-// User Search Component
-const UserSearchSelect = ({
+// User Search Component for Assignee
+const AssigneeSearchInput = ({
   value,
   onValueChange,
-  placeholder = "Search and select user...",
+  selectedUser,
+  onUserSelect,
+  placeholder = "Search by name",
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { accessToken } = useAuth();
   const API_URL = getApiUrl();
 
   const searchUsers = async (query) => {
     if (!query || query.length < 2) {
       setUsers([]);
+      setIsOpen(false);
       return;
     }
 
     try {
       setLoading(true);
       const response = await axios.get(
-        `${API_URL}/users/search?query=${encodeURIComponent(query)}`,
+        `${API_URL}/tasks/assignees/search?query=${encodeURIComponent(query)}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -190,10 +194,12 @@ const UserSearchSelect = ({
 
       if (response.data.success) {
         setUsers(response.data.data || []);
+        setIsOpen(true);
       }
     } catch (error) {
       console.error("Error searching users:", error);
       setUsers([]);
+      setIsOpen(false);
     } finally {
       setLoading(false);
     }
@@ -207,26 +213,46 @@ const UserSearchSelect = ({
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
+    onValueChange(newValue);
+  };
+
+  const handleUserSelect = (user) => {
+    const fullName = `${user.firstName} ${user.lastName}`;
+    setSearchQuery(fullName);
+    onValueChange(fullName);
+    onUserSelect(user._id);
+    setUsers([]);
+    setIsOpen(false);
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="relative">
       <Input
         placeholder={placeholder}
         value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        onChange={handleInputChange}
         className="w-full"
+        onFocus={() => {
+          if (users.length > 0) {
+            setIsOpen(true);
+          }
+        }}
       />
-      {loading && <p className="text-sm text-gray-500">Searching...</p>}
-      {users.length > 0 && (
-        <div className="max-h-32 overflow-y-auto border rounded-md">
+      {loading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="w-4 h-4 animate-spin border-2 border-green-500 border-t-transparent rounded-full"></div>
+        </div>
+      )}
+      {isOpen && users.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
           {users.map((user) => (
             <div
               key={user._id}
-              className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-              onClick={() => {
-                onValueChange(user._id);
-                setSearchQuery(`${user.firstName} ${user.lastName}`);
-                setUsers([]);
-              }}
+              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+              onClick={() => handleUserSelect(user)}
             >
               <div className="text-sm font-medium">
                 {user.firstName} {user.lastName}
@@ -242,27 +268,47 @@ const UserSearchSelect = ({
 
 // Add Task Modal Component
 const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    assignedTo: "",
+    department: "",
     dueDate: "",
-    priority: "Medium",
+    priority: "",
+    assigneeSearch: "",
+    assignedTo: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        title: "",
+        description: "",
+        department: "",
+        dueDate: "",
+        priority: "",
+        assigneeSearch: "",
+        assignedTo: null,
+      });
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.title.trim()) {
       setIsSubmitting(true);
       try {
-        await onAddTask(formData);
-        setFormData({
-          title: "",
-          description: "",
-          assignedTo: "",
-          dueDate: "",
-          priority: "Medium",
+        // If no assignee is selected, default to current user
+        const assigneeId = formData.assignedTo || user?._id;
+
+        await onAddTask({
+          title: formData.title,
+          description: formData.description,
+          assignedTo: assigneeId,
+          dueDate: formData.dueDate,
+          priority: formData.priority || "Medium",
         });
         onClose();
         toast.success("Task created successfully!");
@@ -277,103 +323,205 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="text-green-600">Add new Task</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Task Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Enter task title..."
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Task Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Provide detailed task description..."
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <UserSearchSelect
-                value={formData.assignedTo}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, assignedTo: value })
-                }
-                placeholder="Select Department"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, dueDate: e.target.value })
-                }
-                placeholder="Pick a date"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(value) =>
-                setFormData({ ...formData, priority: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter className="gap-2">
+      <DialogContent className="sm:max-w-[500px] p-0">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-medium text-green-600">Add new Task</h2>
             <Button
-              type="button"
-              variant="outline"
+              variant="ghost"
+              size="sm"
               onClick={onClose}
-              disabled={isSubmitting}
-              className="flex items-center gap-2"
+              className="h-6 w-6 p-0"
             >
               <X className="w-4 h-4" />
-              Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Adding..." : "Add Task"}
-            </Button>
-          </DialogFooter>
-        </form>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Task Title */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="title"
+                className="text-sm font-medium text-gray-700"
+              >
+                Task Title
+              </Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                placeholder="Enter task title..."
+                required
+                className="w-full"
+              />
+            </div>
+
+            {/* Task Description */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="description"
+                className="text-sm font-medium text-gray-700"
+              >
+                Task Description
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Provide detailed task description..."
+                rows={4}
+                className="w-full resize-none"
+              />
+            </div>
+
+            {/* Department and Due Date Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Department
+                </Label>
+                <Select
+                  value={formData.department}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, department: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HR">HR</SelectItem>
+                    <SelectItem value="IT">IT</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Operations">Operations</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Due Date
+                </Label>
+                <Select
+                  value={formData.dueDate}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, dueDate: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pick a date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      value={
+                        new Date(Date.now() + 86400000)
+                          .toISOString()
+                          .split("T")[0]
+                      }
+                    >
+                      Tomorrow
+                    </SelectItem>
+                    <SelectItem
+                      value={
+                        new Date(Date.now() + 7 * 86400000)
+                          .toISOString()
+                          .split("T")[0]
+                      }
+                    >
+                      1 Week
+                    </SelectItem>
+                    <SelectItem
+                      value={
+                        new Date(Date.now() + 14 * 86400000)
+                          .toISOString()
+                          .split("T")[0]
+                      }
+                    >
+                      2 Weeks
+                    </SelectItem>
+                    <SelectItem
+                      value={
+                        new Date(Date.now() + 30 * 86400000)
+                          .toISOString()
+                          .split("T")[0]
+                      }
+                    >
+                      1 Month
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Priority and Assignee Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Priority
+                </Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, priority: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Assignee
+                </Label>
+                <AssigneeSearchInput
+                  value={formData.assigneeSearch}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, assigneeSearch: value })
+                  }
+                  selectedUser={formData.assignedTo}
+                  onUserSelect={(userId) =>
+                    setFormData({ ...formData, assignedTo: userId })
+                  }
+                  placeholder="Search by name"
+                />
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Adding..." : "Add Task"}
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
