@@ -1,21 +1,21 @@
 /**
  * Dashboard Configuration File
- * 
+ *
  * Contains navigation configurations for different user roles in the Vire Workplace HR Application.
  * Each role (HR, Staff, Admin) has its own navigation structure with relevant menu items
  * and document shortcuts.
- * 
+ *
  * Configuration Structure:
  * - navMain: Primary navigation items (main menu)
  * - navSecondary: Secondary navigation items (settings, help, etc.)
  * - documents: Quick access document shortcuts
  * - actionButtons: Role-specific action buttons for quick actions
- * 
+ *
  * Navigation Item Structure:
  * - title: Display name for the menu item
  * - url: Route or link destination
  * - icon: Tabler icon component for visual representation
- * 
+ *
  * Available Icons:
  * - IconDashboard: Main dashboard
  * - IconUsers: User management
@@ -56,18 +56,18 @@ import {
   IconFileAi,
   IconFileDescription,
   IconMail,
-} from "@tabler/icons-react"
+} from "@tabler/icons-react";
 
 // Import action button configurations
 import {
   hrActionButtons,
   staffActionButtons,
   adminActionButtons,
-} from "./actionButtonConfigs"
+} from "./actionButtonConfigs";
 
 /**
  * HR Dashboard Configuration
- * 
+ *
  * Navigation structure for Human Resource Managers.
  * Focuses on employee management, recruitment, performance reviews,
  * leave management, and HR analytics.
@@ -81,7 +81,7 @@ export const hrDashboardConfig = {
       icon: IconDashboard,
     },
   ],
-  
+
   // Analytics section
   analytics: [
     {
@@ -101,7 +101,7 @@ export const hrDashboardConfig = {
       badge: "NEW",
     },
   ],
-  
+
   // Teams section
   teams: [
     {
@@ -110,7 +110,7 @@ export const hrDashboardConfig = {
       icon: IconUsers,
     },
   ],
-  
+
   // Company section
   company: [
     {
@@ -124,7 +124,7 @@ export const hrDashboardConfig = {
       icon: IconReport,
     },
   ],
-  
+
   // Secondary navigation items (settings, help, etc.)
   navSecondary: [
     {
@@ -143,14 +143,14 @@ export const hrDashboardConfig = {
       icon: IconSearch,
     },
   ],
-  
+
   // HR-specific action buttons
   actionButtons: hrActionButtons,
-}
+};
 
 /**
  * Staff Dashboard Configuration
- * 
+ *
  * Navigation structure for Staff members.
  * Focuses on personal profile management, task tracking,
  * attendance, and personal documents.
@@ -164,7 +164,7 @@ export const staffDashboardConfig = {
       icon: IconDashboard,
     },
   ],
-  
+
   // Analytics section
   analytics: [
     {
@@ -178,7 +178,7 @@ export const staffDashboardConfig = {
       icon: IconFileText,
     },
   ],
-  
+
   // Productivity section
   productivity: [
     {
@@ -193,7 +193,7 @@ export const staffDashboardConfig = {
       icon: IconUserCheck,
     },
   ],
-  
+
   // Company section
   company: [
     {
@@ -207,7 +207,7 @@ export const staffDashboardConfig = {
       icon: IconReport,
     },
   ],
-  
+
   // Secondary navigation items (settings, help, etc.)
   navSecondary: [
     {
@@ -226,10 +226,10 @@ export const staffDashboardConfig = {
       icon: IconSearch,
     },
   ],
-  
+
   // Staff-specific action buttons
   actionButtons: staffActionButtons,
-}
+};
 
 // Admin Dashboard Configuration
 export const adminDashboardConfig = {
@@ -299,7 +299,7 @@ export const adminDashboardConfig = {
       icon: IconFileWord,
     },
   ],
-  
+
   // Admin-specific action buttons
   actionButtons: adminActionButtons,
-} 
+};

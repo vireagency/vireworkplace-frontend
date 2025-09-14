@@ -20,7 +20,11 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Edit,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
+import axios from "axios";
 
 // shadcn UI Components
 import { Badge } from "@/components/ui/badge";
@@ -49,9 +53,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 // Layout Components
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
@@ -60,55 +71,11 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
 
-// Mock data for tasks
-const mockTasks = [
-  {
-    id: 1,
-    title: "Complete Financial Report",
-    description:
-      "Prepare comprehensive financial analysis including revenue, expenses, and projections for Q4 2024",
-    assignee: "Nana Gyamfi",
-    dueDate: "2024-01-15",
-    status: "in progress",
-    priority: "high",
-    progress: 75,
-  },
-  {
-    id: 2,
-    title: "Update Employee Handbook",
-    description:
-      "Review and update company policies, benefits, and procedures for 2024",
-    assignee: "Nana Gyamfi",
-    dueDate: "2024-01-20",
-    status: "pending",
-    priority: "medium",
-    progress: 0,
-  },
-  {
-    id: 3,
-    title: "Security System Upgrade",
-    description: "Implement new authentication protocols and security measures",
-    assignee: "William Ofosu",
-    dueDate: "2024-01-10",
-    status: "completed",
-    priority: "high",
-    progress: 100,
-  },
-  {
-    id: 4,
-    title: "Marketing Campaign Analysis",
-    description:
-      "Analyze performance metrics of the holiday marketing campaign",
-    assignee: "Michael Ansah",
-    dueDate: "2024-01-18",
-    status: "in progress",
-    priority: "low",
-    progress: 45,
-  },
-];
+// API Configuration
+import { getApiUrl } from "@/config/apiConfig";
 
 // Status Badge Component
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, onStatusChange, taskId, canEdit = false }) => {
   const statusConfig = {
     completed: {
       variant: "default",
@@ -132,11 +99,27 @@ const StatusBadge = ({ status }) => {
     },
   };
 
-  const config = statusConfig[status] || statusConfig["pending"];
+  const config = statusConfig[status?.toLowerCase()] || statusConfig["pending"];
   const IconComponent = config.icon;
 
+  const handleStatusClick = () => {
+    if (canEdit && onStatusChange) {
+      const statusOptions = ["pending", "in progress", "completed"];
+      const currentIndex = statusOptions.indexOf(status?.toLowerCase());
+      const nextStatus =
+        statusOptions[(currentIndex + 1) % statusOptions.length];
+      onStatusChange(taskId, nextStatus);
+    }
+  };
+
   return (
-    <Badge variant={config.variant} className={config.className}>
+    <Badge
+      variant={config.variant}
+      className={`${config.className} ${
+        canEdit ? "cursor-pointer hover:opacity-80" : ""
+      }`}
+      onClick={handleStatusClick}
+    >
       <IconComponent className="w-3 h-3 mr-1" />
       {config.text}
     </Badge>
@@ -165,7 +148,8 @@ const PriorityBadge = ({ priority }) => {
     },
   };
 
-  const config = priorityConfig[priority] || priorityConfig["medium"];
+  const config =
+    priorityConfig[priority?.toLowerCase()] || priorityConfig["medium"];
 
   return (
     <Badge variant={config.variant} className={config.className}>
@@ -174,134 +158,416 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
+// User Search Component for Assignee
+const AssigneeSearchInput = ({
+  value,
+  onValueChange,
+  selectedUser,
+  onUserSelect,
+  placeholder = "Search by name",
+}) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const { accessToken } = useAuth();
+  const API_URL = getApiUrl();
+
+  const searchUsers = async (query) => {
+    if (!query || query.length < 2) {
+      setUsers([]);
+      setIsOpen(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${API_URL}/tasks/assignees/search?query=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setUsers(response.data.data || []);
+        setIsOpen(true);
+      }
+    } catch (error) {
+      console.error("Error searching users:", error);
+      setUsers([]);
+      setIsOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      searchUsers(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
+    onValueChange(newValue);
+  };
+
+  const handleUserSelect = (user) => {
+    const fullName = `${user.firstName} ${user.lastName}`;
+    setSearchQuery(fullName);
+    onValueChange(fullName);
+    onUserSelect(user._id);
+    setUsers([]);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        placeholder={placeholder}
+        value={searchQuery}
+        onChange={handleInputChange}
+        className="w-full"
+        onFocus={() => {
+          if (users.length > 0) {
+            setIsOpen(true);
+          }
+        }}
+      />
+      {loading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="w-4 h-4 animate-spin border-2 border-green-500 border-t-transparent rounded-full"></div>
+        </div>
+      )}
+      {isOpen && users.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+          {users.map((user) => (
+            <div
+              key={user._id}
+              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+              onClick={() => handleUserSelect(user)}
+            >
+              <div className="text-sm font-medium">
+                {user.firstName} {user.lastName}
+              </div>
+              <div className="text-xs text-gray-500">{user.email}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Add Task Modal Component
 const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    assignee: "",
+    department: "",
     dueDate: "",
-    priority: "medium",
+    priority: "",
+    assigneeSearch: "",
+    assignedTo: null,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (formData.title.trim()) {
-      onAddTask({
-        ...formData,
-        id: Date.now(),
-        status: "pending",
-        progress: 0,
-      });
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
       setFormData({
         title: "",
         description: "",
-        assignee: "",
+        department: "",
         dueDate: "",
-        priority: "medium",
+        priority: "",
+        assigneeSearch: "",
+        assignedTo: null,
       });
-      onClose();
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.title.trim()) {
+      setIsSubmitting(true);
+      try {
+        // If no assignee is selected, default to current user
+        const assigneeId = formData.assignedTo || user?._id;
+
+        await onAddTask({
+          title: formData.title,
+          description: formData.description,
+          assignedTo: assigneeId,
+          dueDate: formData.dueDate,
+          priority: formData.priority || "Medium",
+        });
+        onClose();
+        toast.success("Task created successfully!");
+      } catch (error) {
+        console.error("Error adding task:", error);
+        toast.error("Failed to create task. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
-          <DialogDescription>
-            Create a new task to track your work progress.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[500px] p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-medium text-green-600">Add new Task</h2>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Task Title</Label>
+            <Label
+              htmlFor="title"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Title
+            </Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="Enter task title"
+              placeholder="Enter task title..."
               required
+              className="w-full"
             />
           </div>
 
+          {/* Task Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label
+              htmlFor="description"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Description
+            </Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              placeholder="Enter task description"
-              rows={3}
+              placeholder="Provide detailed task description..."
+              rows={4}
+              className="w-full resize-none"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="assignee">Assignee</Label>
-            <Input
-              id="assignee"
-              value={formData.assignee}
-              onChange={(e) =>
-                setFormData({ ...formData, assignee: e.target.value })
-              }
-              placeholder="Enter assignee name"
-            />
+          {/* Department and Due Date Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Department
+              </Label>
+              <Select
+                value={formData.department}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, department: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                  <SelectItem value="Finance">Finance</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Operations">Operations</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Due Date
+              </Label>
+              <Select
+                value={formData.dueDate}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, dueDate: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pick a date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    Tomorrow
+                  </SelectItem>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 7 * 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    1 Week
+                  </SelectItem>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 14 * 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    2 Weeks
+                  </SelectItem>
+                  <SelectItem
+                    value={
+                      new Date(Date.now() + 30 * 86400000)
+                        .toISOString()
+                        .split("T")[0]
+                    }
+                  >
+                    1 Month
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) =>
-                setFormData({ ...formData, dueDate: e.target.value })
-              }
-            />
+          {/* Priority and Assignee Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Priority
+              </Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, priority: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Assignee
+              </Label>
+              <AssigneeSearchInput
+                value={formData.assigneeSearch}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, assigneeSearch: value })
+                }
+                selectedUser={formData.assignedTo}
+                onUserSelect={(userId) =>
+                  setFormData({ ...formData, assignedTo: userId })
+                }
+                placeholder="Search by name"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(value) =>
-                setFormData({ ...formData, priority: value })
-              }
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+              <X className="w-4 h-4" />
               Cancel
             </Button>
-            <Button type="submit" className="bg-green-600 hover:bg-green-700">
-              Add Task
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Adding..." : "Add Task"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   );
 };
 
+// Task Actions Menu Component
+const TaskActionsMenu = ({
+  task,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  canEdit,
+  canDelete,
+}) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <MoreHorizontal className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {canEdit && (
+          <DropdownMenuItem onClick={() => onEdit(task)}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Task
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          onClick={() => onStatusChange(task.id, "in progress")}
+        >
+          <Clock className="w-4 h-4 mr-2" />
+          Mark In Progress
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onStatusChange(task.id, "completed")}>
+          <CheckCircle2 className="w-4 h-4 mr-2" />
+          Mark Complete
+        </DropdownMenuItem>
+        {canDelete && (
+          <DropdownMenuItem
+            onClick={() => onDelete(task.id)}
+            className="text-red-600"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Task
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 // Empty State Component
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center py-16">
-    <div className="w-16 h-16 border-2 border-gray-200 rounded-lg flex items-center justify-center mb-4">
+    <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mb-4">
       <div className="w-8 h-8 border-2 border-gray-300 rounded-full border-dashed"></div>
     </div>
     <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
@@ -313,31 +579,273 @@ const EmptyState = () => (
   </div>
 );
 
+// Loading State Component
+const LoadingState = () => (
+  <div className="flex flex-col items-center justify-center py-16">
+    <div className="w-8 h-8 animate-spin border-2 border-green-500 border-t-transparent rounded-full mb-4"></div>
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      Loading tasks...
+    </h3>
+    <p className="text-gray-500 text-center">
+      Please wait while we fetch your tasks.
+    </p>
+  </div>
+);
+
+// Error State Component
+const ErrorState = ({ error, onRetry }) => (
+  <div className="flex flex-col items-center justify-center py-16">
+    <div className="text-red-500 text-4xl mb-4">⚠️</div>
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      Error Loading Tasks
+    </h3>
+    <p className="text-gray-500 text-center mb-4 max-w-md">{error}</p>
+    <Button onClick={onRetry} className="bg-green-600 hover:bg-green-700">
+      Try Again
+    </Button>
+  </div>
+);
+
 // Main Staff Tasks Page Component
 export default function StaffTasksPage() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const navigate = useNavigate();
 
-  const [tasks, setTasks] = useState(mockTasks);
+  // State management
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [dueDateFilter, setDueDateFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [showTasks, setShowTasks] = useState(true); // Toggle for demo purposes
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || task.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // API configuration
+  const API_URL = getApiUrl();
 
-  const displayedTasks = showTasks ? filteredTasks : [];
+  // Fetch tasks from API
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const handleAddTask = (newTask) => {
-    setTasks([...tasks, newTask]);
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+      if (priorityFilter !== "all") {
+        params.append("priority", priorityFilter);
+      }
+      if (dueDateFilter) {
+        params.append("dueDate", dueDateFilter);
+      }
+
+      const queryString = params.toString();
+      const url = `${API_URL}/tasks${queryString ? `?${queryString}` : ""}`;
+
+      console.log("Fetching tasks from:", url);
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data.success) {
+        const apiData =
+          response.data.data || response.data.tasks || response.data || [];
+
+        if (Array.isArray(apiData)) {
+          const transformedTasks = apiData.map((task) => ({
+            id: task._id || task.id,
+            title: task.title || "Untitled Task",
+            description: task.description || "No description provided",
+            assignee:
+              task.assignedTo?.firstName && task.assignedTo?.lastName
+                ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+                : task.assignedTo?.name || task.assignee || "Unassigned",
+            dueDate: task.dueDate
+              ? new Date(task.dueDate).toISOString().split("T")[0]
+              : "",
+            status: task.status?.toLowerCase() || "pending",
+            priority: task.priority?.toLowerCase() || "medium",
+            progress: task.progress || 0,
+            createdBy: task.createdBy,
+            assignedTo: task.assignedTo,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+            canEdit:
+              task.createdBy?._id === user?._id ||
+              task.assignedTo?._id === user?._id,
+            canDelete: task.createdBy?._id === user?._id,
+          }));
+
+          setTasks(transformedTasks);
+          console.log("Tasks fetched successfully:", transformedTasks);
+        } else {
+          console.warn("API response data is not an array:", apiData);
+          setTasks([]);
+        }
+      } else {
+        console.warn("API response indicates failure:", response.data);
+        setTasks([]);
+        if (response.data.message) {
+          throw new Error(response.data.message);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+
+      if (err.response?.status === 401) {
+        setError("Authentication failed. Please log in again.");
+      } else if (err.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (
+        err.code === "NETWORK_ERROR" ||
+        err.message.includes("Network Error")
+      ) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(
+          err.message || "An unexpected error occurred while fetching tasks."
+        );
+      }
+
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Add new task
+  const handleAddTask = async (taskData) => {
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const response = await axios.post(
+        `${API_URL}/tasks/create`,
+        {
+          title: taskData.title,
+          description: taskData.description,
+          assignedTo: taskData.assignedTo,
+          dueDate: taskData.dueDate,
+          priority: taskData.priority,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        await fetchTasks();
+        console.log("Task added successfully");
+      } else {
+        throw new Error(response.data.message || "Failed to add task");
+      }
+    } catch (err) {
+      console.error("Error adding task:", err);
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to add task";
+      setError(`Failed to add task: ${errorMessage}`);
+      throw err;
+    }
+  };
+
+  // Update task status
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const response = await axios.patch(
+        `${API_URL}/tasks/${taskId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        await fetchTasks();
+        toast.success("Task status updated successfully!");
+      } else {
+        throw new Error(
+          response.data.message || "Failed to update task status"
+        );
+      }
+    } catch (err) {
+      console.error("Error updating task status:", err);
+      toast.error("Failed to update task status. Please try again.");
+    }
+  };
+
+  // Delete task
+  const handleDeleteTask = async (taskId) => {
+    if (!confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const response = await axios.delete(`${API_URL}/tasks/${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data.success) {
+        await fetchTasks();
+        toast.success("Task deleted successfully!");
+      } else {
+        throw new Error(response.data.message || "Failed to delete task");
+      }
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      toast.error("Failed to delete task. Please try again.");
+    }
+  };
+
+  // Edit task (placeholder for future implementation)
+  const handleEditTask = (task) => {
+    console.log("Edit task:", task);
+    // TODO: Implement edit task modal
+    toast.info("Edit functionality coming soon!");
+  };
+
+  // Initial fetch and refetch when filters change
+  useEffect(() => {
+    fetchTasks();
+  }, [accessToken, statusFilter, priorityFilter, dueDateFilter]);
+
+  // Filter tasks based on search term
+  const filteredTasks = (tasks || []).filter((task) => {
+    const matchesSearch =
+      (task.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.assignee || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesSearch;
+  });
 
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User";
@@ -400,15 +908,15 @@ export default function StaffTasksPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="in progress">In Progress</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <span className="text-sm text-gray-500">
-                {displayedTasks.length} of {tasks.length} tasks
+                {filteredTasks.length} of {(tasks || []).length} tasks
               </span>
             </div>
           </CardContent>
@@ -419,11 +927,15 @@ export default function StaffTasksPage() {
       <div className="px-4 lg:px-6">
         <Card>
           <CardContent className="p-0">
-            {displayedTasks.length === 0 ? (
+            {loading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState error={error} onRetry={fetchTasks} />
+            ) : filteredTasks.length === 0 ? (
               <EmptyState />
             ) : (
               <div className="divide-y divide-gray-100">
-                {displayedTasks.map((task) => (
+                {filteredTasks.map((task) => (
                   <div
                     key={task.id}
                     className="p-6 hover:bg-gray-50 transition-colors"
@@ -434,7 +946,12 @@ export default function StaffTasksPage() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {task.title}
                           </h3>
-                          <StatusBadge status={task.status} />
+                          <StatusBadge
+                            status={task.status}
+                            taskId={task.id}
+                            onStatusChange={handleStatusChange}
+                            canEdit={task.canEdit}
+                          />
                           <PriorityBadge priority={task.priority} />
                         </div>
 
@@ -448,10 +965,12 @@ export default function StaffTasksPage() {
                             <span>{task.assignee}</span>
                           </div>
 
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Calendar className="w-4 h-4" />
-                            <span>Due: {task.dueDate}</span>
-                          </div>
+                          {task.dueDate && (
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Calendar className="w-4 h-4" />
+                              <span>Due: {task.dueDate}</span>
+                            </div>
+                          )}
 
                           {task.progress > 0 && (
                             <div className="flex items-center gap-2">
@@ -469,29 +988,20 @@ export default function StaffTasksPage() {
                           )}
                         </div>
                       </div>
+
+                      <TaskActionsMenu
+                        task={task}
+                        onEdit={handleEditTask}
+                        onDelete={handleDeleteTask}
+                        onStatusChange={handleStatusChange}
+                        canEdit={task.canEdit}
+                        canDelete={task.canDelete}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Debug Controls */}
-      <div className="px-4 lg:px-6 mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Debug Controls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => setShowTasks(!showTasks)}
-              variant="outline"
-              size="sm"
-            >
-              Toggle {showTasks ? "Empty State" : "Task List"}
-            </Button>
           </CardContent>
         </Card>
       </div>
