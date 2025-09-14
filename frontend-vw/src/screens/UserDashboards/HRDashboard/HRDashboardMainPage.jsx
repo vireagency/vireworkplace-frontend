@@ -430,47 +430,105 @@ export default function HRDashboardMainPage() {
             </div>
             
             {/* Metrics */}
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Active Employees</span>
-                  <span className="text-sm font-semibold text-gray-900">1,43,382</span>
+            {loadingOverview ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                <span className="ml-2 text-sm text-slate-600">Loading tracker data...</span>
+              </div>
+            ) : overviewData ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Active Employees</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.activeEmployees?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ 
+                        width: overviewData.data?.activeEmployees 
+                          ? `${Math.min((overviewData.data.activeEmployees / 50) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Remote Workers Today</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.totalRemoteWorkersToday?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ 
+                        width: overviewData.data?.totalRemoteWorkersToday 
+                          ? `${Math.min((overviewData.data.totalRemoteWorkersToday / 20) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">No Check-In Today</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.noCheckInToday?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        overviewData.data?.noCheckInToday > 5 ? 'bg-red-500' : 
+                        overviewData.data?.noCheckInToday > 2 ? 'bg-orange-500' : 'bg-green-500'
+                      }`}
+                      style={{ 
+                        width: overviewData.data?.noCheckInToday 
+                          ? `${Math.min((overviewData.data.noCheckInToday / 10) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Incomplete Tasks</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.incompleteTasks?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        overviewData.data?.incompleteTasks > 20 ? 'bg-red-500' : 
+                        overviewData.data?.incompleteTasks > 10 ? 'bg-orange-500' : 'bg-green-500'
+                      }`}
+                      style={{ 
+                        width: overviewData.data?.incompleteTasks 
+                          ? `${Math.min((overviewData.data.incompleteTasks / 30) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Inactive for 60+ mins</span>
-                  <span className="text-sm font-semibold text-gray-900">87,974</span>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-slate-400 mb-2">
+                  <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-orange-500 h-2 rounded-full" style={{ width: '60%' }}></div>
-                </div>
+                <p className="text-sm text-slate-600">No tracker data available</p>
               </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">No Check-In</span>
-                  <span className="text-sm font-semibold text-gray-900">45,211</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '35%' }}></div>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Incomplete Tasks</span>
-                  <span className="text-sm font-semibold text-gray-900">21,893</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-red-500 h-2 rounded-full" style={{ width: '20%' }}></div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
