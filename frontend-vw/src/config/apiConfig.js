@@ -1,6 +1,6 @@
 // API Configuration for different environments
 const getApiUrl = () => {
-  // Always use the full URL to avoid proxy issues
+   // Always use the full URL to avoid proxy issues
   return 'https://vireworkplace-backend-hpca.onrender.com/api/v1'
 }
 

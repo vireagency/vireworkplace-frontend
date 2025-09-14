@@ -40,18 +40,55 @@ export default function HRPerformancePage() {
     
     setIsLoadingGoals(true);
     try {
+      console.log("Loading goals with token:", accessToken.substring(0, 20) + "...");
       const result = await goalsApi.getAllGoals(accessToken);
       if (result.success) {
-        setGoals(result.data?.data || result.data || []);
-        console.log("Loaded goals:", result.data);
+        const goalsData = result.data?.data || result.data || [];
+        console.log("Loaded goals raw data:", goalsData);
+        console.log("First goal structure:", goalsData[0]);
+        console.log("First goal keyMetrics:", goalsData[0]?.keyMetrics);
+        console.log("First goal keyMetrics[0]:", goalsData[0]?.keyMetrics?.[0]);
+        console.log("First goal keyMetrics[0].metric:", goalsData[0]?.keyMetrics?.[0]?.metric);
+        console.log("First goal keyMetrics[0].target:", goalsData[0]?.keyMetrics?.[0]?.target);
+        console.log("Metric type:", typeof goalsData[0]?.keyMetrics?.[0]?.metric);
+        console.log("Target type:", typeof goalsData[0]?.keyMetrics?.[0]?.target);
+        
+        // Transform API data to match goal card expectations
+        const transformedGoals = goalsData.map(goal => ({
+          id: goal._id || goal.id,
+          title: goal.goalTitle || goal.title,
+          description: goal.goalDescription || goal.description,
+          priority: goal.priority || 'Medium',
+          status: goal.status || 'Not Started',
+          progress: goal.progress || 0,
+          deadline: goal.targetDeadline || goal.deadline,
+          owner: goal.goalOwner || goal.owner,
+          currentMetric: goal.keyMetrics?.[0]?.metric || goal.currentMetric || 'No current metric defined',
+          targetMetric: goal.keyMetrics?.[0]?.target || goal.targetMetric || 'No target metric defined',
+          metrics: goal.keyMetrics?.[0]?.metric || goal.metrics || 'No metrics defined', // Keep for backward compatibility
+          category: goal.category || 'General',
+          goalType: goal.goalType || 'Company',
+          successCriteria: goal.successCriteria || '',
+          startDate: goal.startDate || '',
+          // Keep original data for editing
+          ...goal
+        }));
+        
+        console.log("Transformed goals:", transformedGoals);
+        console.log("First transformed goal currentMetric:", transformedGoals[0]?.currentMetric);
+        console.log("First transformed goal targetMetric:", transformedGoals[0]?.targetMetric);
+        setGoals(transformedGoals);
+        toast.success("Goals loaded successfully");
       } else {
+        console.error("API returned error:", result.error);
         toast.error(result.error || "Failed to load goals");
         // Fallback to static data if API fails
         setGoals(getStaticGoals());
+        toast.info("Using fallback data");
       }
     } catch (error) {
       console.error("Error loading goals:", error);
-      toast.error("Failed to load goals");
+      toast.error("Failed to load goals - using fallback data");
       // Fallback to static data
       setGoals(getStaticGoals());
     } finally {
@@ -231,6 +268,9 @@ export default function HRPerformancePage() {
   };
 
   const handleEditGoal = (goal) => {
+    console.log("Edit button clicked, goal data:", goal);
+    console.log("Goal title:", goal.title, "Goal description:", goal.description);
+    console.log("Goal goalTitle:", goal.goalTitle, "Goal goalDescription:", goal.goalDescription);
     setEditingGoal(goal);
     setIsModalOpen(true);
   };
@@ -1009,16 +1049,17 @@ export default function HRPerformancePage() {
                     {/* Status Tags */}
                     <div className="flex flex-col gap-2 ml-4">
                           <Badge variant="secondary" className={`text-xs px-3 py-1 ${
-                            goal.priority === 'High Priority' ? 'bg-red-100 text-red-700' :
-                            goal.priority === 'Medium Priority' ? 'bg-yellow-100 text-yellow-700' :
+                            goal.priority === 'High' ? 'bg-red-100 text-red-700' :
+                            goal.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
                             'bg-green-100 text-green-700'
                           }`}>
                             {goal.priority}
                       </Badge>
                           <Badge variant="secondary" className={`text-xs px-3 py-1 ${
                             goal.status === 'On Track' ? 'bg-blue-100 text-blue-700' :
-                            goal.status === 'Needs Attention' ? 'bg-orange-100 text-orange-700' :
-                            goal.status === 'Exceeding' ? 'bg-green-100 text-green-700' :
+                            goal.status === 'Not Started' ? 'bg-gray-100 text-gray-700' :
+                            goal.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                            goal.status === 'On Hold' ? 'bg-orange-100 text-orange-700' :
                             'bg-gray-100 text-gray-700'
                           }`}>
                             {goal.status}
@@ -1068,9 +1109,16 @@ export default function HRPerformancePage() {
                       <Target className="w-4 h-4 text-slate-500" />
                       <div className="flex flex-col">
                         <span className="text-sm text-slate-600">Key Metrics</span>
-                            <span className="text-sm font-medium text-slate-900">{goal.metrics}</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-medium text-slate-900">
+                            <span className="text-slate-500">Current:</span> {goal.currentMetric}
+                          </span>
+                          <span className="text-sm font-medium text-slate-900">
+                            <span className="text-slate-500">Target:</span> {goal.targetMetric}
+                          </span>
                       </div>
                     </div>
+                  </div>
                   </div>
 
                   {/* Actions */}
@@ -1189,7 +1237,14 @@ export default function HRPerformancePage() {
                             <Target className="w-3 h-3 text-gray-500" />
                             <div>
                               <p className="text-gray-500">Key Metrics</p>
-                              <p className="font-medium text-gray-900">{goal.metrics}</p>
+                              <div className="flex flex-col gap-1">
+                                <p className="font-medium text-gray-900 text-xs">
+                                  <span className="text-gray-500">Current:</span> {goal.currentMetric}
+                                </p>
+                                <p className="font-medium text-gray-900 text-xs">
+                                  <span className="text-gray-500">Target:</span> {goal.targetMetric}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>

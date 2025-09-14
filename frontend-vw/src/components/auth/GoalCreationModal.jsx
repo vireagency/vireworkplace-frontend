@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,14 +23,19 @@ export function GoalCreationModal({
   
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm({
     defaultValues: initialData || {
-      goalType: "company",
+      goalType: "Company",
       title: "",
       description: "",
-      priority: "Medium Priority",
+      priority: "Medium",
       deadline: "",
-      owner: "",
-      category: "",
-      metrics: ""
+      owner: "Human Resources",
+      category: "Employee Engagement",
+      currentMetric: "",
+      targetMetric: "",
+      team: "",
+      successCriteria: "",
+      startDate: new Date().toISOString().split('T')[0],
+      keyMetrics: [{ metric: 'General Performance', target: 'To be defined' }]
     },
     mode: "onChange"
   });
@@ -39,12 +44,65 @@ export function GoalCreationModal({
   const selectedCategory = watch("category");
   const selectedGoalType = watch("goalType");
 
+  // Pre-fill form when initialData changes (for editing)
+  useEffect(() => {
+    console.log("useEffect triggered - isEditing:", isEditing, "initialData:", initialData);
+    if (initialData && isEditing) {
+      console.log("Pre-filling form with initial data:", initialData);
+      console.log("Available fields in initialData:", Object.keys(initialData));
+      console.log("title field:", initialData.title);
+      console.log("goalTitle field:", initialData.goalTitle);
+      console.log("description field:", initialData.description);
+      console.log("goalDescription field:", initialData.goalDescription);
+      
+      // Map API data to form fields - try both transformed and original field names
+      const formData = {
+        goalType: initialData.goalType || "Company",
+        title: initialData.title || initialData.goalTitle || "",
+        description: initialData.description || initialData.goalDescription || "",
+        priority: initialData.priority || "Medium",
+        deadline: initialData.deadline || (initialData.targetDeadline ? new Date(initialData.targetDeadline).toISOString().split('T')[0] : ""),
+        owner: initialData.owner || initialData.goalOwner || "Human Resources",
+        category: initialData.category || "Employee Engagement",
+        currentMetric: initialData.currentMetric || initialData.keyMetrics?.[0]?.metric || "",
+        targetMetric: initialData.targetMetric || initialData.keyMetrics?.[0]?.target || "",
+        successCriteria: initialData.successCriteria || "",
+        startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        keyMetrics: initialData.keyMetrics || [{ metric: 'General Performance', target: 'To be defined' }]
+      };
+
+      console.log("Mapped form data for editing:", formData);
+
+      // Reset form with new data
+      reset(formData);
+      console.log("Form reset with data:", formData);
+    } else if (!isEditing) {
+      // Reset to default values when creating new goal
+      reset({
+        goalType: "Company",
+        title: "",
+        description: "",
+        priority: "Medium",
+        deadline: "",
+        owner: "Human Resources",
+        category: "Employee Engagement",
+        currentMetric: "",
+        targetMetric: "",
+        team: "",
+        successCriteria: "",
+        startDate: new Date().toISOString().split('T')[0],
+        keyMetrics: [{ metric: 'General Performance', target: 'To be defined' }]
+      });
+    }
+  }, [initialData, isEditing, reset]);
+
   const companyCategories = [
-    { value: "Retention", label: "Employee Retention", icon: Users },
-    { value: "Engagement", label: "Employee Engagement", icon: Target },
-    { value: "Diversity", label: "Diversity & Inclusion", icon: Users },
-    { value: "Development", label: "Learning & Development", icon: Calendar },
-    { value: "Wellness", label: "Safety & Wellness", icon: AlertCircle }
+    { value: "Employee Retention", label: "Employee Retention", icon: Users },
+    { value: "Employee Engagement", label: "Employee Engagement", icon: Target },
+    { value: "Diversity and Inclusion", label: "Diversity and Inclusion", icon: Users },
+    { value: "Learning and Development", label: "Learning and Development", icon: Calendar },
+    { value: "Performance Management", label: "Performance Management", icon: Target },
+    { value: "Safety and Well-being", label: "Safety and Well-being", icon: AlertCircle }
   ];
 
   const teamCategories = [
@@ -63,15 +121,15 @@ export function GoalCreationModal({
     { value: "Design Team", label: "Design Team", icon: Target }
   ];
 
-  const categories = selectedGoalType === "company" ? companyCategories : teamCategories;
+  const categories = selectedGoalType === "Company" ? companyCategories : teamCategories;
 
   const ownerOptions = [
     "Human Resources",
-    "Social Media", 
+    "Engineering", 
+    "Design",
+    "Social Media",
     "Customer Support",
-    "Engineering",
-    "Design Team",
-    "Executive Team"
+    "Production"
   ];
 
   const assigneeOptions = [
@@ -102,12 +160,18 @@ export function GoalCreationModal({
     console.log('Form data being sent:', data);
     console.log('Form data keys:', Object.keys(data));
     console.log('Form data values:', Object.values(data));
+    console.log('Form data currentMetric:', data.currentMetric);
+    console.log('Form data targetMetric:', data.targetMetric);
+    console.log('Current metric type:', typeof data.currentMetric);
+    console.log('Target metric type:', typeof data.targetMetric);
+    console.log('Current metric length:', data.currentMetric?.length);
+    console.log('Target metric length:', data.targetMetric?.length);
     console.log('Access token:', accessToken ? 'Present' : 'Missing');
     console.log('Token length:', accessToken?.length);
     console.log('Form validation errors:', errors);
 
     // Check if required fields are present
-    const requiredFields = ['title', 'description', 'owner', 'category', 'deadline', 'metrics'];
+    const requiredFields = ['title', 'description', 'owner', 'category', 'deadline', 'currentMetric', 'targetMetric'];
     const missingFields = requiredFields.filter(field => !data[field]);
     
     if (missingFields.length > 0) {
@@ -125,6 +189,19 @@ export function GoalCreationModal({
       
       if (isEditing && initialData?.id) {
         // Update existing goal
+        console.log('Updating goal with ID:', initialData.id);
+        console.log('Data being sent for update:', data);
+        console.log('Form data validation for update:', {
+          title: !!data.title,
+          description: !!data.description,
+          owner: !!data.owner,
+          currentMetric: !!data.currentMetric,
+          targetMetric: !!data.targetMetric,
+          goalType: !!data.goalType,
+          category: !!data.category,
+          priority: !!data.priority,
+          successCriteria: !!data.successCriteria
+        });
         result = await goalsApi.updateGoal(initialData.id, data, accessToken);
       } else {
         // Create new goal
@@ -176,13 +253,13 @@ export function GoalCreationModal({
                 <SelectValue placeholder="Select goal type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="company">
+                <SelectItem value="Company">
                   <div className="flex items-center gap-2">
                     <Target className="size-4" />
                     Company Goal
                   </div>
                 </SelectItem>
-                <SelectItem value="team">
+                <SelectItem value="Team">
                   <div className="flex items-center gap-2">
                     <Users className="size-4" />
                     Team Goal
@@ -239,19 +316,19 @@ export function GoalCreationModal({
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="High Priority">
+                  <SelectItem value="High">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-red-500"></div>
                       High Priority
                     </div>
                   </SelectItem>
-                  <SelectItem value="Medium Priority">
+                  <SelectItem value="Medium">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                       Medium Priority
                     </div>
                   </SelectItem>
-                  <SelectItem value="Low Priority">
+                  <SelectItem value="Low">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       Low Priority
@@ -344,18 +421,69 @@ export function GoalCreationModal({
 
           {/* Key Metrics */}
           <div>
-            <Label htmlFor="metrics" className="text-[14px] font-medium text-[#0d141c] mb-2 block">
-              Key Metrics & Success Criteria *
+            <p className="text-[12px] text-slate-600 mb-3">
+              Enter current and target values. They will be combined as "Current → Target" in the goal card.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="currentMetric" className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                Current Metric *
+              </Label>
+              <Input
+                id="currentMetric"
+                {...register("currentMetric", { required: "Current metric is required" })}
+                placeholder="e.g., 18% or High turnover rate"
+                className="w-full"
+              />
+              {errors.currentMetric && (
+                <p className="text-red-500 text-[12px] mt-1">{errors.currentMetric.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="targetMetric" className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                Target Metric *
+              </Label>
+              <Input
+                id="targetMetric"
+                {...register("targetMetric", { required: "Target metric is required" })}
+                placeholder="e.g., 12% or Low turnover rate"
+                className="w-full"
+              />
+              {errors.targetMetric && (
+                <p className="text-red-500 text-[12px] mt-1">{errors.targetMetric.message}</p>
+              )}
+            </div>
+          </div>
+          </div>
+
+          {/* Success Criteria */}
+          <div>
+            <Label htmlFor="successCriteria" className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+              Success Criteria *
+            </Label>
+            <Textarea
+              id="successCriteria"
+              {...register("successCriteria", { required: "Success criteria is required" })}
+              placeholder="Define what success looks like for this goal..."
+              className="w-full min-h-[80px]"
+            />
+            {errors.successCriteria && (
+              <p className="text-red-500 text-[12px] mt-1">{errors.successCriteria.message}</p>
+            )}
+          </div>
+
+
+          {/* Start Date */}
+          <div>
+            <Label htmlFor="startDate" className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+              Start Date
             </Label>
             <Input
-              id="metrics"
-              {...register("metrics", { required: "Metrics are required" })}
-              placeholder="e.g., Reduce turnover from 18% to 12%, Increase engagement score to 4.0"
+              id="startDate"
+              type="date"
+              {...register("startDate")}
               className="w-full"
             />
-            {errors.metrics && (
-              <p className="text-red-500 text-[12px] mt-1">{errors.metrics.message}</p>
-            )}
           </div>
 
           {/* Action Buttons */}

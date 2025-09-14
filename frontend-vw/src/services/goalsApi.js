@@ -39,39 +39,71 @@ export const goalsApi = {
    */
   createGoal: async (goalData, accessToken) => {
     try {
-      // Validate required fields
-      if (!goalData.title || !goalData.description || !goalData.owner) {
+      // Validate required fields based on schema
+      if (!goalData.title || !goalData.description || !goalData.goalType || !goalData.category || !goalData.successCriteria || !goalData.startDate || !goalData.deadline) {
         console.error('Missing required fields:', {
           title: !!goalData.title,
           description: !!goalData.description,
-          owner: !!goalData.owner
+          goalType: !!goalData.goalType,
+          category: !!goalData.category,
+          successCriteria: !!goalData.successCriteria,
+          startDate: !!goalData.startDate,
+          deadline: !!goalData.deadline
         });
-        return { success: false, error: 'Missing required fields' };
+        return { success: false, error: 'Missing required fields: goalTitle, goalDescription, goalType, category, successCriteria, startDate, targetDeadline' };
       }
 
-      // Map form field names to API expected field names
+      // Validate metrics fields
+      if (!goalData.currentMetric || !goalData.targetMetric) {
+        console.error('Missing metrics fields:', {
+          currentMetric: !!goalData.currentMetric,
+          targetMetric: !!goalData.targetMetric
+        });
+        return { success: false, error: 'Missing required fields: currentMetric, targetMetric' };
+      }
+
+      // Map form field names to API expected field names based on updated controller
       const mappedData = {
         goalTitle: goalData.title?.trim(),
         goalDescription: goalData.description?.trim(),
-        goalOwner: goalData.owner?.trim() || 'Human Resources',
-        goalType: goalData.goalType || 'company',
-        priority: goalData.priority || 'Medium Priority',
-        category: goalData.category || 'General',
-        deadline: goalData.deadline || new Date().toISOString().split('T')[0],
-        metrics: goalData.metrics?.trim() || 'No specific metrics defined'
+        goalType: goalData.goalType || 'Company',
+        goalOwner: goalData.owner || 'Human Resources', // Optional field
+        category: goalData.category || 'Employee Engagement',
+        priority: goalData.priority || 'Medium',
+        status: goalData.status || 'Not Started',
+        keyMetrics: goalData.keyMetrics || [{ 
+          metric: goalData.currentMetric || 'General Performance', // Map currentMetric to metric
+          target: goalData.targetMetric || 'To be defined' // Map targetMetric to target
+        }],
+        successCriteria: goalData.successCriteria?.trim() || 'Success criteria to be defined',
+        startDate: goalData.startDate || new Date().toISOString().split('T')[0],
+        targetDeadline: goalData.deadline || new Date().toISOString().split('T')[0] // deadline maps to targetDeadline
       };
 
       // Validate data before sending
       console.log('Creating goal with mapped data:', mappedData);
+      console.log('Original form data:', goalData);
+      console.log('Form data currentMetric:', goalData.currentMetric);
+      console.log('Form data targetMetric:', goalData.targetMetric);
+      console.log('Current metric type:', typeof goalData.currentMetric);
+      console.log('Target metric type:', typeof goalData.targetMetric);
+      console.log('Current metric length:', goalData.currentMetric?.length);
+      console.log('Target metric length:', goalData.targetMetric?.length);
+      console.log('KeyMetrics structure:', mappedData.keyMetrics);
+      console.log('Mapped metric value:', mappedData.keyMetrics[0]?.metric);
+      console.log('Mapped target value:', mappedData.keyMetrics[0]?.target);
       console.log('Data validation:', {
         goalTitle: mappedData.goalTitle?.length > 0,
         goalDescription: mappedData.goalDescription?.length > 0,
-        goalOwner: mappedData.goalOwner?.length > 0,
         goalType: mappedData.goalType?.length > 0,
-        priority: mappedData.priority?.length > 0,
+        goalOwner: mappedData.goalOwner?.length > 0,
         category: mappedData.category?.length > 0,
-        deadline: mappedData.deadline?.length > 0,
-        metrics: mappedData.metrics?.length > 0
+        priority: mappedData.priority?.length > 0,
+        status: mappedData.status?.length > 0,
+        keyMetrics: mappedData.keyMetrics?.length > 0,
+        successCriteria: mappedData.successCriteria?.length > 0,
+        startDate: mappedData.startDate?.length > 0,
+        targetDeadline: mappedData.targetDeadline?.length > 0
       });
 
       const response = await axios.post(GOALS_API_BASE, mappedData, {
@@ -101,6 +133,10 @@ export const goalsApi = {
   getAllGoals: async (accessToken) => {
     try {
       console.log('Fetching all goals...');
+      console.log('API URL:', GOALS_API_BASE);
+      console.log('Access token present:', !!accessToken);
+      console.log('Token length:', accessToken?.length);
+      
       const response = await axios.get(GOALS_API_BASE, {
         headers: getAuthHeaders(accessToken)
       });
@@ -108,7 +144,11 @@ export const goalsApi = {
       console.log('All goals response:', response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Error fetching goals:', error.response?.data || error.message);
+      console.error('Error fetching goals:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response headers:', error.response?.headers);
       return { 
         success: false, 
         error: error.response?.data?.message || error.message 
@@ -149,19 +189,53 @@ export const goalsApi = {
    */
   updateGoal: async (goalId, goalData, accessToken) => {
     try {
-      // Map form field names to API expected field names
+      // Validate required fields for update based on schema
+      if (!goalData.title || !goalData.description || !goalData.goalType || !goalData.category || !goalData.successCriteria || !goalData.startDate || !goalData.deadline) {
+        console.error('Missing required fields for update:', {
+          title: !!goalData.title,
+          description: !!goalData.description,
+          goalType: !!goalData.goalType,
+          category: !!goalData.category,
+          successCriteria: !!goalData.successCriteria,
+          startDate: !!goalData.startDate,
+          deadline: !!goalData.deadline
+        });
+        return { success: false, error: 'Missing required fields: goalTitle, goalDescription, goalType, category, successCriteria, startDate, targetDeadline' };
+      }
+
+      // Validate metrics fields
+      if (!goalData.currentMetric || !goalData.targetMetric) {
+        console.error('Missing metrics fields for update:', {
+          currentMetric: !!goalData.currentMetric,
+          targetMetric: !!goalData.targetMetric
+        });
+        return { success: false, error: 'Missing required fields: currentMetric, targetMetric' };
+      }
+
+      // Map form field names to API expected field names based on updated controller
       const mappedData = {
-        goalTitle: goalData.title,
-        goalDescription: goalData.description,
-        goalOwner: goalData.owner || 'Human Resources', // Default owner if not provided
-        goalType: goalData.goalType || 'company',
-        priority: goalData.priority,
-        category: goalData.category,
-        deadline: goalData.deadline,
-        metrics: goalData.metrics
+        goalTitle: goalData.title?.trim(),
+        goalDescription: goalData.description?.trim(),
+        goalType: goalData.goalType || 'Company',
+        goalOwner: goalData.owner || 'Human Resources', // Optional field
+        category: goalData.category || 'Employee Engagement',
+        priority: goalData.priority || 'Medium',
+        status: goalData.status || 'Not Started',
+        keyMetrics: goalData.keyMetrics || [{ 
+          metric: goalData.currentMetric || 'General Performance', // Map currentMetric to metric
+          target: goalData.targetMetric || 'To be defined' // Map targetMetric to target
+        }],
+        successCriteria: goalData.successCriteria?.trim() || 'Success criteria to be defined',
+        startDate: goalData.startDate || new Date().toISOString().split('T')[0],
+        targetDeadline: goalData.deadline || new Date().toISOString().split('T')[0] // deadline maps to targetDeadline
       };
 
       console.log(`Updating goal ${goalId} with mapped data:`, mappedData);
+      console.log('Original form data for update:', goalData);
+      console.log('KeyMetrics structure for update:', mappedData.keyMetrics);
+      console.log('API URL:', `${GOALS_API_BASE}/${goalId}`);
+      console.log('Headers:', getAuthHeaders(accessToken));
+      
       const response = await axios.patch(`${GOALS_API_BASE}/${goalId}`, mappedData, {
         headers: getAuthHeaders(accessToken)
       });
