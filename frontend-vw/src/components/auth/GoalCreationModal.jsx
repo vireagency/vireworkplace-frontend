@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, CalendarDays, Target, Users, AlertCircle } from "lucide-react";
+import { Calendar, CalendarDays, Target, Users, AlertCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { goalsApi } from "@/services/goalsApi";
+import { toast } from "sonner";
 
 export function GoalCreationModal({ 
   isOpen, 
@@ -15,6 +18,9 @@ export function GoalCreationModal({
   initialData,
   isEditing = false 
 }) {
+  const { accessToken } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm({
     defaultValues: initialData || {
       goalType: "company",
@@ -25,7 +31,8 @@ export function GoalCreationModal({
       owner: "",
       category: "",
       metrics: ""
-    }
+    },
+    mode: "onChange"
   });
 
   const selectedPriority = watch("priority");
@@ -85,10 +92,59 @@ export function GoalCreationModal({
     "Individual Contributor"
   ];
 
-  const onFormSubmit = (data) => {
-    onSubmit(data);
-    reset();
-    onClose();
+  const onFormSubmit = async (data) => {
+    if (!accessToken) {
+      toast.error("Authentication required. Please log in again.");
+      return;
+    }
+
+    console.log('=== FORM SUBMISSION DEBUG ===');
+    console.log('Form data being sent:', data);
+    console.log('Form data keys:', Object.keys(data));
+    console.log('Form data values:', Object.values(data));
+    console.log('Access token:', accessToken ? 'Present' : 'Missing');
+    console.log('Token length:', accessToken?.length);
+    console.log('Form validation errors:', errors);
+
+    // Check if required fields are present
+    const requiredFields = ['title', 'description', 'owner', 'category', 'deadline', 'metrics'];
+    const missingFields = requiredFields.filter(field => !data[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      toast.error(`Missing required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    console.log('All required fields present:', requiredFields.every(field => data[field]));
+
+    setIsLoading(true);
+    
+    try {
+      let result;
+      
+      if (isEditing && initialData?.id) {
+        // Update existing goal
+        result = await goalsApi.updateGoal(initialData.id, data, accessToken);
+      } else {
+        // Create new goal
+        result = await goalsApi.createGoal(data, accessToken);
+      }
+
+      if (result.success) {
+        toast.success(isEditing ? "Goal updated successfully!" : "Goal created successfully!");
+        onSubmit(result.data); // Pass the API response data
+        reset();
+        onClose();
+      } else {
+        toast.error(result.error || "Failed to save goal");
+      }
+    } catch (error) {
+      console.error("Error saving goal:", error);
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -211,7 +267,8 @@ export function GoalCreationModal({
               </Label>
               <Select
                 value={selectedCategory}
-                onValueChange={(value) => setValue("category", value)}
+                onValueChange={(value) => setValue("category", value, { shouldValidate: true })}
+                {...register("category", { required: "Category is required" })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -243,7 +300,9 @@ export function GoalCreationModal({
                 Goal Owner *
               </Label>
               <Select
-                onValueChange={(value) => setValue("owner", value)}
+                value={watch("owner")}
+                onValueChange={(value) => setValue("owner", value, { shouldValidate: true })}
+                {...register("owner", { required: "Owner is required" })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select owner" />
@@ -311,9 +370,17 @@ export function GoalCreationModal({
             </Button>
             <Button 
               type="submit"
-              className="px-6 bg-[#00db12] hover:bg-[#00c010] text-white"
+              disabled={isLoading}
+              className="px-6 bg-[#00db12] hover:bg-[#00c010] text-white disabled:opacity-50"
             >
-              {isEditing ? "Update Goal" : "Create Goal"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {isEditing ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                isEditing ? "Update Goal" : "Create Goal"
+              )}
             </Button>
           </div>
         </form>

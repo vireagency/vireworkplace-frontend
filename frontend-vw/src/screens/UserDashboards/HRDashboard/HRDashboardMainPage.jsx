@@ -16,6 +16,8 @@ import { useAuth } from "@/hooks/useAuth"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import { getApiUrl } from "@/config/apiConfig"
+import { hrOverviewApi } from "@/services/hrOverviewApi"
+import { toast } from "sonner"
 import { 
   Table, 
   TableHeader, 
@@ -83,6 +85,11 @@ export default function HRDashboardMainPage() {
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  // State for HR overview data
+  const [overviewData, setOverviewData] = useState(null)
+  const [loadingOverview, setLoadingOverview] = useState(true)
+  const [overviewError, setOverviewError] = useState(null)
 
   // Fetch employees from API
   useEffect(() => {
@@ -139,6 +146,70 @@ export default function HRDashboardMainPage() {
     fetchEmployees()
   }, [accessToken, API_URL, user])
 
+  // Fetch HR overview data
+  useEffect(() => {
+    const fetchOverview = async () => {
+      if (!accessToken) return;
+      
+      try {
+        setLoadingOverview(true);
+        console.log('Fetching HR overview data...');
+        
+        const result = await hrOverviewApi.getOverview(accessToken);
+        
+        if (result.success) {
+          setOverviewData(result.data);
+          console.log('HR Overview Data:', result.data);
+        } else {
+          setOverviewError(result.error || "Failed to load overview data");
+          toast.error(result.error || "Failed to load overview data");
+          // Fallback to static data
+          setOverviewData(getStaticOverviewData());
+        }
+      } catch (error) {
+        console.error("Error fetching HR overview:", error);
+        setOverviewError("Failed to load overview data");
+        toast.error("Failed to load overview data");
+        // Fallback to static data
+        setOverviewData(getStaticOverviewData());
+      } finally {
+        setLoadingOverview(false);
+      }
+    };
+
+    fetchOverview();
+  }, [accessToken]);
+
+  // Static overview data as fallback
+  const getStaticOverviewData = () => ({
+    success: true,
+    message: "Dashboard overview fetched successfully",
+    data: {
+      activeEmployees: 22,
+      totalRemoteWorkersToday: 5,
+      noCheckInToday: 3,
+      productivityIndex: "86.36%",
+      departmentPerformance: {
+        "Engineering": {
+          total: 10,
+          checkedIn: 8,
+          percent: "80.00%"
+        },
+        "HR": {
+          total: 5,
+          checkedIn: 5,
+          percent: "100.00%"
+        },
+        "Finance": {
+          total: 7,
+          checkedIn: 6,
+          percent: "85.71%"
+        }
+      },
+      incompleteTasks: 14
+    }
+  });
+
   // Function to handle navigation to Employees page
   const handleSeeAllEmployees = () => {
     navigate("/human-resource-manager/employees")
@@ -172,69 +243,123 @@ export default function HRDashboardMainPage() {
 
       {/* HR Dashboard Section Cards */}
       <div className="px-4 lg:px-6">
-        <div
-          className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-          <Card className="@container/card relative">
-            <CardHeader>
-              <CardDescription>Active Employees</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                12
-              </CardTitle>
-            </CardHeader>
-            <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className="text-green-600 bg-green-50">
-                <IconTrendingUp className="text-green-600" />
-                +36%
-              </Badge>
+        {loadingOverview ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <span className="ml-2 text-slate-600">Loading dashboard data...</span>
+          </div>
+        ) : overviewData ? (
+          <div
+            className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+            <Card className="@container/card relative">
+              <CardHeader>
+                <CardDescription>Active Employees</CardDescription>
+                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                  {overviewData.data?.activeEmployees || 'N/A'}
+                </CardTitle>
+              </CardHeader>
+              <div className="absolute bottom-3 right-3">
+                <Badge variant="secondary" className="text-green-600 bg-green-50">
+                  <IconTrendingUp className="text-green-600" />
+                  +36%
+                </Badge>
+              </div>
+            </Card>
+            
+            <Card className="@container/card relative">
+              <CardHeader>
+                <CardDescription>Total Remote Workers Today</CardDescription>
+                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                  {overviewData.data?.totalRemoteWorkersToday || 'N/A'}
+                </CardTitle>
+              </CardHeader>
+              <div className="absolute bottom-3 right-3">
+                <Badge variant="secondary" className="text-red-600 bg-red-50">
+                  <IconTrendingDown className="text-red-600" />
+                  -14%
+                </Badge>
+              </div>
+            </Card>
+            
+            <Card className="@container/card relative">
+              <CardHeader>
+                <CardDescription>No Check-In Today</CardDescription>
+                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                  {overviewData.data?.noCheckInToday || 'N/A'}
+                </CardTitle>
+              </CardHeader>
+              <div className="absolute bottom-3 right-3">
+                <Badge variant="secondary" className="text-orange-600 bg-orange-50">
+                  <IconTrendingDown className="text-orange-600" />
+                  {overviewData.data?.noCheckInToday > 0 ? 'Needs Attention' : 'All Checked In'}
+                </Badge>
+              </div>
+            </Card>
+            
+            <Card className="@container/card relative">
+              <CardHeader>
+                <CardDescription>Productivity Index</CardDescription>
+                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                  {overviewData.data?.productivityIndex || 'N/A'}
+                </CardTitle>
+              </CardHeader>
+              <div className="absolute bottom-3 right-3">
+                <Badge variant="secondary" className="text-green-600 bg-green-50">
+                  <IconTrendingUp className="text-green-600" />
+                  +5%
+                </Badge>
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-slate-400 mb-4">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
             </div>
-          </Card>
-          
-          <Card className="@container/card relative">
-            <CardHeader>
-              <CardDescription>Total Remote Workers Today</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                4
-              </CardTitle>
-            </CardHeader>
-            <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className="text-red-600 bg-red-50">
-                <IconTrendingDown className="text-red-600" />
-                -14%
-              </Badge>
-            </div>
-          </Card>
-          
-          <Card className="@container/card relative">
-            <CardHeader>
-              <CardDescription>No Check-In Today</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                2
-              </CardTitle>
-            </CardHeader>
-            <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className="text-green-600 bg-green-50">
-                <IconTrendingUp className="text-green-600" />
-                +36%
-              </Badge>
-            </div>
-          </Card>
-          
-          <Card className="@container/card relative">
-            <CardHeader>
-              <CardDescription>Incomplete Tasks</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                10
-              </CardTitle>
-            </CardHeader>
-            <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className="text-red-600 bg-red-50">
-                <IconTrendingDown className="text-red-600" />
-                -36%
-              </Badge>
-            </div>
-          </Card>
-        </div>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">No dashboard data available</h3>
+            <p className="text-slate-600">Dashboard overview data could not be loaded.</p>
+          </div>
+        )}
       </div>
+
+      {/* Department Performance Overview Section */}
+      {overviewData?.data?.departmentPerformance && (
+        <div className="px-4 lg:px-6 mt-6">
+          <div className="bg-white rounded-lg border p-6">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Department Performance Overview</h3>
+              <p className="text-sm text-gray-500">Check-in rates and attendance by department</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(overviewData.data.departmentPerformance).map(([department, data]) => (
+                <div key={department} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-gray-900">{department}</h4>
+                    <span className="text-sm font-semibold text-gray-700">{data.percent}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                    <span>{data.checkedIn} of {data.total} checked in</span>
+                    <span>{data.total - data.checkedIn} remaining</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        parseFloat(data.percent) >= 90 ? 'bg-green-500' : 
+                        parseFloat(data.percent) >= 70 ? 'bg-blue-500' : 
+                        parseFloat(data.percent) >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: data.percent }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Work Log Analyzer and Real-Time Tracker Section */}
       <div className="px-4 lg:px-6 mt-6">
@@ -305,47 +430,105 @@ export default function HRDashboardMainPage() {
             </div>
             
             {/* Metrics */}
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Active Employees</span>
-                  <span className="text-sm font-semibold text-gray-900">1,43,382</span>
+            {loadingOverview ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                <span className="ml-2 text-sm text-slate-600">Loading tracker data...</span>
+              </div>
+            ) : overviewData ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Active Employees</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.activeEmployees?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ 
+                        width: overviewData.data?.activeEmployees 
+                          ? `${Math.min((overviewData.data.activeEmployees / 50) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Remote Workers Today</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.totalRemoteWorkersToday?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ 
+                        width: overviewData.data?.totalRemoteWorkersToday 
+                          ? `${Math.min((overviewData.data.totalRemoteWorkersToday / 20) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">No Check-In Today</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.noCheckInToday?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        overviewData.data?.noCheckInToday > 5 ? 'bg-red-500' : 
+                        overviewData.data?.noCheckInToday > 2 ? 'bg-orange-500' : 'bg-green-500'
+                      }`}
+                      style={{ 
+                        width: overviewData.data?.noCheckInToday 
+                          ? `${Math.min((overviewData.data.noCheckInToday / 10) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Incomplete Tasks</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {overviewData.data?.incompleteTasks?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        overviewData.data?.incompleteTasks > 20 ? 'bg-red-500' : 
+                        overviewData.data?.incompleteTasks > 10 ? 'bg-orange-500' : 'bg-green-500'
+                      }`}
+                      style={{ 
+                        width: overviewData.data?.incompleteTasks 
+                          ? `${Math.min((overviewData.data.incompleteTasks / 30) * 100, 100)}%` 
+                          : '0%' 
+                      }}
+                    ></div>
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Inactive for 60+ mins</span>
-                  <span className="text-sm font-semibold text-gray-900">87,974</span>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-slate-400 mb-2">
+                  <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-orange-500 h-2 rounded-full" style={{ width: '60%' }}></div>
-                </div>
+                <p className="text-sm text-slate-600">No tracker data available</p>
               </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">No Check-In</span>
-                  <span className="text-sm font-semibold text-gray-900">45,211</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '35%' }}></div>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Incomplete Tasks</span>
-                  <span className="text-sm font-semibold text-gray-900">21,893</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-red-500 h-2 rounded-full" style={{ width: '20%' }}></div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

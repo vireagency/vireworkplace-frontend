@@ -7,7 +7,7 @@ const getApiUrl = () => {
   }
 
   // Production API URL
-  return "https://www.api.vire.agency/api/v1";
+  return "https://vireworkplace-backend-hpca.onrender.com/api/v1";
 };
 
 // API Configuration object
