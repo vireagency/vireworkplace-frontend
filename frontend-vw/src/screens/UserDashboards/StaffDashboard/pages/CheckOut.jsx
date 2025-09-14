@@ -16,6 +16,8 @@ export default function CheckOut() {
   const [showOvertimeDialog, setShowOvertimeDialog] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [showAlreadyCheckedOutDialog, setShowAlreadyCheckedOutDialog] =
+    useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const [dailySummary, setDailySummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +25,8 @@ export default function CheckOut() {
   const [isOvertime, setIsOvertime] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [hasAlreadyCheckedOut, setHasAlreadyCheckedOut] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
 
   // Check if current time is after 5:10 PM (17:10)
   const isCurrentTimeOvertime = () => {
@@ -32,6 +36,107 @@ export default function CheckOut() {
 
     // Check if it's after 5:10 PM (17:10)
     return currentHour > 17 || (currentHour === 17 && currentMinute >= 10);
+  };
+
+  // Check if user has already checked out today
+  const checkAttendanceStatus = async () => {
+    try {
+      setIsCheckingStatus(true);
+
+      // Get auth token from multiple possible sources
+      let token =
+        accessToken ||
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("access_token") ||
+        sessionStorage.getItem("authToken") ||
+        sessionStorage.getItem("token") ||
+        sessionStorage.getItem("access_token");
+
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
+      }
+
+      // Check localStorage first for today's checkout status
+      const today = new Date().toDateString();
+      const todayCheckoutKey = `checkout_${today}`;
+      const hasCheckedOutToday = localStorage.getItem(todayCheckoutKey);
+
+      console.log("Checking localStorage for checkout status:", {
+        today,
+        todayCheckoutKey,
+        hasCheckedOutToday,
+      });
+
+      if (hasCheckedOutToday === "true") {
+        console.log("User has already checked out today (from localStorage)");
+        setHasAlreadyCheckedOut(true);
+        setShowMainDialog(false);
+        setShowAlreadyCheckedOutDialog(true);
+        setIsCheckingStatus(false);
+        return;
+      }
+
+      // If not in localStorage, check with API
+      // Note: The attendance status endpoint might not exist, so we'll rely on localStorage
+      // and the checkout API response to handle the "already checked out" scenario
+      console.log("Checking attendance status via API...");
+
+      try {
+        const response = await fetch(
+          "https://www.api.vire.agency/api/v1/attendance/status",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            // Clear invalid token and redirect to login
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("token");
+            localStorage.removeItem("access_token");
+            sessionStorage.removeItem("authToken");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("access_token");
+            throw new Error("Session expired. Please log in again.");
+          }
+          // If API fails, continue with normal flow
+          console.warn(
+            "Could not check attendance status, continuing with normal flow"
+          );
+          setIsCheckingStatus(false);
+          return;
+        }
+
+        const result = await response.json();
+        console.log("Attendance status API response:", result);
+
+        // Check if user has already checked out today
+        if (result.data && result.data.hasCheckedOut) {
+          setHasAlreadyCheckedOut(true);
+          setShowMainDialog(false);
+          setShowAlreadyCheckedOutDialog(true);
+          // Store in localStorage to prevent future API calls
+          localStorage.setItem(todayCheckoutKey, "true");
+        }
+      } catch (apiError) {
+        console.warn(
+          "Attendance status API not available, relying on localStorage and checkout API:",
+          apiError
+        );
+        // Continue with normal flow - the checkout API will handle the "already checked out" scenario
+      }
+    } catch (error) {
+      console.error("Error checking attendance status:", error);
+      // Continue with normal flow if status check fails
+    } finally {
+      setIsCheckingStatus(false);
+    }
   };
 
   // Fetch user data
@@ -203,10 +308,19 @@ export default function CheckOut() {
           null,
       });
       setIsLoadingUser(false);
+      // Check attendance status after user data is loaded
+      checkAttendanceStatus();
       return;
     }
     fetchUserData();
   }, [user]);
+
+  // Check attendance status when user data is loaded
+  useEffect(() => {
+    if (userData && !isLoadingUser) {
+      checkAttendanceStatus();
+    }
+  }, [userData, isLoadingUser]);
 
   // Update time every second
   useEffect(() => {
@@ -336,6 +450,16 @@ export default function CheckOut() {
     try {
       const result = await checkOutToAPI(dailySummary);
 
+      // Store checkout status in localStorage to prevent multiple checkouts
+      const today = new Date().toDateString();
+      const todayCheckoutKey = `checkout_${today}`;
+      localStorage.setItem(todayCheckoutKey, "true");
+      console.log("Checkout successful, stored in localStorage:", {
+        today,
+        todayCheckoutKey,
+        value: "true",
+      });
+
       setShowMainDialog(false);
 
       // Check if overtime was detected from API response OR current time is after 5:10 PM
@@ -360,13 +484,10 @@ export default function CheckOut() {
 
       // Handle already checked out scenario
       if (error.message === "ALREADY_CHECKED_OUT") {
-        // User has already checked out, redirect to dashboard
+        console.log("User has already checked out (from API error)");
+        // User has already checked out, show appropriate dialog
         setShowMainDialog(false);
-        setShowSuccessToast(true);
-        setTimeout(() => {
-          setShowSuccessToast(false);
-          navigate("/staff/dashboard");
-        }, 2000);
+        setShowAlreadyCheckedOutDialog(true);
         return;
       }
 
@@ -406,12 +527,20 @@ export default function CheckOut() {
     navigate("/staff");
   };
 
-  if (isLoadingUser) {
+  // Handle already checked out dialog close
+  const handleAlreadyCheckedOutClose = () => {
+    setShowAlreadyCheckedOutDialog(false);
+    navigate("/staff/dashboard");
+  };
+
+  if (isLoadingUser || isCheckingStatus) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-slate-600">Loading...</p>
+          <p className="text-slate-600">
+            {isLoadingUser ? "Loading..." : "Checking attendance status..."}
+          </p>
         </div>
       </div>
     );
@@ -579,6 +708,38 @@ export default function CheckOut() {
                   className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium"
                 >
                   Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Already Checked Out Dialog Section */}
+      {showAlreadyCheckedOutDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+            <div className="p-6 space-y-4 text-center">
+              <div className="flex justify-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-blue-500" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-slate-900">
+                  Already Checked Out
+                </h3>
+                <p className="text-slate-500 mt-1 text-sm">
+                  You have already checked out for today. You can only check out
+                  once per day.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button
+                  onClick={handleAlreadyCheckedOutClose}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                >
+                  Go to Dashboard
                 </Button>
               </div>
             </div>

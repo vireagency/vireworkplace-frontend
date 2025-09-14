@@ -88,6 +88,11 @@ export default function StaffDashboardMainPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // State for task data
+  const [tasks, setTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState(null);
+
   // Fetch employees from API
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -148,6 +153,88 @@ export default function StaffDashboardMainPage() {
 
     fetchEmployees();
   }, [accessToken, API_URL, user]);
+
+  // Fetch tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setTasksLoading(true);
+        setTasksError(null);
+
+        if (!accessToken) {
+          throw new Error("No access token available. Please log in again.");
+        }
+
+        console.log("Fetching tasks from:", `${API_URL}/tasks`);
+
+        const response = await axios.get(`${API_URL}/tasks`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.data.success) {
+          const apiData =
+            response.data.data || response.data.tasks || response.data || [];
+
+          if (Array.isArray(apiData)) {
+            const transformedTasks = apiData.map((task) => ({
+              id: task._id || task.id,
+              name: task.title || "Untitled Task",
+              status: task.status || "Pending",
+              priority: task.priority || "Medium",
+              dueDate: task.dueDate
+                ? new Date(task.dueDate).toLocaleDateString()
+                : "No due date",
+              progress: task.progress || 0,
+              description: task.description || "",
+              assignedTo: task.assignedTo,
+              createdBy: task.createdBy,
+            }));
+
+            // Show only first 5 tasks for dashboard overview
+            setTasks(transformedTasks.slice(0, 5));
+            console.log("Tasks fetched successfully:", transformedTasks);
+          } else {
+            console.warn("API response data is not an array:", apiData);
+            setTasks([]);
+          }
+        } else {
+          console.warn("API response indicates failure:", response.data);
+          setTasks([]);
+          if (response.data.message) {
+            throw new Error(response.data.message);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching tasks:", err);
+
+        if (err.response?.status === 401) {
+          setTasksError("Authentication failed. Please log in again.");
+        } else if (err.response?.status === 500) {
+          setTasksError("Server error. Please try again later.");
+        } else if (
+          err.code === "NETWORK_ERROR" ||
+          err.message.includes("Network Error")
+        ) {
+          setTasksError(
+            "Network error. Please check your connection and try again."
+          );
+        } else {
+          setTasksError(
+            err.message || "An unexpected error occurred while fetching tasks."
+          );
+        }
+
+        setTasks([]);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [accessToken, API_URL]);
 
   // Function to handle navigation to Employees page
   const handleSeeAllEmployees = () => {
@@ -459,24 +546,34 @@ export default function StaffDashboardMainPage() {
 
           {/* Task Table */}
           <div className="overflow-x-auto">
-            {loading ? (
+            {tasksLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading tasks...</p>
               </div>
-            ) : error ? (
+            ) : tasksError ? (
               <div className="text-center py-12">
                 <div className="text-red-500 text-4xl mb-4">⚠️</div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Error Loading Tasks
                 </h3>
-                <p className="text-gray-500 mb-4">{error}</p>
+                <p className="text-gray-500 mb-4">{tasksError}</p>
                 <button
                   onClick={() => window.location.reload()}
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
                 >
                   Try Again
                 </button>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-4xl mb-4">📝</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No Tasks Found
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  You don't have any tasks assigned to you at the moment.
+                </p>
               </div>
             ) : (
               <Table className="w-full">
@@ -575,48 +672,7 @@ export default function StaffDashboardMainPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100">
-                  {[
-                    {
-                      id: 1,
-                      name: "Complete project documentation",
-                      status: "In Progress",
-                      priority: "High",
-                      dueDate: "Today",
-                      progress: "75%",
-                    },
-                    {
-                      id: 2,
-                      name: "Review code changes",
-                      status: "Completed",
-                      priority: "Medium",
-                      dueDate: "Today",
-                      progress: "100%",
-                    },
-                    {
-                      id: 3,
-                      name: "Update user interface",
-                      status: "Pending",
-                      priority: "Low",
-                      dueDate: "Tomorrow",
-                      progress: "0%",
-                    },
-                    {
-                      id: 4,
-                      name: "Test new features",
-                      status: "In Progress",
-                      priority: "High",
-                      dueDate: "Today",
-                      progress: "50%",
-                    },
-                    {
-                      id: 5,
-                      name: "Prepare presentation",
-                      status: "Completed",
-                      priority: "Medium",
-                      dueDate: "Yesterday",
-                      progress: "100%",
-                    },
-                  ].map((task) => (
+                  {tasks.map((task) => (
                     <TableRow key={task.id} className="hover:bg-gray-50">
                       <TableCell className="py-4 px-4">
                         <div className="font-medium text-gray-900">
@@ -646,15 +702,15 @@ export default function StaffDashboardMainPage() {
                       </TableCell>
                       <TableCell className="py-4 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500">
-                            {task.progress}
-                          </span>
                           <div className="w-16 bg-gray-200 rounded-full h-2">
                             <div
-                              className="bg-green-500 h-2 rounded-full"
-                              style={{ width: task.progress }}
+                              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${task.progress}%` }}
                             ></div>
                           </div>
+                          <span className="text-sm text-gray-600">
+                            {task.progress}%
+                          </span>
                         </div>
                       </TableCell>
                     </TableRow>
