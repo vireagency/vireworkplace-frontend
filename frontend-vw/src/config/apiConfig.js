@@ -1,12 +1,6 @@
 // API Configuration for different environments
 const getApiUrl = () => {
-  // In development, use the proxy (relative URL)
-  // In production, use the full URL
-  if (import.meta.env.DEV) {
-    return '/api/v1'
-  }
-  
-  // Production API URL
+  // Always use the full URL to avoid proxy issues
   return 'https://vireworkplace-backend-hpca.onrender.com/api/v1'
 }
 

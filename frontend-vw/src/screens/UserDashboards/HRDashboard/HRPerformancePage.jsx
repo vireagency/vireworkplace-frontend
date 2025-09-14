@@ -5,92 +5,272 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
-import { Download, TrendingUp, TrendingDown, Target } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Download, TrendingUp, TrendingDown, Target, Loader2, Edit, Trash2 } from "lucide-react"
 import { GoalCreationModal } from "@/components/auth/GoalCreationModal"
+import { useAuth } from "@/hooks/useAuth"
+import { goalsApi } from "@/services/goalsApi"
+import { performanceTrendsApi } from "@/services/performanceTrendsApi"
+import { toast } from "sonner"
 
 export default function HRPerformancePage() {
+  const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState("performance")
   const [timeframe, setTimeframe] = useState("12-months")
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingGoal, setEditingGoal] = useState(null)
+  const [goals, setGoals] = useState([])
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false)
+  const [isDeletingGoal, setIsDeletingGoal] = useState(null)
+  
+  // Performance trends state
+  const [performanceTrends, setPerformanceTrends] = useState(null)
+  const [isLoadingTrends, setIsLoadingTrends] = useState(false)
 
-  const companyGoals = [
+  // Load data from API on component mount
+  useEffect(() => {
+    if (accessToken) {
+      loadGoals();
+      loadPerformanceTrends();
+    }
+  }, [accessToken]);
+
+  const loadGoals = async () => {
+    if (!accessToken) return;
+    
+    setIsLoadingGoals(true);
+    try {
+      const result = await goalsApi.getAllGoals(accessToken);
+      if (result.success) {
+        setGoals(result.data?.data || result.data || []);
+        console.log("Loaded goals:", result.data);
+      } else {
+        toast.error(result.error || "Failed to load goals");
+        // Fallback to static data if API fails
+        setGoals(getStaticGoals());
+      }
+    } catch (error) {
+      console.error("Error loading goals:", error);
+      toast.error("Failed to load goals");
+      // Fallback to static data
+      setGoals(getStaticGoals());
+    } finally {
+      setIsLoadingGoals(false);
+    }
+  };
+
+  const loadPerformanceTrends = async () => {
+    if (!accessToken) return;
+    
+    setIsLoadingTrends(true);
+    try {
+      const result = await performanceTrendsApi.getPerformanceTrends(accessToken);
+      if (result.success) {
+        setPerformanceTrends(result.data);
+        console.log("Loaded performance trends:", result.data);
+      } else {
+        toast.error(result.error || "Failed to load performance trends");
+        // Fallback to static data if API fails
+        setPerformanceTrends(getStaticTrends());
+      }
+    } catch (error) {
+      console.error("Error loading performance trends:", error);
+      toast.error("Failed to load performance trends");
+      // Fallback to static data
+      setPerformanceTrends(getStaticTrends());
+    } finally {
+      setIsLoadingTrends(false);
+    }
+  };
+
+  // Static performance trends as fallback
+  const getStaticTrends = () => ({
+    success: true,
+    message: "Performance trends fetched successfully",
+    period: "Q1-2024",
+    TopPerformingDepartment: {
+      department: "Engineering",
+      avgScore: 4.7,
+      totalEmployees: 12
+    },
+    OverallPerformanceIndex: 4.2,
+    OverallDepartmentPerformance: [
+      {
+        department: "Engineering",
+        avgScore: 4.7,
+        totalEmployees: 12
+      },
+      {
+        department: "HR",
+        avgScore: 4.3,
+        totalEmployees: 5
+      },
+      {
+        department: "Finance",
+        avgScore: 3.9,
+        totalEmployees: 7
+      }
+    ],
+    topPerformers: [
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a7",
+        name: "Jane Smith",
+        role: "Software Engineer",
+        score: 4.9,
+        department: "Engineering"
+      },
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a8",
+        name: "John Doe",
+        role: "Product Manager",
+        score: 4.8,
+        department: "Product"
+      }
+    ],
+    lowPerformers: [
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a9",
+        name: "Alex Brown",
+        role: "Junior Analyst",
+        score: 2.5,
+        department: "Finance"
+      },
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a0",
+        name: "Sarah Johnson",
+        role: "HR Assistant",
+        score: 2.8,
+        department: "HR"
+      }
+    ]
+  });
+
+  // Static goals as fallback
+  const getStaticGoals = () => [
     {
       id: 1,
       title: "Reduce Employee Turnover Rate",
       description: "Decrease voluntary turnover from 18% to 12% by implementing comprehensive retention programs, improving work-life balance, and enhancing career development opportunities.",
       progress: 65,
-      priority: "High",
-      deadline: "Dec 31, 2024",
+      priority: "High Priority",
+      deadline: "2024-12-31",
       owner: "HR Leadership Team",
       currentValue: "15%",
       targetValue: "12%",
       status: "On Track",
-      category: "Retention"
+      category: "Retention",
+      goalType: "company",
+      metrics: "Current: 15% (Target: 12%)"
     },
     {
       id: 2,
       title: "Improve Employee Engagement Score",
       description: "Increase overall employee engagement score from 3.2 to 4.0 through enhanced communication, recognition programs, and professional development initiatives.",
       progress: 78,
-      priority: "High",
-      deadline: "Mar 31, 2025",
+      priority: "High Priority",
+      deadline: "2025-03-31",
       owner: "People & Culture Team",
       currentValue: "3.6",
       targetValue: "4.0",
       status: "On Track",
-      category: "Culture"
+      category: "Engagement",
+      goalType: "company",
+      metrics: "Current: 3.6 (Target: 4.0)"
     },
     {
       id: 3,
       title: "Achieve Diversity & Inclusion Targets",
       description: "Reach 40% female representation in leadership roles and 35% underrepresented minorities in technical positions through targeted recruitment and development programs.",
       progress: 42,
-      priority: "High",
-      deadline: "Jun 30, 2025",
+      priority: "High Priority",
+      deadline: "2025-06-30",
       owner: "D&I Committee",
       currentValue: "32%",
       targetValue: "40%",
       status: "Needs Attention",
-      category: "Inclusion"
+      category: "Diversity",
+      goalType: "company",
+      metrics: "Leadership: 32% | Tech: 28%"
     },
     {
       id: 4,
       title: "Implement Learning & Development Program",
       description: "Launch comprehensive skills development program with 95% employee participation rate and average 40 hours of training per employee annually.",
       progress: 85,
-      priority: "Medium",
-      deadline: "May 15, 2025",
+      priority: "Medium Priority",
+      deadline: "2025-05-15",
       owner: "Learning & Development",
       currentValue: "87%",
       targetValue: "95%",
       status: "On Track",
-      category: "Skills"
+      category: "Development",
+      goalType: "company",
+      metrics: "Participation: 87% | Avg Hours: 32"
     },
     {
       id: 5,
       title: "Enhance Workplace Safety & Wellness",
       description: "Achieve zero workplace accidents and improve employee wellness program participation to 75% while reducing stress-related sick leave by 25%.",
       progress: 91,
-      priority: "High",
+      priority: "High Priority",
       deadline: "Ongoing",
       owner: "Safety & Wellness Team",
       currentValue: "0",
       targetValue: "75%",
       status: "Exceeding",
-      category: "Wellness"
+      category: "Wellness",
+      goalType: "company",
+      metrics: "Accidents: 0 | Wellness: 68%"
     }
-  ]
+  ];
 
-  const handleCreateGoal = (data) => {
-    console.log("New goal data:", data)
-    // Here you would typically save the goal to your backend
-    // For now, we'll just log it
-  }
+  const handleCreateGoal = async (data) => {
+    console.log("Goal created/updated:", data);
+    // Refresh goals list
+    await loadGoals();
+  };
+
+  const handleEditGoal = (goal) => {
+    setEditingGoal(goal);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteGoal = async (goalId) => {
+    if (!accessToken) {
+      toast.error("Authentication required");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this goal?")) {
+      return;
+    }
+
+    setIsDeletingGoal(goalId);
+    try {
+      const result = await goalsApi.deleteGoal(goalId, accessToken);
+      if (result.success) {
+        toast.success("Goal deleted successfully!");
+        await loadGoals();
+      } else {
+        toast.error(result.error || "Failed to delete goal");
+      }
+    } catch (error) {
+      console.error("Error deleting goal:", error);
+      toast.error("Failed to delete goal");
+    } finally {
+      setIsDeletingGoal(null);
+    }
+  };
 
   const openGoalModal = () => {
-    setIsModalOpen(true)
-  }
+    setEditingGoal(null);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingGoal(null);
+  };
 
   const teamGoals = [
     {
@@ -305,58 +485,58 @@ export default function HRPerformancePage() {
 
           {/* Performance Tab Content */}
           <TabsContent value="performance" className="mt-8">
+            {isLoadingTrends ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+                <span className="ml-2 text-slate-600">Loading performance trends...</span>
+              </div>
+            ) : performanceTrends ? (
+              <>
             {/* First Row - Three Performance Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              {/* Overall Department Performance Card */}
+                  {/* Overall Performance Index Card */}
               <Card className="h-full">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg font-semibold text-slate-900">
-                    Overall Department Performance
+                        Overall Performance Index
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-8">
-                    <div className="text-5xl font-bold text-slate-900 mb-3">85%</div>
+                        <div className="text-5xl font-bold text-slate-900 mb-3">
+                          {performanceTrends.OverallPerformanceIndex?.toFixed(1) || 'N/A'}
+                        </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <span>Last Year</span>
+                          <span>Current Quarter ({performanceTrends.period})</span>
                       <div className="flex items-center gap-1 text-green-600 font-medium">
                         <TrendingUp className="h-4 w-4" />
-                        <span>+5%</span>
+                            <span>+0.2</span>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Performance Breakdown */}
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-medium text-slate-700">Exceeds Expectations</span>
-                        <span className="text-sm font-semibold text-slate-900">35%</span>
+                      {/* Department Performance Breakdown */}
+                      <div className="space-y-4">
+                        {performanceTrends.OverallDepartmentPerformance?.map((dept, index) => (
+                          <div key={dept.department}>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-700">{dept.department}</span>
+                              <span className="text-sm font-semibold text-slate-900">
+                                {dept.avgScore?.toFixed(1)} ({dept.totalEmployees} employees)
+                              </span>
                       </div>
-                      <div className="w-full bg-slate-200 rounded-full h-3">
-                        <div className="bg-green-500 h-3 rounded-full transition-all duration-300" style={{ width: '35%' }}></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-medium text-slate-700">Meets Expectations</span>
-                        <span className="text-sm font-semibold text-slate-900">50%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-3">
-                        <div className="bg-blue-500 h-3 rounded-full transition-all duration-300" style={{ width: '50%' }}></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-medium text-slate-700">Below Expectations</span>
-                        <span className="text-sm font-semibold text-slate-900">15%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-3">
-                        <div className="bg-orange-500 h-3 rounded-full transition-all duration-300" style={{ width: '15%' }}></div>
+                            <div className="w-full bg-slate-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  dept.avgScore >= 4.5 ? 'bg-green-500' : 
+                                  dept.avgScore >= 4.0 ? 'bg-blue-500' : 
+                                  dept.avgScore >= 3.5 ? 'bg-yellow-500' : 'bg-orange-500'
+                                }`}
+                                style={{ width: `${(dept.avgScore / 5) * 100}%` }}
+                              ></div>
                       </div>
                     </div>
+                        ))}
                   </div>
                 </CardContent>
               </Card>
@@ -373,56 +553,26 @@ export default function HRPerformancePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Top Performer 1 */}
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                    {performanceTrends.topPerformers?.map((performer, index) => {
+                      const initials = performer.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                      return (
+                        <div key={performer.employeeId} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          JS
+                              {initials}
                         </div>
                         <div>
-                          <div className="font-medium text-slate-900">John Smith</div>
-                          <div className="text-sm text-slate-600">Software Engineer</div>
+                              <div className="font-medium text-slate-900">{performer.name}</div>
+                              <div className="text-sm text-slate-600">{performer.role} • {performer.department}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-green-600">96%</div>
+                            <div className="text-lg font-bold text-green-600">{(performer.score * 20).toFixed(0)}%</div>
                         <div className="text-xs text-slate-500">Performance</div>
                       </div>
                     </div>
-
-                    {/* Top Performer 2 */}
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          MJ
-                        </div>
-                        <div>
-                          <div className="font-medium text-slate-900">Maria Johnson</div>
-                          <div className="text-sm text-slate-600">Marketing Manager</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-green-600">94%</div>
-                        <div className="text-xs text-slate-500">Performance</div>
-                      </div>
-                    </div>
-
-                    {/* Top Performer 3 */}
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          DR
-                        </div>
-                        <div>
-                          <div className="font-medium text-slate-900">David Rodriguez</div>
-                          <div className="text-sm text-slate-600">Sales Director</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-green-600">92%</div>
-                        <div className="text-xs text-slate-500">Performance</div>
-                      </div>
-                    </div>
+                      );
+                    })}
 
                     {/* View All Button */}
                     <button className="w-full mt-4 text-sm text-green-600 hover:text-green-700 font-medium flex items-center justify-center gap-2 py-2 border border-green-200 rounded-lg hover:bg-green-50 transition-colors">
@@ -431,6 +581,32 @@ export default function HRPerformancePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Top Performing Department Card */}
+              <Card className="h-full">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-blue-600" />
+                    Top Performing Department
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">
+                      {performanceTrends.TopPerformingDepartment?.department || 'N/A'}
+                    </div>
+                    <div className="text-2xl font-semibold text-slate-900 mb-1">
+                      {performanceTrends.TopPerformingDepartment?.avgScore?.toFixed(1) || 'N/A'}
+                    </div>
+                    <div className="text-sm text-slate-600 mb-4">
+                      Average Score
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      {performanceTrends.TopPerformingDepartment?.totalEmployees || 0} employees
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -447,56 +623,26 @@ export default function HRPerformancePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Low Performer 1 */}
-                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    {performanceTrends.lowPerformers?.map((performer, index) => {
+                      const initials = performer.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                      return (
+                        <div key={performer.employeeId} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          AB
+                              {initials}
                         </div>
                         <div>
-                          <div className="font-medium text-slate-900">Alex Brown</div>
-                          <div className="text-sm text-slate-600">Customer Support</div>
+                              <div className="font-medium text-slate-900">{performer.name}</div>
+                              <div className="text-sm text-slate-600">{performer.role} • {performer.department}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">68%</div>
+                            <div className="text-lg font-bold text-orange-600">{(performer.score * 20).toFixed(0)}%</div>
                         <div className="text-xs text-slate-500">Performance</div>
                       </div>
                     </div>
-
-                    {/* Low Performer 2 */}
-                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          LW
-                        </div>
-                        <div>
-                          <div className="font-medium text-slate-900">Lisa Wilson</div>
-                          <div className="text-sm text-slate-600">Data Analyst</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">72%</div>
-                        <div className="text-xs text-slate-500">Performance</div>
-                      </div>
-                    </div>
-
-                    {/* Low Performer 3 */}
-                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          MT
-                        </div>
-                        <div>
-                          <div className="font-medium text-slate-900">Mike Thompson</div>
-                          <div className="text-sm text-slate-600">Operations</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">75%</div>
-                        <div className="text-xs text-slate-500">Performance</div>
-                      </div>
-                    </div>
+                      );
+                    })}
 
                     {/* View All Button */}
                     <button className="w-full mt-4 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center justify-center gap-2 py-2 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors">
@@ -509,6 +655,14 @@ export default function HRPerformancePage() {
                 </CardContent>
               </Card>
             </div>
+            </>
+            ) : (
+              <div className="text-center py-12">
+                <Target className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No performance data available</h3>
+                <p className="text-slate-600">Performance trends data could not be loaded.</p>
+              </div>
+            )}
 
             {/* Second Row - Two Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -819,8 +973,23 @@ export default function HRPerformancePage() {
 
             {/* Goals Cards */}
             <div className="space-y-6">
-              {/* Goal 1: Reduce Employee Turnover Rate */}
-              <Card className="border border-slate-200 shadow-sm">
+              {isLoadingGoals ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+                  <span className="ml-2 text-slate-600">Loading goals...</span>
+                </div>
+              ) : goals.length === 0 ? (
+                <div className="text-center py-12">
+                  <Target className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No goals found</h3>
+                  <p className="text-slate-600 mb-4">Get started by creating your first performance goal.</p>
+                  <Button onClick={openGoalModal} className="bg-green-600 hover:bg-green-700 text-white">
+                    Create First Goal
+                  </Button>
+                </div>
+              ) : (
+                goals.map((goal) => (
+                  <Card key={goal.id} className="border border-slate-200 shadow-sm">
                 <CardContent className="p-6">
                   {/* Goal Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -831,19 +1000,28 @@ export default function HRPerformancePage() {
                         </svg>
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Reduce Employee Turnover Rate</h3>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">{goal.title}</h3>
                         <p className="text-slate-600 text-sm leading-relaxed">
-                          Decrease voluntary turnover from 18% to 12% by implementing comprehensive retention programs, improving work-life balance, and enhancing career development opportunities.
+                              {goal.description}
                         </p>
                       </div>
                     </div>
                     {/* Status Tags */}
                     <div className="flex flex-col gap-2 ml-4">
-                      <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs px-3 py-1">
-                        High Priority
+                          <Badge variant="secondary" className={`text-xs px-3 py-1 ${
+                            goal.priority === 'High Priority' ? 'bg-red-100 text-red-700' :
+                            goal.priority === 'Medium Priority' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {goal.priority}
                       </Badge>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs px-3 py-1">
-                        On Track
+                          <Badge variant="secondary" className={`text-xs px-3 py-1 ${
+                            goal.status === 'On Track' ? 'bg-blue-100 text-blue-700' :
+                            goal.status === 'Needs Attention' ? 'bg-orange-100 text-orange-700' :
+                            goal.status === 'Exceeding' ? 'bg-green-100 text-green-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {goal.status}
                       </Badge>
                     </div>
                   </div>
@@ -852,10 +1030,17 @@ export default function HRPerformancePage() {
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-medium text-slate-700">Progress</span>
-                      <span className="text-sm font-semibold text-slate-900">65%</span>
+                          <span className="text-sm font-semibold text-slate-900">{goal.progress}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2.5">
-                      <div className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '65%' }}></div>
+                          <div 
+                            className={`h-2.5 rounded-full transition-all duration-300 ${
+                              goal.progress >= 80 ? 'bg-green-500' :
+                              goal.progress >= 60 ? 'bg-blue-500' :
+                              goal.progress >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${goal.progress}%` }}
+                          ></div>
                     </div>
                   </div>
 
@@ -865,370 +1050,55 @@ export default function HRPerformancePage() {
                       <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-sm text-slate-600">Deadline: <span className="font-medium text-slate-900">Dec 31, 2024</span></span>
+                          <span className="text-sm text-slate-600">
+                            Deadline: <span className="font-medium text-slate-900">
+                              {goal.deadline === 'Ongoing' ? 'Ongoing' : new Date(goal.deadline).toLocaleDateString()}
+                            </span>
+                          </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      <span className="text-sm text-slate-600">Owner: <span className="font-medium text-slate-900">HR Leadership Team</span></span>
+                          <span className="text-sm text-slate-600">
+                            Owner: <span className="font-medium text-slate-900">{goal.owner}</span>
+                          </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-slate-500" />
                       <div className="flex flex-col">
                         <span className="text-sm text-slate-600">Key Metrics</span>
-                        <span className="text-sm font-medium text-slate-900">Current: 15% (Target: 12%)</span>
+                            <span className="text-sm font-medium text-slate-900">{goal.metrics}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                        <button 
+                          onClick={() => handleEditGoal(goal)}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3" />
                       Edit
                     </button>
-                    <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                        <button 
+                          onClick={() => handleDeleteGoal(goal.id)}
+                          disabled={isDeletingGoal === goal.id}
+                          className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {isDeletingGoal === goal.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
                       Delete
                     </button>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Goal 2: Improve Employee Engagement Score */}
-              <Card className="border border-slate-200 shadow-sm">
-                <CardContent className="p-6">
-                  {/* Goal Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Improve Employee Engagement Score</h3>
-                        <p className="text-slate-600 text-sm leading-relaxed">
-                          Increase overall employee engagement score from 3.2 to 4.0 through enhanced communication, recognition programs, and professional development initiatives.
-                        </p>
-                      </div>
-                    </div>
-                    {/* Status Tags */}
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs px-3 py-1">
-                        High Priority
-                      </Badge>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs px-3 py-1">
-                        On Track
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-700">Progress</span>
-                      <span className="text-sm font-semibold text-slate-900">78%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5">
-                      <div className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '78%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Goal Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Deadline: <span className="font-medium text-slate-900">Mar 31, 2025</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Owner: <span className="font-medium text-slate-900">People & Culture Team</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59 8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
-                      </svg>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-600">Key Metrics</span>
-                        <span className="text-sm font-medium text-slate-900">Current: 3.6 (Target: 4.0)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </button>
-                    <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Goal 3: Achieve Diversity & Inclusion Targets */}
-              <Card className="border border-slate-200 shadow-sm">
-                <CardContent className="p-6">
-                  {/* Goal Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Achieve Diversity & Inclusion Targets</h3>
-                        <p className="text-slate-600 text-sm leading-relaxed">
-                          Reach 40% female representation in leadership roles and 35% underrepresented minorities in technical positions through targeted recruitment and development programs.
-                        </p>
-                      </div>
-                    </div>
-                    {/* Status Tags */}
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs px-3 py-1">
-                        High Priority
-                      </Badge>
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs px-3 py-1">
-                        Needs Attention
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-700">Progress</span>
-                      <span className="text-sm font-semibold text-slate-900">42%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5">
-                      <div className="bg-orange-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '42%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Goal Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Deadline: <span className="font-medium text-slate-900">Jun 30, 2025</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Owner: <span className="font-medium text-slate-900">D&I Committee</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-slate-500" />
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-600">Key Metrics</span>
-                        <span className="text-sm font-medium text-slate-900">Leadership: 32% | Tech: 28%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </button>
-                    <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Goal 4: Implement Learning & Development Program */}
-              <Card className="border border-slate-200 shadow-sm">
-                <CardContent className="p-6">
-                  {/* Goal Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Implement Learning & Development Program</h3>
-                        <p className="text-slate-600 text-sm leading-relaxed">
-                          Launch comprehensive skills development program with 95% employee participation rate and average 40 hours of training per employee annually.
-                        </p>
-                      </div>
-                    </div>
-                    {/* Status Tags */}
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs px-3 py-1">
-                        Medium Priority
-                      </Badge>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs px-3 py-1">
-                        On Track
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-700">Progress</span>
-                      <span className="text-sm font-semibold text-slate-900">85%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5">
-                      <div className="bg-green-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '85%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Goal Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Deadline: <span className="font-medium text-slate-900">May 15, 2025</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Owner: <span className="font-medium text-slate-900">Learning & Development</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59 8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
-                      </svg>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-600">Key Metrics</span>
-                        <span className="text-sm font-medium text-slate-900">Participation: 87% | Avg Hours: 32</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </button>
-                    <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Goal 5: Enhance Workplace Safety & Wellness */}
-              <Card className="border border-slate-200 shadow-sm">
-                <CardContent className="p-6">
-                  {/* Goal Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Enhance Workplace Safety & Wellness</h3>
-                        <p className="text-slate-600 text-sm leading-relaxed">
-                          Achieve zero workplace accidents and improve employee wellness program participation to 75% while reducing stress-related sick leave by 25%.
-                        </p>
-                      </div>
-                    </div>
-                    {/* Status Tags */}
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs px-3 py-1">
-                        High Priority
-                      </Badge>
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs px-3 py-1">
-                        Exceeding
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-700">Progress</span>
-                      <span className="text-sm font-semibold text-slate-900">91%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5">
-                      <div className="bg-green-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '91%' }}></div>
-                    </div>
-                  </div>
-
-                  {/* Goal Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Deadline: <span className="font-medium text-slate-900">Ongoing</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="text-sm text-slate-600">Owner: <span className="font-medium text-slate-900">Safety & Wellness Team</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59 8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
-                      </svg>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-slate-600">Key Metrics</span>
-                        <span className="text-sm font-medium text-slate-900">Accidents: 0 | Wellness: 68%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </button>
-                    <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
+                ))
+              )}
             </div>
 
             {/* Team Goals Section */}
@@ -1365,8 +1235,10 @@ export default function HRPerformancePage() {
       {/* Goal Creation Modal */}
       <GoalCreationModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         onSubmit={handleCreateGoal}
+        initialData={editingGoal}
+        isEditing={!!editingGoal}
       />
     </DashboardLayout>
   )
