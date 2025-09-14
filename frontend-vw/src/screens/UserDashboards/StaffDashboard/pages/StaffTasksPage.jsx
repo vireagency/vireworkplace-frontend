@@ -1,11 +1,3 @@
-/**
- * @fileoverview Staff Tasks Page Component
- * @description Task management interface for staff members to view, manage, and track their assigned tasks
- * @author Vire Development Team
- * @version 1.0.0
- * @since 2024
- */
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -74,6 +66,17 @@ import { useAuth } from "@/hooks/useAuth";
 // API Configuration
 import { getApiUrl } from "@/config/apiConfig";
 
+// Debug API Configuration
+const debugApiConfig = () => {
+  const baseUrl = getApiUrl();
+  console.log("=== API CONFIGURATION DEBUG ===");
+  console.log("Base URL from getApiUrl():", baseUrl);
+  console.log("Base URL type:", typeof baseUrl);
+  console.log("Base URL length:", baseUrl?.length);
+  console.log("================================");
+  return baseUrl;
+};
+
 // Status Badge Component
 const StatusBadge = ({ status, onStatusChange, taskId, canEdit = false }) => {
   const statusConfig = {
@@ -104,8 +107,10 @@ const StatusBadge = ({ status, onStatusChange, taskId, canEdit = false }) => {
 
   const handleStatusClick = () => {
     if (canEdit && onStatusChange) {
-      const statusOptions = ["pending", "in progress", "completed"];
-      const currentIndex = statusOptions.indexOf(status?.toLowerCase());
+      const statusOptions = ["Pending", "In Progress", "Completed"];
+      const currentIndex = statusOptions.findIndex(
+        (option) => option.toLowerCase() === status?.toLowerCase()
+      );
       const nextStatus =
         statusOptions[(currentIndex + 1) % statusOptions.length];
       onStatusChange(taskId, nextStatus);
@@ -158,7 +163,7 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-// User Search Component for Assignee
+// User Search Component for Assignee - FIXED VERSION
 const AssigneeSearchInput = ({
   value,
   onValueChange,
@@ -170,34 +175,244 @@ const AssigneeSearchInput = ({
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const { accessToken } = useAuth();
-  const API_URL = getApiUrl();
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const { accessToken, user: currentUser } = useAuth();
+
+  // FIXED: Use the correct API endpoint that matches your backend
+  const getAssigneeSearchApiUrl = () => {
+    try {
+      const baseUrl = getApiUrl();
+      console.log("=== FIXED ASSIGNEE SEARCH API CONFIG ===");
+      console.log("Raw base URL from config:", baseUrl);
+
+      // Clean up the base URL - remove any trailing slashes
+      const cleanBaseUrl = baseUrl?.replace(/\/+$/, "") || "";
+      console.log("Cleaned base URL:", cleanBaseUrl);
+
+      let apiUrl;
+
+      if (!cleanBaseUrl) {
+        // Fallback if no base URL is configured
+        apiUrl = "http://localhost:6000/api/v1";
+        console.log("Using fallback API URL:", apiUrl);
+      } else if (cleanBaseUrl.includes("/api/v1")) {
+        // Base URL already includes the API path
+        apiUrl = cleanBaseUrl;
+        console.log("Base URL already includes /api/v1:", apiUrl);
+      } else {
+        // Append API version to base URL
+        apiUrl = `${cleanBaseUrl}/api/v1`;
+        console.log("Constructed API URL:", apiUrl);
+      }
+
+      // FIXED: Use the correct endpoint that matches your backend route
+      const correctSearchUrl = `${apiUrl}/tasks/assignees/search`;
+
+      console.log("Final assignee search URL:", correctSearchUrl);
+      console.log("========================================");
+
+      return correctSearchUrl;
+    } catch (error) {
+      console.error("Error constructing assignee search API URL:", error);
+      // Return a fallback URL
+      const fallbackUrl = "http://localhost:6000/api/v1/tasks/assignees/search";
+      console.log("Using fallback URL:", fallbackUrl);
+      return fallbackUrl;
+    }
+  };
+
+  // Highlight matching text in search results
+  const highlightText = (text, query) => {
+    if (!query || !text) return text;
+
+    const regex = new RegExp(`(${query})`, "gi");
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-200 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
 
   const searchUsers = async (query) => {
     if (!query || query.length < 2) {
       setUsers([]);
       setIsOpen(false);
+      setHasSearched(false);
+      setSearchError(null);
       return;
     }
 
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${API_URL}/tasks/assignees/search?query=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      setHasSearched(true);
+      setSearchError(null);
 
-      if (response.data.success) {
-        setUsers(response.data.data || []);
-        setIsOpen(true);
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      const searchUrl = getAssigneeSearchApiUrl();
+
+      console.log("=== USER SEARCH REQUEST ===");
+      console.log("Search URL:", searchUrl);
+      console.log("Search query:", query);
+      console.log("Access token exists:", !!accessToken);
+      console.log("===========================");
+
+      // FIXED: Use the correct query parameter that matches your backend
+      const response = await axios.get(searchUrl, {
+        params: {
+          query: query, // Your backend expects 'query' parameter
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        timeout: 10000, // 10 second timeout
+      });
+
+      console.log("=== USER SEARCH RESPONSE ===");
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+      console.log("============================");
+
+      // Handle the response based on your backend structure
+      let userData = [];
+
+      if (response.data && response.data.success !== false) {
+        // FIXED: Your backend returns 'users' array based on the provided code
+        userData = response.data.users || [];
+
+        console.log("Extracted user data:", userData);
+
+        // Ensure userData is an array
+        if (!Array.isArray(userData)) {
+          console.warn("User data is not an array, converting:", userData);
+          userData = userData ? [userData] : [];
+        }
+
+        // Filter out invalid user objects and ensure required fields
+        userData = userData.filter((user) => {
+          const hasValidId = user && (user._id || user.id);
+          const hasValidName =
+            user && (user.firstName || user.name || user.email);
+          const isValid = hasValidId && hasValidName;
+
+          if (!isValid) {
+            console.warn("Filtering out invalid user:", user);
+          }
+
+          return isValid;
+        });
+
+        console.log("Filtered user data:", userData);
+
+        // Add current user to the top of results if they match the search
+        const currentUserMatch =
+          currentUser &&
+          (currentUser.firstName?.toLowerCase().includes(query.toLowerCase()) ||
+            currentUser.lastName?.toLowerCase().includes(query.toLowerCase()) ||
+            currentUser.email?.toLowerCase().includes(query.toLowerCase()));
+
+        if (
+          currentUserMatch &&
+          !userData.find((u) => (u._id || u.id) === currentUser._id)
+        ) {
+          userData.unshift({
+            _id: currentUser._id,
+            id: currentUser._id,
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName,
+            email: currentUser.email,
+            isCurrentUser: true,
+          });
+        }
+
+        setUsers(userData);
+        setIsOpen(userData.length > 0);
+        setSelectedIndex(-1);
+
+        console.log("Final users list set:", userData.length, "users");
+      } else {
+        console.warn("API response indicates failure:", response.data);
+        setUsers([]);
+        setIsOpen(false);
+        setSearchError(response.data.message || "Search request failed");
       }
     } catch (error) {
-      console.error("Error searching users:", error);
+      console.error("=== USER SEARCH ERROR ===");
+      console.error("Error object:", error);
+      console.error("Error message:", error.message);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("Error code:", error.code);
+      console.error("=========================");
+
+      let errorMessage = "Failed to search users";
+
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const responseData = error.response.data;
+
+        switch (status) {
+          case 404:
+            errorMessage =
+              "User search endpoint not found. Please ensure your server has the '/api/v1/tasks/assignees/search' endpoint implemented.";
+            console.error(
+              "404 Error - Endpoint not found. Check if '/api/v1/tasks/assignees/search' exists on your server."
+            );
+            break;
+          case 401:
+            errorMessage = "Unauthorized access. Please log in again.";
+            console.error(
+              "401 Error - Authentication failed. Check access token."
+            );
+            break;
+          case 400:
+            errorMessage =
+              responseData?.message || "Invalid search query parameters.";
+            console.error("400 Error - Bad request. Check query parameters.");
+            break;
+          case 500:
+            errorMessage = "Internal server error. Please try again later.";
+            console.error("500 Error - Server error. Check server logs.");
+            break;
+          default:
+            errorMessage =
+              responseData?.message ||
+              `Server error (${status}). Please try again.`;
+        }
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage = "Search request timed out. Please try again.";
+        console.error(
+          "Request timeout - Server is taking too long to respond."
+        );
+      } else if (
+        error.message?.includes("Network Error") ||
+        error.code === "NETWORK_ERROR"
+      ) {
+        errorMessage = "Network error. Please check your internet connection.";
+        console.error(
+          "Network error - Check internet connection and server availability."
+        );
+      } else {
+        errorMessage =
+          error.message || "An unexpected error occurred during search.";
+      }
+
+      console.error("Final error message:", errorMessage);
+
+      setSearchError(errorMessage);
       setUsers([]);
       setIsOpen(false);
     } finally {
@@ -207,25 +422,72 @@ const AssigneeSearchInput = ({
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      searchUsers(searchQuery);
-    }, 300);
+      if (searchQuery.trim()) {
+        searchUsers(searchQuery.trim());
+      }
+    }, 500); // Debounce for better performance
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  }, [searchQuery, accessToken]);
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
     onValueChange(newValue);
+    setSelectedIndex(-1);
+    setSearchError(null);
   };
 
   const handleUserSelect = (user) => {
-    const fullName = `${user.firstName} ${user.lastName}`;
+    const fullName = `${user.firstName || user.name || ""} ${
+      user.lastName || ""
+    }`.trim();
     setSearchQuery(fullName);
     onValueChange(fullName);
-    onUserSelect(user._id);
+    onUserSelect(user._id || user.id);
     setUsers([]);
     setIsOpen(false);
+    setSelectedIndex(-1);
+    setSearchError(null);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!isOpen || users.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < users.length - 1 ? prev + 1 : prev));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < users.length) {
+          handleUserSelect(users[selectedIndex]);
+        }
+        break;
+      case "Escape":
+        setIsOpen(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  };
+
+  const handleFocus = () => {
+    if (users.length > 0) {
+      setIsOpen(true);
+    }
+  };
+
+  const handleBlur = () => {
+    // Delay hiding to allow click events to fire
+    setTimeout(() => {
+      setIsOpen(false);
+      setSelectedIndex(-1);
+    }, 150);
   };
 
   return (
@@ -234,32 +496,121 @@ const AssigneeSearchInput = ({
         placeholder={placeholder}
         value={searchQuery}
         onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         className="w-full"
-        onFocus={() => {
-          if (users.length > 0) {
-            setIsOpen(true);
-          }
-        }}
+        autoComplete="off"
       />
+
+      {/* Loading indicator */}
       {loading && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <div className="w-4 h-4 animate-spin border-2 border-green-500 border-t-transparent rounded-full"></div>
         </div>
       )}
-      {isOpen && users.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
-          {users.map((user) => (
-            <div
-              key={user._id}
-              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-              onClick={() => handleUserSelect(user)}
-            >
-              <div className="text-sm font-medium">
-                {user.firstName} {user.lastName}
+
+      {/* Error indicator */}
+      {searchError && !loading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <AlertCircle className="w-4 h-4 text-red-500" />
+        </div>
+      )}
+
+      {/* Search suggestions dropdown */}
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {users.length > 0 ? (
+            users.map((user, index) => (
+              <div
+                key={user._id || user.id}
+                className={`p-3 cursor-pointer border-b last:border-b-0 transition-colors ${
+                  index === selectedIndex
+                    ? "bg-green-50 border-green-200"
+                    : "hover:bg-gray-50"
+                } ${user.isCurrentUser ? "bg-blue-50" : ""}`}
+                onClick={() => handleUserSelect(user)}
+                onMouseEnter={() => setSelectedIndex(index)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900">
+                      {highlightText(
+                        `${user.firstName || user.name || ""} ${
+                          user.lastName || ""
+                        }`.trim(),
+                        searchQuery
+                      )}
+                      {user.isCurrentUser && (
+                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                          You
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {user.department && (
+                        <span className="mr-2">{user.department}</span>
+                      )}
+                      {user.jobTitle && (
+                        <span className="text-gray-400">• {user.jobTitle}</span>
+                      )}
+                    </div>
+                  </div>
+                  {index === selectedIndex && (
+                    <div className="text-green-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-xs text-gray-500">{user.email}</div>
+            ))
+          ) : searchError ? (
+            <div className="p-4 text-center text-red-500 text-sm">
+              <AlertCircle className="w-6 h-6 mx-auto mb-2 text-red-400" />
+              <div className="font-medium mb-1">Search Error</div>
+              <div className="text-xs mb-2">{searchError}</div>
+              <button
+                onClick={() => searchUsers(searchQuery)}
+                className="text-xs bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 transition-colors"
+              >
+                Try Again
+              </button>
+              <div className="mt-2 text-xs text-gray-500">
+                Expected endpoint: /api/v1/tasks/assignees/search?query=
+              </div>
             </div>
-          ))}
+          ) : hasSearched && searchQuery.length >= 2 ? (
+            <div className="p-4 text-center text-gray-500 text-sm">
+              <User className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+              <div className="font-medium mb-1">No users found</div>
+              <div className="text-xs">No users matching "{searchQuery}"</div>
+            </div>
+          ) : searchQuery.length > 0 && searchQuery.length < 2 ? (
+            <div className="p-4 text-center text-gray-400 text-sm">
+              <div className="text-xs">
+                Type at least 2 characters to search for users
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Helper text */}
+      {searchQuery.length > 0 && searchQuery.length < 2 && !searchError && (
+        <div className="absolute top-full left-0 mt-1 text-xs text-gray-500">
+          Type at least 2 characters to search for users
+        </div>
+      )}
+
+      {/* Error message below input */}
+      {searchError && !isOpen && (
+        <div className="absolute top-full left-0 mt-1 text-xs text-red-500 bg-red-50 p-2 rounded border border-red-200 max-w-md">
+          <div className="font-medium">Search Error:</div>
+          <div>{searchError}</div>
+          <div className="mt-1 text-gray-600">
+            Make sure your server has the endpoint:
+            /api/v1/tasks/assignees/search
+          </div>
         </div>
       )}
     </div>
@@ -272,7 +623,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    department: "",
     dueDate: "",
     priority: "",
     assigneeSearch: "",
@@ -286,7 +636,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
       setFormData({
         title: "",
         description: "",
-        department: "",
         dueDate: "",
         priority: "",
         assigneeSearch: "",
@@ -370,84 +719,20 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
             />
           </div>
 
-          {/* Department and Due Date Row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Department
-              </Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, department: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Operations">Operations</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Due Date
-              </Label>
-              <Select
-                value={formData.dueDate}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, dueDate: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pick a date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    value={
-                      new Date(Date.now() + 86400000)
-                        .toISOString()
-                        .split("T")[0]
-                    }
-                  >
-                    Tomorrow
-                  </SelectItem>
-                  <SelectItem
-                    value={
-                      new Date(Date.now() + 7 * 86400000)
-                        .toISOString()
-                        .split("T")[0]
-                    }
-                  >
-                    1 Week
-                  </SelectItem>
-                  <SelectItem
-                    value={
-                      new Date(Date.now() + 14 * 86400000)
-                        .toISOString()
-                        .split("T")[0]
-                    }
-                  >
-                    2 Weeks
-                  </SelectItem>
-                  <SelectItem
-                    value={
-                      new Date(Date.now() + 30 * 86400000)
-                        .toISOString()
-                        .split("T")[0]
-                    }
-                  >
-                    1 Month
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Due Date */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-900">
+              Due Date
+            </Label>
+            <Input
+              type="date"
+              value={formData.dueDate}
+              onChange={(e) =>
+                setFormData({ ...formData, dueDate: e.target.value })
+              }
+              className="w-full"
+              min={new Date().toISOString().split("T")[0]}
+            />
           </div>
 
           {/* Priority and Assignee Row */}
@@ -488,6 +773,35 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                 }
                 placeholder="Search by name"
               />
+              {formData.assignedTo ? (
+                <div className="text-xs text-green-600 bg-green-50 p-2 rounded-md flex items-center gap-2">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>
+                    Task will be assigned to: {formData.assigneeSearch}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        assignedTo: null,
+                        assigneeSearch: "",
+                      });
+                    }}
+                    className="ml-auto text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded-md flex items-center gap-2">
+                  <User className="w-3 h-3" />
+                  <span>
+                    If no assignee is selected, this task will be assigned to
+                    you ({user?.firstName || "You"})
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -509,6 +823,252 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               disabled={isSubmitting}
             >
               {isSubmitting ? "Adding..." : "Add Task"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Edit Task Modal Component
+const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
+  const { user } = useAuth();
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    dueDate: "",
+    priority: "",
+    status: "",
+    assigneeSearch: "",
+    assignedTo: null,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form data when task changes
+  useEffect(() => {
+    if (task && isOpen) {
+      setFormData({
+        title: task.title || "",
+        description: task.description || "",
+        dueDate: task.dueDate || "",
+        priority: task.priority || "Medium",
+        status: task.status || "Pending",
+        assigneeSearch: task.assignee || "",
+        assignedTo: task.assignedTo?._id || null,
+      });
+    }
+  }, [task, isOpen]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.title.trim()) {
+      setIsSubmitting(true);
+      try {
+        console.log("EditTaskModal - Submitting form data:", formData);
+        console.log("EditTaskModal - Task ID:", task.id);
+
+        const updateData = {
+          title: formData.title.trim(),
+          description: formData.description?.trim() || "",
+          assignedTo: formData.assignedTo || user?._id,
+          dueDate: formData.dueDate || null,
+          priority: formData.priority || "Medium",
+          status: formData.status || "Pending",
+        };
+
+        console.log("EditTaskModal - Update data being sent:", updateData);
+
+        await onUpdateTask(task.id, updateData);
+        onClose();
+        toast.success("Task updated successfully!");
+      } catch (error) {
+        console.error("EditTaskModal - Error updating task:", error);
+        const errorMessage =
+          error.message || "Failed to update task. Please try again.";
+        toast.error(errorMessage);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  if (!task) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-medium text-green-600">Edit Task</h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Title */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="edit-title"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Title
+            </Label>
+            <Input
+              id="edit-title"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="Enter task title..."
+              required
+              className="w-full"
+            />
+          </div>
+
+          {/* Task Description */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="edit-description"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Description
+            </Label>
+            <Textarea
+              id="edit-description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              placeholder="Provide detailed task description..."
+              rows={4}
+              className="w-full resize-none"
+            />
+          </div>
+
+          {/* Due Date */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-900">
+              Due Date
+            </Label>
+            <Input
+              type="date"
+              value={formData.dueDate}
+              onChange={(e) =>
+                setFormData({ ...formData, dueDate: e.target.value })
+              }
+              className="w-full"
+              min={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+
+          {/* Priority, Status, and Assignee Row */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Priority
+              </Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, priority: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Status
+              </Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Assignee
+              </Label>
+              <AssigneeSearchInput
+                value={formData.assigneeSearch}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, assigneeSearch: value })
+                }
+                selectedUser={formData.assignedTo}
+                onUserSelect={(userId) =>
+                  setFormData({ ...formData, assignedTo: userId })
+                }
+                placeholder="Search by name"
+              />
+            </div>
+          </div>
+
+          {/* Assignee Status */}
+          {formData.assignedTo ? (
+            <div className="text-xs text-green-600 bg-green-50 p-2 rounded-md flex items-center gap-2">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Task will be assigned to: {formData.assigneeSearch}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    assignedTo: null,
+                    assigneeSearch: "",
+                  });
+                }}
+                className="ml-auto text-red-500 hover:text-red-700"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded-md flex items-center gap-2">
+              <User className="w-3 h-3" />
+              <span>
+                If no assignee is selected, this task will be assigned to you (
+                {user?.firstName || "You"})
+              </span>
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Updating..." : "Update Task"}
             </Button>
           </div>
         </form>
@@ -541,12 +1101,12 @@ const TaskActionsMenu = ({
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
-          onClick={() => onStatusChange(task.id, "in progress")}
+          onClick={() => onStatusChange(task.id, "In Progress")}
         >
           <Clock className="w-4 h-4 mr-2" />
           Mark In Progress
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onStatusChange(task.id, "completed")}>
+        <DropdownMenuItem onClick={() => onStatusChange(task.id, "Completed")}>
           <CheckCircle2 className="w-4 h-4 mr-2" />
           Mark Complete
         </DropdownMenuItem>
@@ -620,9 +1180,22 @@ export default function StaffTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [dueDateFilter, setDueDateFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
 
-  // API configuration
-  const API_URL = getApiUrl();
+  // API configuration with proper URL handling
+  const getFullApiUrl = () => {
+    const baseUrl = getApiUrl();
+    console.log("Base API URL from config:", baseUrl);
+
+    // Check if the URL includes the full path or just the base
+    if (baseUrl && baseUrl.includes("/api/v1")) {
+      return baseUrl;
+    } else {
+      // Assume we need to add /api/v1
+      return `${baseUrl || "http://localhost:6000"}/api/v1`;
+    }
+  };
 
   // Fetch tasks from API
   const fetchTasks = async () => {
@@ -647,7 +1220,8 @@ export default function StaffTasksPage() {
       }
 
       const queryString = params.toString();
-      const url = `${API_URL}/tasks${queryString ? `?${queryString}` : ""}`;
+      const apiUrl = getFullApiUrl();
+      const url = `${apiUrl}/tasks${queryString ? `?${queryString}` : ""}`;
 
       console.log("Fetching tasks from:", url);
 
@@ -656,6 +1230,7 @@ export default function StaffTasksPage() {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
+        timeout: 15000, // 15 second timeout
       });
 
       if (response.data.success) {
@@ -689,6 +1264,10 @@ export default function StaffTasksPage() {
 
           setTasks(transformedTasks);
           console.log("Tasks fetched successfully:", transformedTasks);
+          console.log(
+            "Task IDs:",
+            transformedTasks.map((t) => ({ id: t.id, title: t.title }))
+          );
         } else {
           console.warn("API response data is not an array:", apiData);
           setTasks([]);
@@ -709,7 +1288,8 @@ export default function StaffTasksPage() {
         setError("Server error. Please try again later.");
       } else if (
         err.code === "NETWORK_ERROR" ||
-        err.message.includes("Network Error")
+        err.message.includes("Network Error") ||
+        err.code === "ECONNABORTED"
       ) {
         setError("Network error. Please check your connection and try again.");
       } else {
@@ -731,22 +1311,38 @@ export default function StaffTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      const response = await axios.post(
-        `${API_URL}/tasks/create`,
-        {
-          title: taskData.title,
-          description: taskData.description,
+      console.log("Adding new task:", taskData);
+
+      const apiUrl = getFullApiUrl();
+      const url = `${apiUrl}/tasks`;
+      console.log("API URL:", url);
+
+      // Clean up the task data - remove empty strings and null values
+      const cleanedTaskData = Object.fromEntries(
+        Object.entries({
+          title: taskData.title?.trim(),
+          description: taskData.description?.trim() || "",
           assignedTo: taskData.assignedTo,
-          dueDate: taskData.dueDate,
-          priority: taskData.priority,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
+          dueDate: taskData.dueDate || null,
+          priority: taskData.priority || "Medium",
+        }).filter(
+          ([key, value]) =>
+            value !== null && value !== undefined && value !== ""
+        )
       );
+
+      console.log("Cleaned task data:", cleanedTaskData);
+
+      const response = await axios.post(url, cleanedTaskData, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      });
+
+      console.log("Task creation response:", response.data);
+      console.log("Response status:", response.status);
 
       if (response.data.success) {
         await fetchTasks();
@@ -756,8 +1352,20 @@ export default function StaffTasksPage() {
       }
     } catch (err) {
       console.error("Error adding task:", err);
-      const errorMessage =
-        err.response?.data?.message || err.message || "Failed to add task";
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+
+      let errorMessage = "Failed to add task";
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      console.error("Final error message:", errorMessage);
       setError(`Failed to add task: ${errorMessage}`);
       throw err;
     }
@@ -766,20 +1374,26 @@ export default function StaffTasksPage() {
   // Update task status
   const handleStatusChange = async (taskId, newStatus) => {
     try {
+      console.log("Updating task status:", { taskId, newStatus });
+
       if (!accessToken) {
         throw new Error("No access token available. Please log in again.");
       }
 
+      const apiUrl = getFullApiUrl();
       const response = await axios.patch(
-        `${API_URL}/tasks/${taskId}/status`,
+        `${apiUrl}/tasks/${taskId}/status`,
         { status: newStatus },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
+          timeout: 10000,
         }
       );
+
+      console.log("Status update response:", response.data);
 
       if (response.data.success) {
         await fetchTasks();
@@ -791,7 +1405,11 @@ export default function StaffTasksPage() {
       }
     } catch (err) {
       console.error("Error updating task status:", err);
-      toast.error("Failed to update task status. Please try again.");
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update task status";
+      toast.error(`Failed to update task status: ${errorMessage}`);
     }
   };
 
@@ -806,11 +1424,13 @@ export default function StaffTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      const response = await axios.delete(`${API_URL}/tasks/${taskId}`, {
+      const apiUrl = getFullApiUrl();
+      const response = await axios.delete(`${apiUrl}/tasks/${taskId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
+        timeout: 10000,
       });
 
       if (response.data.success) {
@@ -825,11 +1445,91 @@ export default function StaffTasksPage() {
     }
   };
 
-  // Edit task (placeholder for future implementation)
+  // Update task
+  const handleUpdateTask = async (taskId, taskData) => {
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      console.log("Updating task:", { taskId, taskData });
+
+      const apiUrl = getFullApiUrl();
+      const url = `${apiUrl}/tasks/${taskId}`;
+      console.log("API URL:", url);
+
+      // Clean up the task data - remove empty strings and null values
+      const cleanedTaskData = Object.fromEntries(
+        Object.entries(taskData).filter(
+          ([key, value]) =>
+            value !== null && value !== undefined && value !== ""
+        )
+      );
+
+      console.log("Cleaned task data:", cleanedTaskData);
+
+      // Try the main update endpoint first
+      let response;
+      try {
+        response = await axios.patch(url, cleanedTaskData, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 15000,
+        });
+      } catch (patchError) {
+        console.log(
+          "PATCH request failed, trying PUT:",
+          patchError.response?.status
+        );
+        // Fallback to PUT if PATCH fails
+        response = await axios.put(url, cleanedTaskData, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 15000,
+        });
+      }
+
+      console.log("Task update response:", response.data);
+      console.log("Response status:", response.status);
+
+      if (response.data.success) {
+        await fetchTasks();
+        console.log("Task updated successfully");
+      } else {
+        throw new Error(response.data.message || "Failed to update task");
+      }
+    } catch (err) {
+      console.error("Error updating task:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+
+      let errorMessage = "Failed to update task";
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      console.error("Final error message:", errorMessage);
+      setError(`Failed to update task: ${errorMessage}`);
+      throw err;
+    }
+  };
+
+  // Edit task
   const handleEditTask = (task) => {
     console.log("Edit task:", task);
-    // TODO: Implement edit task modal
-    toast.info("Edit functionality coming soon!");
+    console.log("Task ID for editing:", task.id);
+    console.log("Task ID type:", typeof task.id);
+    setEditingTask(task);
+    setShowEditModal(true);
   };
 
   // Initial fetch and refetch when filters change
@@ -1011,6 +1711,17 @@ export default function StaffTasksPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onAddTask={handleAddTask}
+      />
+
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingTask(null);
+        }}
+        onUpdateTask={handleUpdateTask}
+        task={editingTask}
       />
     </StaffDashboardLayout>
   );

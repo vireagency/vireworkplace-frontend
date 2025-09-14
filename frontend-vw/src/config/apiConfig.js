@@ -1,6 +1,6 @@
 // API Configuration for different environments
 const getApiUrl = () => {
-   // Always use the full URL to avoid proxy issues
+  // Always use the full URL to avoid proxy issues
   return 'https://vireworkplace-backend-hpca.onrender.com/api/v1'
 }
 
@@ -9,7 +9,7 @@ export const apiConfig = {
   baseURL: getApiUrl(),
   timeout: 30000, // 30 seconds
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   // Production-specific settings
   production: {
@@ -22,13 +22,13 @@ export const apiConfig = {
     enableLogging: true,
     enableDebug: true,
     retryAttempts: 1,
-  }
-}
+  },
+};
 
 // Get current environment config
 export const getCurrentConfig = () => {
-  return import.meta.env.DEV ? apiConfig.development : apiConfig.production
-}
+  return import.meta.env.DEV ? apiConfig.development : apiConfig.production;
+};
 
 // Export the function for direct use
-export { getApiUrl }
+export { getApiUrl };
