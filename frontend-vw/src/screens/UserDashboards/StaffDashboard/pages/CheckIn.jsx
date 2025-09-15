@@ -263,7 +263,7 @@ export default function CheckIn() {
     });
   };
 
-  // API call to check in
+  // API call to check in - Updated to properly consume the API
   const checkInToAPI = async (
     workingLocation,
     latitude = null,
@@ -272,6 +272,7 @@ export default function CheckIn() {
     try {
       // Get auth token from multiple possible sources
       let token =
+        accessToken ||
         localStorage.getItem("authToken") ||
         localStorage.getItem("token") ||
         localStorage.getItem("access_token") ||
@@ -288,7 +289,7 @@ export default function CheckIn() {
         workingLocation: workingLocation,
       };
 
-      // Add coordinates for office check-in
+      // Add coordinates for office check-in as required by API
       if (
         workingLocation === "office" &&
         latitude !== null &&
@@ -297,6 +298,8 @@ export default function CheckIn() {
         requestBody.latitude = latitude;
         requestBody.longitude = longitude;
       }
+
+      console.log("Check-in request body:", requestBody);
 
       const response = await fetch(
         "https://www.api.vire.agency/api/v1/attendance/checkin",
@@ -310,6 +313,7 @@ export default function CheckIn() {
         }
       );
 
+      // Handle the response according to API specification
       if (!response.ok) {
         // Handle specific HTTP status codes
         if (response.status === 401 || response.status === 403) {
@@ -323,15 +327,35 @@ export default function CheckIn() {
           throw new Error("Session expired. Please log in again.");
         }
 
-        const errorData = await response.json();
+        // Handle 400 Bad Request (already checked in or invalid request)
+        if (response.status === 400) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Invalid request or already checked in today"
+          );
+        }
+
+        // Handle other error status codes
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
       }
 
+      // Parse successful response (201 Created)
       const data = await response.json();
+
+      // Log the successful response for debugging
+      console.log("Check-in successful response:", data);
+
+      // Verify response format matches API specification
+      if (data.success !== true) {
+        throw new Error("Unexpected response format from server");
+      }
+
       return data;
     } catch (error) {
+      console.error("Check-in API error:", error);
       throw error;
     }
   };
@@ -342,22 +366,29 @@ export default function CheckIn() {
     setError("");
 
     try {
+      let checkInResult;
+
       if (selectedLocation === "office") {
         // For office check-in, get location first
         const userLocation = await getCurrentLocation();
-        await checkInToAPI(
+        checkInResult = await checkInToAPI(
           "office",
           userLocation.latitude,
           userLocation.longitude
         );
       } else {
         // For remote check-in, no location needed
-        await checkInToAPI("remote");
+        checkInResult = await checkInToAPI("remote");
       }
 
-      // Success
+      // Log successful check-in data
+      console.log("Check-in completed successfully:", checkInResult);
+
+      // Success - show success toast with API response data
       setShowMainDialog(false);
       setShowSuccessToast(true);
+
+      // Navigate after showing success message
       setTimeout(() => {
         setShowSuccessToast(false);
         navigate("/staff/dashboard");
@@ -566,6 +597,8 @@ export default function CheckIn() {
                 <h3 className="font-semibold text-lg text-slate-900 mb-2">
                   {error.includes("location")
                     ? "Office check-in requires being on location."
+                    : error.includes("already checked in")
+                    ? "Already Checked In"
                     : "Check-in Failed"}
                 </h3>
                 <p className="text-slate-500 text-sm">
