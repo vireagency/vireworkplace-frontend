@@ -64,8 +64,8 @@ export function GoalCreationModal({
         deadline: initialData.deadline || (initialData.targetDeadline ? new Date(initialData.targetDeadline).toISOString().split('T')[0] : ""),
         owner: initialData.owner || initialData.goalOwner || "Human Resources",
         category: initialData.category || "Employee Engagement",
-        currentMetric: initialData.currentMetric || initialData.keyMetrics?.[0]?.metric || "",
-        targetMetric: initialData.targetMetric || initialData.keyMetrics?.[0]?.target || "",
+        currentMetric: initialData.currentMetric || "",
+        targetMetric: initialData.targetMetric || "",
         successCriteria: initialData.successCriteria || "",
         startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         keyMetrics: initialData.keyMetrics || [{ metric: 'General Performance', target: 'To be defined' }]

@@ -46,12 +46,10 @@ export default function HRPerformancePage() {
         const goalsData = result.data?.data || result.data || [];
         console.log("Loaded goals raw data:", goalsData);
         console.log("First goal structure:", goalsData[0]);
-        console.log("First goal keyMetrics:", goalsData[0]?.keyMetrics);
-        console.log("First goal keyMetrics[0]:", goalsData[0]?.keyMetrics?.[0]);
-        console.log("First goal keyMetrics[0].metric:", goalsData[0]?.keyMetrics?.[0]?.metric);
-        console.log("First goal keyMetrics[0].target:", goalsData[0]?.keyMetrics?.[0]?.target);
-        console.log("Metric type:", typeof goalsData[0]?.keyMetrics?.[0]?.metric);
-        console.log("Target type:", typeof goalsData[0]?.keyMetrics?.[0]?.target);
+        console.log("First goal currentMetric:", goalsData[0]?.currentMetric);
+        console.log("First goal targetMetric:", goalsData[0]?.targetMetric);
+        console.log("Current metric type:", typeof goalsData[0]?.currentMetric);
+        console.log("Target metric type:", typeof goalsData[0]?.targetMetric);
         
         // Transform API data to match goal card expectations
         const transformedGoals = goalsData.map(goal => ({
@@ -63,9 +61,9 @@ export default function HRPerformancePage() {
           progress: goal.progress || 0,
           deadline: goal.targetDeadline || goal.deadline,
           owner: goal.goalOwner || goal.owner,
-          currentMetric: goal.keyMetrics?.[0]?.metric || goal.currentMetric || 'No current metric defined',
-          targetMetric: goal.keyMetrics?.[0]?.target || goal.targetMetric || 'No target metric defined',
-          metrics: goal.keyMetrics?.[0]?.metric || goal.metrics || 'No metrics defined', // Keep for backward compatibility
+          currentMetric: goal.currentMetric || 'No current metric defined',
+          targetMetric: goal.targetMetric || 'No target metric defined',
+          metrics: goal.currentMetric || goal.metrics || 'No metrics defined', // Keep for backward compatibility
           category: goal.category || 'General',
           goalType: goal.goalType || 'Company',
           successCriteria: goal.successCriteria || '',

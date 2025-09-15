@@ -71,10 +71,8 @@ export const goalsApi = {
         category: goalData.category || 'Employee Engagement',
         priority: goalData.priority || 'Medium',
         status: goalData.status || 'Not Started',
-        keyMetrics: goalData.keyMetrics || [{ 
-          metric: goalData.currentMetric || 'General Performance', // Map currentMetric to metric
-          target: goalData.targetMetric || 'To be defined' // Map targetMetric to target
-        }],
+        currentMetric: goalData.currentMetric || 'General Performance',
+        targetMetric: goalData.targetMetric || 'To be defined',
         successCriteria: goalData.successCriteria?.trim() || 'Success criteria to be defined',
         startDate: goalData.startDate || new Date().toISOString().split('T')[0],
         targetDeadline: goalData.deadline || new Date().toISOString().split('T')[0] // deadline maps to targetDeadline
@@ -89,9 +87,8 @@ export const goalsApi = {
       console.log('Target metric type:', typeof goalData.targetMetric);
       console.log('Current metric length:', goalData.currentMetric?.length);
       console.log('Target metric length:', goalData.targetMetric?.length);
-      console.log('KeyMetrics structure:', mappedData.keyMetrics);
-      console.log('Mapped metric value:', mappedData.keyMetrics[0]?.metric);
-      console.log('Mapped target value:', mappedData.keyMetrics[0]?.target);
+      console.log('Mapped currentMetric value:', mappedData.currentMetric);
+      console.log('Mapped targetMetric value:', mappedData.targetMetric);
       console.log('Data validation:', {
         goalTitle: mappedData.goalTitle?.length > 0,
         goalDescription: mappedData.goalDescription?.length > 0,
@@ -221,10 +218,8 @@ export const goalsApi = {
         category: goalData.category || 'Employee Engagement',
         priority: goalData.priority || 'Medium',
         status: goalData.status || 'Not Started',
-        keyMetrics: goalData.keyMetrics || [{ 
-          metric: goalData.currentMetric || 'General Performance', // Map currentMetric to metric
-          target: goalData.targetMetric || 'To be defined' // Map targetMetric to target
-        }],
+        currentMetric: goalData.currentMetric || 'General Performance',
+        targetMetric: goalData.targetMetric || 'To be defined',
         successCriteria: goalData.successCriteria?.trim() || 'Success criteria to be defined',
         startDate: goalData.startDate || new Date().toISOString().split('T')[0],
         targetDeadline: goalData.deadline || new Date().toISOString().split('T')[0] // deadline maps to targetDeadline
