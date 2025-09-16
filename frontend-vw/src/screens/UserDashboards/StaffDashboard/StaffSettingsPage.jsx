@@ -15,15 +15,15 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
-  IconSettings,
-  IconUser,
-  IconBell,
-  IconShield,
-  IconPalette,
-  IconDatabase,
-  IconMail,
-  IconClock,
-} from "@tabler/icons-react";
+  Settings,
+  User,
+  Bell,
+  Shield,
+  Palette,
+  Database,
+  Mail,
+  Clock,
+} from "lucide-react";
 
 export default function StaffSettingsPage() {
   const [notifications, setNotifications] = useState({
@@ -61,7 +61,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <IconUser className="w-6 h-6 text-blue-600" />
+                <User className="w-6 h-6 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Profile Settings
                 </h2>
@@ -101,11 +101,58 @@ export default function StaffSettingsPage() {
             </div>
           </Card>
 
+          {/* Password Settings */}
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <Shield className="w-6 h-6 text-red-600" />
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Password & Security
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter current password"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Enter new password"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm new password"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Button className="bg-red-600 hover:bg-red-700 text-white">
+                  Update Password
+                </Button>
+              </div>
+            </div>
+          </Card>
+
           {/* Notification Settings */}
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <IconBell className="w-6 h-6 text-green-600" />
+                <Bell className="w-6 h-6 text-green-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Notification Preferences
                 </h2>
@@ -175,7 +222,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <IconShield className="w-6 h-6 text-purple-600" />
+                <Shield className="w-6 h-6 text-purple-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Privacy & Security
                 </h2>
@@ -250,7 +297,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <IconPalette className="w-6 h-6 text-orange-600" />
+                <Palette className="w-6 h-6 text-orange-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Appearance
                 </h2>
@@ -284,7 +331,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <IconSettings className="w-6 h-6 text-gray-600" />
+                <Settings className="w-6 h-6 text-gray-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   System Settings
                 </h2>

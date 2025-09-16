@@ -1,22 +1,38 @@
-import { useState, useEffect } from "react"
-import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout"
-import { staffDashboardConfig } from "@/config/dashboardConfigs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useAuth } from "@/hooks/useAuth"
-import { 
+import { useState, useEffect } from "react";
+import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
+import { staffDashboardConfig } from "@/config/dashboardConfigs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useAuth } from "@/hooks/useAuth";
+import {
   IconPlus,
-  IconUser, 
+  IconUser,
   IconMail,
   IconId,
   IconCertificate,
@@ -30,530 +46,2106 @@ import {
   IconChevronDown,
   IconEdit,
   IconTrash,
-  IconX,
-  IconMapPin
-} from "@tabler/icons-react"
+  IconMapPin,
+} from "@tabler/icons-react";
 
 export default function StaffProfileSettings() {
-  const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState("personal")
-  const [selectedDate, setSelectedDate] = useState(null)
-  const [dateOpen, setDateOpen] = useState(false)
-  const [isEducationOpen, setIsEducationOpen] = useState(false)
-  const [showEducationModal, setShowEducationModal] = useState(false)
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [editingEducationId, setEditingEducationId] = useState(null)
-  const [isExperienceOpen, setIsExperienceOpen] = useState(false)
-  const [showExperienceModal, setShowExperienceModal] = useState(false)
-  const [isExperienceEditMode, setIsExperienceEditMode] = useState(false)
-  const [editingExperienceId, setEditingExperienceId] = useState(null)
-  const [isLicensesOpen, setIsLicensesOpen] = useState(false)
-  const [showLicensesModal, setShowLicensesModal] = useState(false)
-  const [isLicensesEditMode, setIsLicensesEditMode] = useState(false)
-  const [editingLicensesId, setEditingLicensesId] = useState(null)
-  const [isSkillsOpen, setIsSkillsOpen] = useState(false)
-  const [showSkillsModal, setShowSkillsModal] = useState(false)
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("personal");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [isEducationOpen, setIsEducationOpen] = useState(false);
+  const [showEducationModal, setShowEducationModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEducationId, setEditingEducationId] = useState(null);
+  const [isExperienceOpen, setIsExperienceOpen] = useState(false);
+  const [showExperienceModal, setShowExperienceModal] = useState(false);
+  const [isExperienceEditMode, setIsExperienceEditMode] = useState(false);
+  const [editingExperienceId, setEditingExperienceId] = useState(null);
+  const [isLicensesOpen, setIsLicensesOpen] = useState(false);
+  const [showLicensesModal, setShowLicensesModal] = useState(false);
+  const [isLicensesEditMode, setIsLicensesEditMode] = useState(false);
+  const [editingLicensesId, setEditingLicensesId] = useState(null);
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
   const [educationForm, setEducationForm] = useState({
     institution: "",
     description: "",
-    duration: ""
-  })
+    duration: "",
+  });
   const [experienceForm, setExperienceForm] = useState({
     jobTitle: "",
     organization: "",
     description: "",
     location: "",
     skills: "",
-    duration: ""
-  })
+    duration: "",
+  });
   const [licensesForm, setLicensesForm] = useState({
     certificationName: "",
     organization: "",
     description: "",
-    issueDate: ""
-  })
+    issueDate: "",
+  });
   const [skillsForm, setSkillsForm] = useState({
-    skillName: ""
-  })
+    skillName: "",
+  });
   const [educationEntries, setEducationEntries] = useState([
     {
       id: 1,
       institution: "University of Ghana, Legon",
-      description: "Mathematics",
-      duration: "2018-2022"
+      description: "Computer Science",
+      duration: "2018-2022",
     },
     {
       id: 2,
-      institution: "University of Hong-Kong",
-      description: "Associate Diploma (Software Engineering)",
-      duration: "2020-2021"
-    }
-  ])
+      institution: "Coursera",
+      description: "Full Stack Web Development",
+      duration: "2023",
+    },
+  ]);
   const [experienceEntries, setExperienceEntries] = useState([
     {
       id: 1,
+      jobTitle: "Junior Developer",
+      organization: "Tech Solutions",
+      employmentType: "Full-Time",
+      location: "Accra, Ghana",
+      duration: "2022 - 2023",
+      skills: "JavaScript · React · Node.js · MongoDB",
+    },
+    {
+      id: 2,
       jobTitle: "Software Developer",
       organization: "VIRE Workplace",
       employmentType: "Full-Time",
       location: "Accra, Ghana",
       duration: "2023 - present",
-      description: "Developing and maintaining web applications using React and Node.js"
-    }
-  ])
+      skills: "React · TypeScript · Python · AWS",
+    },
+  ]);
   const [licensesEntries, setLicensesEntries] = useState([
     {
       id: 1,
-      certificationName: "AWS Certified Developer",
-      organization: "Amazon Web Services",
-      description: "Cloud development and deployment",
-      issueDate: "2023-06-15"
-    }
-  ])
+      organization: "AWS",
+      certificationName: "AWS Certified Developer - Associate",
+      issueDate: "Issued September, 2023",
+    },
+    {
+      id: 2,
+      organization: "Google",
+      certificationName: "Google Cloud Professional Developer",
+      issueDate: "Issued December, 2023",
+    },
+  ]);
   const [skillsEntries, setSkillsEntries] = useState([
-    { id: 1, skillName: "JavaScript" },
-    { id: 2, skillName: "React" },
-    { id: 3, skillName: "Node.js" },
-    { id: 4, skillName: "Python" }
-  ])
-
-  const [personalInfo, setPersonalInfo] = useState({
+    "JavaScript",
+    "React",
+    "Node.js",
+    "Python",
+    "TypeScript",
+    "MongoDB",
+    "PostgreSQL",
+  ]);
+  const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
+    username: user?.email?.split("@")[0] ? `@${user.email.split("@")[0]}` : "",
+    dateOfBirth: user?.dateOfBirth || "",
+    maritalStatus: user?.maritalStatus || "",
     lastName: user?.lastName || "",
-    email: user?.email || "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "",
-    dateOfBirth: "",
-    emergencyContact: "",
-    emergencyPhone: ""
-  })
+    nationality: user?.nationality || "Ghanaian",
+    gender: user?.gender || "",
+    personalPronouns: user?.personalPronouns || "",
+  });
 
-  const [professionalInfo, setProfessionalInfo] = useState({
-    employeeId: "",
-    department: "",
-    position: "",
-    manager: "",
-    startDate: "",
-    employmentType: "",
-    workLocation: "",
-    workSchedule: ""
-  })
-
-  const handlePersonalInfoChange = (field, value) => {
-    setPersonalInfo(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const handleProfessionalInfoChange = (field, value) => {
-    setProfessionalInfo(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const handleEducationSubmit = (e) => {
-    e.preventDefault()
-    if (isEditMode) {
-      setEducationEntries(prev => 
-        prev.map(entry => 
-          entry.id === editingEducationId 
-            ? { ...educationForm, id: editingEducationId }
-            : entry
-        )
-      )
-      setEditingEducationId(null)
-      setIsEditMode(false)
-    } else {
-      const newEntry = {
-        ...educationForm,
-        id: Date.now()
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      // Parse date of birth if it exists
+      let parsedDate = null;
+      if (user.dateOfBirth) {
+        // Handle both ISO string format and simple date format
+        if (user.dateOfBirth.includes("T")) {
+          // ISO format: "2002-03-27T00:00:00.000Z"
+          parsedDate = new Date(user.dateOfBirth);
+        } else {
+          // Simple format: "2002-03-27"
+          parsedDate = new Date(user.dateOfBirth);
+        }
       }
-      setEducationEntries(prev => [...prev, newEntry])
+
+      setSelectedDate(parsedDate);
+      setFormData({
+        firstName: user.firstName || "",
+        username: user.email?.split("@")[0]
+          ? `@${user.email.split("@")[0]}`
+          : "",
+        dateOfBirth: user.dateOfBirth || "",
+        maritalStatus: user.maritalStatus || "",
+        lastName: user.lastName || "",
+        nationality: user.nationality || "Ghanaian",
+        gender: user.gender || "",
+        personalPronouns: user.personalPronouns || "",
+      });
     }
-    setEducationForm({ institution: "", description: "", duration: "" })
-    setShowEducationModal(false)
-  }
+  }, [user]);
 
-  const handleExperienceSubmit = (e) => {
-    e.preventDefault()
-    if (isExperienceEditMode) {
-      setExperienceEntries(prev => 
-        prev.map(entry => 
-          entry.id === editingExperienceId 
-            ? { ...experienceForm, id: editingExperienceId }
-            : entry
-        )
-      )
-      setEditingExperienceId(null)
-      setIsExperienceEditMode(false)
-    } else {
-      const newEntry = {
-        ...experienceForm,
-        id: Date.now()
-      }
-      setExperienceEntries(prev => [...prev, newEntry])
-    }
-    setExperienceForm({ jobTitle: "", organization: "", description: "", location: "", skills: "", duration: "" })
-    setShowExperienceModal(false)
-  }
+  // StatusBadge component
+  const StatusBadge = ({ status }) => {
+    const statusConfig = {
+      Active: {
+        bgColor: "bg-green-50",
+        borderColor: "border-green-200",
+        textColor: "text-green-700",
+        dotColor: "bg-green-500",
+        text: "Active",
+      },
+      "In-active": {
+        bgColor: "bg-orange-50",
+        borderColor: "border-orange-200",
+        textColor: "text-orange-700",
+        dotColor: "bg-orange-500",
+        text: "In-active",
+      },
+      Closed: {
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200",
+        textColor: "text-red-700",
+        dotColor: "bg-red-500",
+        text: "Closed",
+      },
+    };
 
-  const handleLicensesSubmit = (e) => {
-    e.preventDefault()
-    if (isLicensesEditMode) {
-      setLicensesEntries(prev => 
-        prev.map(entry => 
-          entry.id === editingLicensesId 
-            ? { ...licensesForm, id: editingLicensesId }
-            : entry
-        )
-      )
-      setEditingLicensesId(null)
-      setIsLicensesEditMode(false)
-    } else {
-      const newEntry = {
-        ...licensesForm,
-        id: Date.now()
-      }
-      setLicensesEntries(prev => [...prev, newEntry])
-    }
-    setLicensesForm({ certificationName: "", organization: "", description: "", issueDate: "" })
-    setShowLicensesModal(false)
-  }
+    const config = statusConfig[status] || statusConfig["Active"];
 
-  const handleSkillsSubmit = (e) => {
-    e.preventDefault()
-    const newEntry = {
-      ...skillsForm,
-      id: Date.now()
-    }
-    setSkillsEntries(prev => [...prev, newEntry])
-    setSkillsForm({ skillName: "" })
-    setShowSkillsModal(false)
-  }
+    return (
+      <div
+        className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}
+      >
+        <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
+        <span className={`text-sm font-medium ${config.textColor}`}>
+          {config.text}
+        </span>
+      </div>
+    );
+  };
 
-  const handleEditEducation = (entry) => {
-    setEducationForm(entry)
-    setEditingEducationId(entry.id)
-    setIsEditMode(true)
-    setShowEducationModal(true)
-  }
-
-  const handleEditExperience = (entry) => {
-    setExperienceForm(entry)
-    setEditingExperienceId(entry.id)
-    setIsExperienceEditMode(true)
-    setShowExperienceModal(true)
-  }
-
-  const handleEditLicenses = (entry) => {
-    setLicensesForm(entry)
-    setEditingLicensesId(entry.id)
-    setIsLicensesEditMode(true)
-    setShowLicensesModal(true)
-  }
-
-  const handleDeleteEducation = (id) => {
-    setEducationEntries(prev => prev.filter(entry => entry.id !== id))
-  }
-
-  const handleDeleteExperience = (id) => {
-    setExperienceEntries(prev => prev.filter(entry => entry.id !== id))
-  }
-
-  const handleDeleteLicenses = (id) => {
-    setLicensesEntries(prev => prev.filter(entry => entry.id !== id))
-  }
-
-  const handleDeleteSkills = (id) => {
-    setSkillsEntries(prev => prev.filter(entry => entry.id !== id))
-  }
+  const tabs = [
+    { id: "personal", label: "Personal Information", icon: IconUser },
+    { id: "contact", label: "Contact Information", icon: IconMail },
+    { id: "emergency", label: "Emergency Contact", icon: IconShield },
+    { id: "employment", label: "Employment Details", icon: IconId },
+    { id: "qualifications", label: "Qualifications", icon: IconCertificate },
+    { id: "documents", label: "Documents", icon: IconFileText },
+  ];
 
   return (
-    <StaffDashboardLayout 
+    <StaffDashboardLayout
       sidebarConfig={staffDashboardConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
     >
       <div className="min-h-screen bg-gray-50">
-        {/* Page Header */}
-        <div className="mb-8 ml-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900 mb-2">Profile Settings</h1>
-              <p className="text-zinc-500">Manage your personal and professional information.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar} alt={user?.firstName} />
-                <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+        {/* Breadcrumb Navigation */}
+        <div className="px-6 py-4">
+          <p className="text-lg">
+            <span className="font-bold text-black">Account Settings</span>
+            <span className="text-gray-500"> / </span>
+            <span className="text-gray-500">Profile</span>
+          </p>
+        </div>
+
+        {/* Profile Section */}
+        <div className="px-6 py-6 bg-white border-b border-gray-200">
+          <div className="flex items-start space-x-6">
+            {/* Profile Picture */}
+            <div className="relative">
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={user?.avatar} />
+                <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
+                  {user
+                    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`
+                    : "U"}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <div className="text-sm font-medium text-gray-900">
-                  {user?.firstName} {user?.lastName}
+              {/* Green plus icon overlay */}
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <IconPlus className="w-3 h-3 text-white" />
+              </div>
+            </div>
+
+            {/* Profile Details */}
+            <div className="flex-1">
+              <div className="flex items-center space-x-4 mb-2">
+                <button className="text-red-500 text-sm hover:underline cursor-pointer">
+                  Remove
+                </button>
+                <button className="text-blue-500 text-sm hover:underline cursor-pointer">
+                  Update
+                </button>
+              </div>
+              <p className="text-sm text-gray-400 mb-2">
+                Recommended size: 400X400px
+              </p>
+              <h3 className="text-lg font-bold text-gray-800 mb-1">
+                {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
+              </h3>
+              <p className="text-gray-600 mb-3">
+                {user?.jobRole || user?.role || "Loading..."}
+              </p>
+              <div className="flex items-center space-x-6">
+                <StatusBadge status={user?.attendanceStatus || "Active"} />
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-700 text-sm">
+                    Employee ID: {user?.workId || "N/A"}
+                  </span>
                 </div>
-                <div className="text-xs text-gray-500">Staff Member</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="ml-6 mr-6 space-y-6">
-          {/* Personal Information */}
-          <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-6">
-              <IconUser className="w-6 h-6 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input 
-                  id="firstName" 
-                  value={personalInfo.firstName}
-                  onChange={(e) => handlePersonalInfoChange("firstName", e.target.value)}
-                  placeholder="Enter first name" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input 
-                  id="lastName" 
-                  value={personalInfo.lastName}
-                  onChange={(e) => handlePersonalInfoChange("lastName", e.target.value)}
-                  placeholder="Enter last name" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={personalInfo.email}
-                  onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
-                  placeholder="Enter email address" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input 
-                  id="phone" 
-                  value={personalInfo.phone}
-                  onChange={(e) => handlePersonalInfoChange("phone", e.target.value)}
-                  placeholder="Enter phone number" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input 
-                  id="address" 
-                  value={personalInfo.address}
-                  onChange={(e) => handlePersonalInfoChange("address", e.target.value)}
-                  placeholder="Enter address" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input 
-                  id="city" 
-                  value={personalInfo.city}
-                  onChange={(e) => handlePersonalInfoChange("city", e.target.value)}
-                  placeholder="Enter city" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="emergencyContact">Emergency Contact</Label>
-                <Input 
-                  id="emergencyContact" 
-                  value={personalInfo.emergencyContact}
-                  onChange={(e) => handlePersonalInfoChange("emergencyContact", e.target.value)}
-                  placeholder="Enter emergency contact name" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                <Input 
-                  id="emergencyPhone" 
-                  value={personalInfo.emergencyPhone}
-                  onChange={(e) => handlePersonalInfoChange("emergencyPhone", e.target.value)}
-                  placeholder="Enter emergency contact phone" 
-                />
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Save Personal Information
-              </Button>
-            </div>
+        {/* Navigation Tabs */}
+        <div className="px-6 py-4">
+          <div className="bg-gray-100 rounded-lg p-1 inline-flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                  activeTab === tab.id
+                    ? "bg-blue-500 text-white shadow-sm"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
+                }`}
+              >
+                {tab.icon ? <tab.icon size={16} /> : null}
+                <span>{tab.label}</span>
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Professional Information */}
-          <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-6">
-              <IconBuilding className="w-6 h-6 text-green-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Professional Information</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="employeeId">Employee ID</Label>
-                <Input 
-                  id="employeeId" 
-                  value={professionalInfo.employeeId}
-                  onChange={(e) => handleProfessionalInfoChange("employeeId", e.target.value)}
-                  placeholder="Enter employee ID" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input 
-                  id="department" 
-                  value={professionalInfo.department}
-                  onChange={(e) => handleProfessionalInfoChange("department", e.target.value)}
-                  placeholder="Enter department" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="position">Position</Label>
-                <Input 
-                  id="position" 
-                  value={professionalInfo.position}
-                  onChange={(e) => handleProfessionalInfoChange("position", e.target.value)}
-                  placeholder="Enter position" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="manager">Manager</Label>
-                <Input 
-                  id="manager" 
-                  value={professionalInfo.manager}
-                  onChange={(e) => handleProfessionalInfoChange("manager", e.target.value)}
-                  placeholder="Enter manager name" 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="workLocation">Work Location</Label>
-                <Select 
-                  value={professionalInfo.workLocation}
-                  onValueChange={(value) => handleProfessionalInfoChange("workLocation", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select work location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="office">Office</SelectItem>
-                    <SelectItem value="remote">Remote</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="employmentType">Employment Type</Label>
-                <Select 
-                  value={professionalInfo.employmentType}
-                  onValueChange={(value) => handleProfessionalInfoChange("employmentType", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employment type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full-time">Full-Time</SelectItem>
-                    <SelectItem value="part-time">Part-Time</SelectItem>
-                    <SelectItem value="contract">Contract</SelectItem>
-                    <SelectItem value="intern">Intern</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Save Professional Information
-              </Button>
-            </div>
-          </div>
+        {/* Main Content */}
+        <div className="px-6 py-8 bg-white">
+          {/* Personal Information Section */}
+          {activeTab === "personal" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Personal Information
+              </h2>
 
-          {/* Skills Section */}
-          <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <IconBrain className="w-6 h-6 text-purple-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Skills</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="firstName"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: e.target.value })
+                      }
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="username"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Username
+                    </Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) =>
+                        setFormData({ ...formData, username: e.target.value })
+                      }
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="dateOfBirth"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Date of Birth
+                    </Label>
+                    <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          id="dateOfBirth"
+                          className="w-full justify-between font-normal bg-white border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        >
+                          {selectedDate
+                            ? selectedDate.toLocaleDateString()
+                            : "Select date"}
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto overflow-hidden p-0 bg-popover border border-border rounded-md shadow-md"
+                        align="start"
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          captionLayout="dropdown"
+                          onSelect={(date) => {
+                            setSelectedDate(date);
+                            setFormData({
+                              ...formData,
+                              dateOfBirth: date
+                                ? date.toISOString().split("T")[0]
+                                : "",
+                            });
+                            setDateOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="maritalStatus"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Marital Status
+                    </Label>
+                    <Select
+                      value={formData.maritalStatus}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, maritalStatus: value })
+                      }
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                        <SelectValue placeholder="Select marital status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Single" className="cursor-pointer">
+                          Single
+                        </SelectItem>
+                        <SelectItem value="Married" className="cursor-pointer">
+                          Married
+                        </SelectItem>
+                        <SelectItem value="Divorced" className="cursor-pointer">
+                          Divorced
+                        </SelectItem>
+                        <SelectItem value="Widowed" className="cursor-pointer">
+                          Widowed
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="lastName"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="nationality"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Nationality
+                    </Label>
+                    <Input
+                      id="nationality"
+                      value={formData.nationality}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          nationality: e.target.value,
+                        })
+                      }
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="gender"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Gender
+                    </Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, gender: value })
+                      }
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male" className="cursor-pointer">
+                          Male
+                        </SelectItem>
+                        <SelectItem value="Female" className="cursor-pointer">
+                          Female
+                        </SelectItem>
+                        <SelectItem value="Other" className="cursor-pointer">
+                          Other
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="personalPronouns"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Personal Pronouns
+                    </Label>
+                    <Select
+                      value={formData.personalPronouns}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, personalPronouns: value })
+                      }
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                        <SelectValue placeholder="Select pronouns" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="he/him" className="cursor-pointer">
+                          he/him
+                        </SelectItem>
+                        <SelectItem value="she/her" className="cursor-pointer">
+                          she/her
+                        </SelectItem>
+                        <SelectItem
+                          value="they/them"
+                          className="cursor-pointer"
+                        >
+                          they/them
+                        </SelectItem>
+                        <SelectItem value="other" className="cursor-pointer">
+                          other
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
-              <Dialog open={showSkillsModal} onOpenChange={setShowSkillsModal}>
-                <DialogTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <IconPlus className="w-4 h-4 mr-2" />
-                    Add Skill
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Skill</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSkillsSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="skillName">Skill Name</Label>
-                      <Input
-                        id="skillName"
-                        value={skillsForm.skillName}
-                        onChange={(e) => setSkillsForm({ ...skillsForm, skillName: e.target.value })}
-                        placeholder="Enter skill name"
-                        required
-                      />
+
+              {/* Save Button */}
+              <div className="flex justify-end mt-6">
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Contact Information Tab */}
+          {activeTab === "contact" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Contact Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="email"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      value={user?.email || ""}
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="address"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Address
+                    </Label>
+                    <Input
+                      id="address"
+                      value="East Legon, Accra"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="region"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Region/State
+                    </Label>
+                    <Input
+                      id="region"
+                      value="Greater Accra"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="phone"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phone"
+                      value="(+233) 0240123456"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="city"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      value="Accra"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="postalCode"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Postal Code
+                    </Label>
+                    <Input
+                      id="postalCode"
+                      value="GA-123-4567"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end mt-6">
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Emergency Contact Tab */}
+          {activeTab === "emergency" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Emergency Contact Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_fullName"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Full Name
+                    </Label>
+                    <Input
+                      id="ec_fullName"
+                      value="Kwame Asante"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_altPhone"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Alt Phone Number (Optional)
+                    </Label>
+                    <Input
+                      id="ec_altPhone"
+                      placeholder="Enter optional phone number"
+                      className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_region"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Region/State
+                    </Label>
+                    <Input
+                      id="ec_region"
+                      value="Ashanti"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_address"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Address
+                    </Label>
+                    <Input
+                      id="ec_address"
+                      value="Kumasi, Ghana"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_phone"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="ec_phone"
+                      value="(+233) 0555123456"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_city"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      City
+                    </Label>
+                    <Input
+                      id="ec_city"
+                      value="Kumasi"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="ec_relationship"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Relationship
+                    </Label>
+                    <Input
+                      id="ec_relationship"
+                      value="Brother"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end mt-6">
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Employment Details Tab */}
+          {activeTab === "employment" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Employment Details
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_employeeId"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Employee ID
+                    </Label>
+                    <Input
+                      id="emp_employeeId"
+                      value="VIRE-54321"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_department"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Department
+                    </Label>
+                    <Input
+                      id="emp_department"
+                      value="Technology"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_type"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Employment Type
+                    </Label>
+                    <Select defaultValue="Full Time">
+                      <SelectTrigger
+                        id="emp_type"
+                        className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          value="Full Time"
+                          className="cursor-pointer"
+                        >
+                          Full Time
+                        </SelectItem>
+                        <SelectItem
+                          value="Part Time"
+                          className="cursor-pointer"
+                        >
+                          Part Time
+                        </SelectItem>
+                        <SelectItem value="Contract" className="cursor-pointer">
+                          Contract
+                        </SelectItem>
+                        <SelectItem
+                          value="Internship"
+                          className="cursor-pointer"
+                        >
+                          Internship
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_location"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Location/Branch
+                    </Label>
+                    <Input
+                      id="emp_location"
+                      value="Accra Office"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_jobTitle"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Job Title
+                    </Label>
+                    <Input
+                      id="emp_jobTitle"
+                      value="Software Developer"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_dateHired"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Date Hired
+                    </Label>
+                    <Input
+                      id="emp_dateHired"
+                      value="15 - 03 - 23"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_supervisor"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Supervisor
+                    </Label>
+                    <Input
+                      id="emp_supervisor"
+                      value="Nana Gyamfi Addae"
+                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="emp_status"
+                      className="text-sm font-semibold text-gray-800"
+                    >
+                      Status
+                    </Label>
+                    <Select defaultValue="Active">
+                      <SelectTrigger
+                        id="emp_status"
+                        className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active" className="cursor-pointer">
+                          Active
+                        </SelectItem>
+                        <SelectItem value="Inactive" className="cursor-pointer">
+                          Inactive
+                        </SelectItem>
+                        <SelectItem value="On Leave" className="cursor-pointer">
+                          On Leave
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end mt-6">
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Qualifications Tab */}
+          {activeTab === "qualifications" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Qualifications
+              </h2>
+
+              {/* Qualification Cards */}
+              <div className="space-y-4">
+                {/* Education Card */}
+                <Collapsible
+                  open={isEducationOpen}
+                  onOpenChange={setIsEducationOpen}
+                >
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    {/* Education Header */}
+                    <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <IconSchool className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            Education
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        {isEducationOpen ? (
+                          <IconChevronDown className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <IconChevronRight className="w-5 h-5 text-gray-400" />
+                        )}
+                        <button
+                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isEducationOpen) {
+                              setIsEducationOpen(true);
+                            }
+                            // Open modal for adding new education
+                            setIsEditMode(false);
+                            setEditingEducationId(null);
+                            setEducationForm({
+                              institution: "",
+                              description: "",
+                              duration: "",
+                            });
+                            setShowEducationModal(true);
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    {/* Expanded Education Content */}
+                    <CollapsibleContent>
+                      <div className="border-t border-gray-200 p-4 bg-gray-50">
+                        {/* Education Entries */}
+                        <div className="space-y-3">
+                          {educationEntries.map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="bg-white border border-gray-200 rounded-lg p-4"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  {/* Institution Name */}
+                                  <h4 className="font-bold text-gray-800 text-base mb-2">
+                                    {entry.institution}
+                                  </h4>
+
+                                  {/* Description with Icon */}
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <IconSchool className="w-4 h-4 text-gray-600" />
+                                    <span className="text-gray-700 text-sm">
+                                      {entry.description}
+                                    </span>
+                                  </div>
+
+                                  {/* Duration */}
+                                  <p className="text-gray-500 text-sm">
+                                    {entry.duration}
+                                  </p>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center space-x-2 ml-4">
+                                  <button
+                                    className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                    onClick={() => {
+                                      // Set edit mode and populate form
+                                      setIsEditMode(true);
+                                      setEditingEducationId(entry.id);
+                                      setEducationForm({
+                                        institution: entry.institution,
+                                        description: entry.description,
+                                        duration: entry.duration,
+                                      });
+                                      setShowEducationModal(true);
+                                    }}
+                                  >
+                                    <IconEdit className="w-4 h-4 text-blue-600" />
+                                  </button>
+                                  <button
+                                    className="p-1 hover:bg-red-50 rounded transition-colors"
+                                    onClick={() => {
+                                      // Handle delete logic
+                                      setEducationEntries((prev) =>
+                                        prev.filter(
+                                          (item) => item.id !== entry.id
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    <IconTrash className="w-4 h-4 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+
+                {/* Education Modal */}
+                <Dialog
+                  open={showEducationModal}
+                  onOpenChange={setShowEducationModal}
+                >
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-bold text-gray-800">
+                        {isEditMode ? "Edit Education" : "Add Education"}
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 mt-4">
+                      {/* Institution Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="institution"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Institution
+                        </Label>
+                        <Input
+                          id="institution"
+                          value={educationForm.institution}
+                          onChange={(e) =>
+                            setEducationForm({
+                              ...educationForm,
+                              institution: e.target.value,
+                            })
+                          }
+                          placeholder="University of Example"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Description Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="description"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Description
+                        </Label>
+                        <Input
+                          id="description"
+                          value={educationForm.description}
+                          onChange={(e) =>
+                            setEducationForm({
+                              ...educationForm,
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Degree and field of study"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Duration/Period Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="duration"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Duration/Period
+                        </Label>
+                        <Input
+                          id="duration"
+                          value={educationForm.duration}
+                          onChange={(e) =>
+                            setEducationForm({
+                              ...educationForm,
+                              duration: e.target.value,
+                            })
+                          }
+                          placeholder="2020 - 2024"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button type="button" variant="outline" onClick={() => setShowSkillsModal(false)}>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowEducationModal(false)}
+                        className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
                         Cancel
                       </Button>
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Button
+                        onClick={() => {
+                          if (isEditMode) {
+                            // Update existing education entry
+                            setEducationEntries((prev) =>
+                              prev.map((entry) =>
+                                entry.id === editingEducationId
+                                  ? { ...entry, ...educationForm }
+                                  : entry
+                              )
+                            );
+                          } else {
+                            // Add new education entry
+                            const newEntry = {
+                              id: Date.now(),
+                              ...educationForm,
+                            };
+                            setEducationEntries((prev) => [...prev, newEntry]);
+                          }
+                          setShowEducationModal(false);
+                          setEducationForm({
+                            institution: "",
+                            description: "",
+                            duration: "",
+                          });
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        {isEditMode ? "Save Changes" : "Add Item"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Experience Card */}
+                <Collapsible
+                  open={isExperienceOpen}
+                  onOpenChange={setIsExperienceOpen}
+                >
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    {/* Experience Header */}
+                    <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <IconBuilding className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            Experience
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        {isExperienceOpen ? (
+                          <IconChevronDown className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <IconChevronRight className="w-5 h-5 text-gray-400" />
+                        )}
+                        <button
+                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isExperienceOpen) {
+                              setIsExperienceOpen(true);
+                            }
+                            // Open modal for adding new experience
+                            setIsExperienceEditMode(false);
+                            setEditingExperienceId(null);
+                            setExperienceForm({
+                              jobTitle: "",
+                              organization: "",
+                              description: "",
+                              location: "",
+                              skills: "",
+                              duration: "",
+                            });
+                            setShowExperienceModal(true);
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    {/* Expanded Experience Content */}
+                    <CollapsibleContent>
+                      <div className="border-t border-gray-200 p-4 bg-gray-50">
+                        {/* Experience Entries */}
+                        <div className="space-y-3">
+                          {experienceEntries.map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="bg-white border border-gray-200 rounded-lg p-4"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3 flex-1">
+                                  {/* Building Icon */}
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
+                                    <IconBuilding className="w-4 h-4 text-gray-600" />
+                                  </div>
+
+                                  <div className="flex-1">
+                                    {/* Job Title */}
+                                    <h4 className="font-bold text-gray-800 text-base mb-1">
+                                      {entry.jobTitle}
+                                    </h4>
+
+                                    {/* Organization */}
+                                    <p className="text-gray-600 text-sm mb-1">
+                                      {entry.organization}
+                                    </p>
+
+                                    {/* Employment Type */}
+                                    <p className="text-gray-600 text-sm mb-2">
+                                      {entry.employmentType}
+                                    </p>
+
+                                    {/* Location with Map Pin Icon */}
+                                    <div className="flex items-center space-x-1 mb-1">
+                                      <IconMapPin className="w-3 h-3 text-red-500" />
+                                      <span className="text-gray-500 text-sm">
+                                        {entry.location}
+                                      </span>
+                                    </div>
+
+                                    {/* Duration */}
+                                    <p className="text-gray-500 text-sm mb-2">
+                                      {entry.duration}
+                                    </p>
+
+                                    {/* Skills */}
+                                    <div className="text-sm">
+                                      <span className="font-semibold text-gray-800">
+                                        Skills:{" "}
+                                      </span>
+                                      <span className="text-gray-500">
+                                        {entry.skills}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center space-x-2 ml-4">
+                                  <button
+                                    className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                    onClick={() => {
+                                      // Set edit mode and populate form
+                                      setIsExperienceEditMode(true);
+                                      setEditingExperienceId(entry.id);
+                                      setExperienceForm({
+                                        jobTitle: entry.jobTitle,
+                                        organization: entry.organization,
+                                        description: entry.employmentType,
+                                        location: entry.location,
+                                        skills: entry.skills,
+                                        duration: entry.duration,
+                                      });
+                                      setShowExperienceModal(true);
+                                    }}
+                                  >
+                                    <IconEdit className="w-4 h-4 text-blue-600" />
+                                  </button>
+                                  <button
+                                    className="p-1 hover:bg-red-50 rounded transition-colors"
+                                    onClick={() => {
+                                      // Handle delete logic
+                                      setExperienceEntries((prev) =>
+                                        prev.filter(
+                                          (item) => item.id !== entry.id
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    <IconTrash className="w-4 h-4 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+
+                {/* Experience Modal */}
+                <Dialog
+                  open={showExperienceModal}
+                  onOpenChange={setShowExperienceModal}
+                >
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-bold text-gray-800">
+                        {isExperienceEditMode
+                          ? "Edit Experience"
+                          : "Add Experience"}
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 mt-4">
+                      {/* Job Title Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="jobTitle"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Job Title
+                        </Label>
+                        <Input
+                          id="jobTitle"
+                          value={experienceForm.jobTitle}
+                          onChange={(e) =>
+                            setExperienceForm({
+                              ...experienceForm,
+                              jobTitle: e.target.value,
+                            })
+                          }
+                          placeholder="Software Engineer"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Organization/Company Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="organization"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Organization/Company
+                        </Label>
+                        <Input
+                          id="organization"
+                          value={experienceForm.organization}
+                          onChange={(e) =>
+                            setExperienceForm({
+                              ...experienceForm,
+                              organization: e.target.value,
+                            })
+                          }
+                          placeholder="Organization name"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Description Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="description"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Employment Type
+                        </Label>
+                        <Select
+                          value={experienceForm.description}
+                          onValueChange={(value) =>
+                            setExperienceForm({
+                              ...experienceForm,
+                              description: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600">
+                            <SelectValue placeholder="Select employment type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Full-Time">Full-Time</SelectItem>
+                            <SelectItem value="Part-Time">Part-Time</SelectItem>
+                            <SelectItem value="Contract">Contract</SelectItem>
+                            <SelectItem value="Internship">
+                              Internship
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Location Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="location"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Location
+                        </Label>
+                        <Input
+                          id="location"
+                          value={experienceForm.location}
+                          onChange={(e) =>
+                            setExperienceForm({
+                              ...experienceForm,
+                              location: e.target.value,
+                            })
+                          }
+                          placeholder="City, Country"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Skills Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="skills"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Skills (comma-separated)
+                        </Label>
+                        <Input
+                          id="skills"
+                          value={experienceForm.skills}
+                          onChange={(e) =>
+                            setExperienceForm({
+                              ...experienceForm,
+                              skills: e.target.value,
+                            })
+                          }
+                          placeholder="React, JavaScript, Node.js, etc."
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Duration/Period Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="duration"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Duration/Period
+                        </Label>
+                        <Input
+                          id="duration"
+                          value={experienceForm.duration}
+                          onChange={(e) =>
+                            setExperienceForm({
+                              ...experienceForm,
+                              duration: e.target.value,
+                            })
+                          }
+                          placeholder="2020 - 2024"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowExperienceModal(false)}
+                        className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (isExperienceEditMode) {
+                            // Update existing experience entry
+                            setExperienceEntries((prev) =>
+                              prev.map((entry) =>
+                                entry.id === editingExperienceId
+                                  ? {
+                                      ...entry,
+                                      jobTitle: experienceForm.jobTitle,
+                                      organization: experienceForm.organization,
+                                      employmentType:
+                                        experienceForm.description,
+                                      location: experienceForm.location,
+                                      skills: experienceForm.skills,
+                                      duration: experienceForm.duration,
+                                    }
+                                  : entry
+                              )
+                            );
+                          } else {
+                            // Add new experience entry
+                            const newEntry = {
+                              id: Date.now(),
+                              jobTitle: experienceForm.jobTitle,
+                              organization: experienceForm.organization,
+                              employmentType: experienceForm.description,
+                              location: experienceForm.location,
+                              skills: experienceForm.skills,
+                              duration: experienceForm.duration,
+                            };
+                            setExperienceEntries((prev) => [...prev, newEntry]);
+                          }
+                          setShowExperienceModal(false);
+                          setExperienceForm({
+                            jobTitle: "",
+                            organization: "",
+                            description: "",
+                            location: "",
+                            skills: "",
+                            duration: "",
+                          });
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        {isExperienceEditMode ? "Save Changes" : "Add Item"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Licenses & Certifications Card */}
+                <Collapsible
+                  open={isLicensesOpen}
+                  onOpenChange={setIsLicensesOpen}
+                >
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    {/* Licenses Header */}
+                    <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <IconAward className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            Licenses & Certifications
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        {isLicensesOpen ? (
+                          <IconChevronDown className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <IconChevronRight className="w-5 h-5 text-gray-400" />
+                        )}
+                        <button
+                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isLicensesOpen) {
+                              setIsLicensesOpen(true);
+                            }
+                            // Open modal for adding new license
+                            setIsLicensesEditMode(false);
+                            setEditingLicensesId(null);
+                            setLicensesForm({
+                              certificationName: "",
+                              organization: "",
+                              description: "",
+                              issueDate: "",
+                            });
+                            setShowLicensesModal(true);
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    {/* Expanded Licenses Content */}
+                    <CollapsibleContent>
+                      <div className="border-t border-gray-200 p-4 bg-gray-50">
+                        {/* License Entries */}
+                        <div className="space-y-3">
+                          {licensesEntries.map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="bg-white border border-gray-200 rounded-lg p-4"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3 flex-1">
+                                  {/* Award Icon */}
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
+                                    <IconAward className="w-4 h-4 text-gray-600" />
+                                  </div>
+
+                                  <div className="flex-1">
+                                    {/* Organization */}
+                                    <h4 className="font-bold text-gray-800 text-base mb-1">
+                                      {entry.organization}
+                                    </h4>
+
+                                    {/* Certification Name */}
+                                    <p className="text-gray-700 text-sm mb-2">
+                                      {entry.certificationName}
+                                    </p>
+
+                                    {/* Issue Date */}
+                                    <p className="text-gray-500 text-sm mb-3">
+                                      {entry.issueDate}
+                                    </p>
+
+                                    {/* View Certification Button */}
+                                    <button className="text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded text-sm font-medium transition-colors">
+                                      View certification
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center space-x-2 ml-4">
+                                  <button
+                                    className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                    onClick={() => {
+                                      // Set edit mode and populate form
+                                      setIsLicensesEditMode(true);
+                                      setEditingLicensesId(entry.id);
+                                      setLicensesForm({
+                                        certificationName:
+                                          entry.certificationName,
+                                        organization: entry.organization,
+                                        description: "",
+                                        issueDate: entry.issueDate,
+                                      });
+                                      setShowLicensesModal(true);
+                                    }}
+                                  >
+                                    <IconEdit className="w-4 h-4 text-blue-600" />
+                                  </button>
+                                  <button
+                                    className="p-1 hover:bg-red-50 rounded transition-colors"
+                                    onClick={() => {
+                                      // Handle delete logic
+                                      setLicensesEntries((prev) =>
+                                        prev.filter(
+                                          (item) => item.id !== entry.id
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    <IconTrash className="w-4 h-4 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+
+                {/* Licenses Modal */}
+                <Dialog
+                  open={showLicensesModal}
+                  onOpenChange={setShowLicensesModal}
+                >
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-bold text-gray-800">
+                        {isLicensesEditMode
+                          ? "Edit License/Certification"
+                          : "Add License/Certification"}
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 mt-4">
+                      {/* Certification Name Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="certificationName"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Certification Name
+                        </Label>
+                        <Input
+                          id="certificationName"
+                          value={licensesForm.certificationName}
+                          onChange={(e) =>
+                            setLicensesForm({
+                              ...licensesForm,
+                              certificationName: e.target.value,
+                            })
+                          }
+                          placeholder="AWS Certified Developer"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Organization/Company Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="organization"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Organization/Company
+                        </Label>
+                        <Input
+                          id="organization"
+                          value={licensesForm.organization}
+                          onChange={(e) =>
+                            setLicensesForm({
+                              ...licensesForm,
+                              organization: e.target.value,
+                            })
+                          }
+                          placeholder="Organization name"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      {/* Issue Date Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="issueDate"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Issue Date
+                        </Label>
+                        <Input
+                          id="issueDate"
+                          value={licensesForm.issueDate}
+                          onChange={(e) =>
+                            setLicensesForm({
+                              ...licensesForm,
+                              issueDate: e.target.value,
+                            })
+                          }
+                          placeholder="Issued January 2024"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowLicensesModal(false)}
+                        className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (isLicensesEditMode) {
+                            // Update existing license entry
+                            setLicensesEntries((prev) =>
+                              prev.map((entry) =>
+                                entry.id === editingLicensesId
+                                  ? {
+                                      ...entry,
+                                      certificationName:
+                                        licensesForm.certificationName,
+                                      organization: licensesForm.organization,
+                                      issueDate: licensesForm.issueDate,
+                                    }
+                                  : entry
+                              )
+                            );
+                          } else {
+                            // Add new license entry
+                            const newEntry = {
+                              id: Date.now(),
+                              certificationName: licensesForm.certificationName,
+                              organization: licensesForm.organization,
+                              issueDate: licensesForm.issueDate,
+                            };
+                            setLicensesEntries((prev) => [...prev, newEntry]);
+                          }
+                          setShowLicensesModal(false);
+                          setLicensesForm({
+                            certificationName: "",
+                            organization: "",
+                            description: "",
+                            issueDate: "",
+                          });
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        {isLicensesEditMode ? "Save Changes" : "Add Item"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Skills Card */}
+                <Collapsible open={isSkillsOpen} onOpenChange={setIsSkillsOpen}>
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    {/* Skills Header */}
+                    <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <IconBrain className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            Skills
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        {isSkillsOpen ? (
+                          <IconChevronDown className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <IconChevronRight className="w-5 h-5 text-gray-400" />
+                        )}
+                        <button
+                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isSkillsOpen) {
+                              setIsSkillsOpen(true);
+                            }
+                            // Open modal for adding new skill
+                            setSkillsForm({
+                              skillName: "",
+                            });
+                            setShowSkillsModal(true);
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    {/* Expanded Skills Content */}
+                    <CollapsibleContent>
+                      <div className="border-t border-gray-200 p-4 bg-gray-50">
+                        {/* Skills Tags */}
+                        <div className="flex flex-wrap gap-2">
+                          {skillsEntries.map((skill, index) => (
+                            <div key={index} className="relative group">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                {skill}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setSkillsEntries((prev) =>
+                                    prev.filter((_, i) => i !== index)
+                                  );
+                                }}
+                                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+
+                {/* Skills Modal */}
+                <Dialog
+                  open={showSkillsModal}
+                  onOpenChange={setShowSkillsModal}
+                >
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-bold text-gray-800">
+                        Add Skill
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 mt-4">
+                      {/* Skill Name Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="skillName"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Skill Name
+                        </Label>
+                        <Input
+                          id="skillName"
+                          value={skillsForm.skillName}
+                          onChange={(e) =>
+                            setSkillsForm({
+                              ...skillsForm,
+                              skillName: e.target.value,
+                            })
+                          }
+                          placeholder="Enter skill name"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowSkillsModal(false)}
+                        className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (skillsForm.skillName.trim()) {
+                            setSkillsEntries((prev) => [
+                              ...prev,
+                              skillsForm.skillName.trim(),
+                            ]);
+                            setSkillsForm({ skillName: "" });
+                            setShowSkillsModal(false);
+                          }
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
                         Add Skill
                       </Button>
                     </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end mt-8">
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                  Save
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {skillsEntries.map((skill) => (
-                <div key={skill.id} className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2">
-                  <span className="text-sm font-medium text-gray-700">{skill.skillName}</span>
+          )}
+
+          {/* Documents Tab */}
+          {activeTab === "documents" && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Employment Documents
+                </h2>
+                <div className="flex items-center gap-3">
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteSkills(skill.id)}
-                    className="h-6 w-6 p-0 hover:bg-red-100"
+                    variant="outline"
+                    className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
                   >
-                    <IconX className="w-3 h-3 text-red-500" />
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0114.13-3.36L23 10"></path>
+                      <path d="M20.49 15A9 9 0 016.36 18.36L1 14"></path>
+                    </svg>
+                    Reset
+                  </Button>
+                  <Button className="bg-blue-500 hover:bg-blue-600 text-white cursor-pointer">
+                    Save Changes
                   </Button>
                 </div>
-              ))}
+              </div>
+
+              {/* CV/Resume */}
+              <div className="mb-8">
+                <p className="text-sm font-semibold text-gray-800 mb-2">
+                  CV/Resume
+                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
+                  <svg
+                    className="w-10 h-10 mx-auto text-gray-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p className="mt-3 text-gray-700">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF,DOC,DOCX files up to 10MB
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Choose File
+                  </Button>
+                </div>
+              </div>
+
+              {/* National ID */}
+              <div className="mb-8">
+                <p className="text-sm font-semibold text-gray-800 mb-2">
+                  National ID
+                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
+                  <svg
+                    className="w-10 h-10 mx-auto text-gray-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p className="mt-3 text-gray-700">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF,JPG,JPEG,PNG files up to 5MB
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Choose File
+                  </Button>
+                </div>
+              </div>
+
+              {/* Certificate */}
+              <div className="mb-2">
+                <p className="text-sm font-semibold text-gray-800 mb-2">
+                  Educational Certificates
+                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
+                  <svg
+                    className="w-10 h-10 mx-auto text-gray-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p className="mt-3 text-gray-700">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF,JPG,JPEG,PNG files up to 10MB
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Choose File
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </StaffDashboardLayout>
-  )
+  );
 }
