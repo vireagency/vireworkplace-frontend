@@ -166,7 +166,12 @@ export default function StaffPasswordSettings() {
             {/* Profile Picture */}
             <div className="relative">
               <Avatar className="w-24 h-24" key={user?.avatarUpdatedAt || user?.avatar}>
-                <AvatarImage src={user?.avatar} />
+                <AvatarImage 
+                  src={user?.avatar} 
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
                 <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
                   {user
                     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`

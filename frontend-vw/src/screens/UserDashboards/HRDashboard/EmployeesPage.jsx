@@ -377,6 +377,9 @@ export default function EmployeesPage() {
                           <AvatarImage 
                             src={employee.avatar} 
                             className="object-cover w-full h-full"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
                           />
                           <AvatarFallback className="bg-gray-300 text-gray-600 rounded-full">
                             {employee.name.split(' ').map(n => n[0]).join('')}
@@ -490,6 +493,9 @@ export default function EmployeesPage() {
                   <AvatarImage 
                     src={selectedEmployee.avatar} 
                     className="object-cover w-full h-full"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
                   />
                   <AvatarFallback className="text-lg bg-gray-300 text-gray-600 rounded-full">
                     {selectedEmployee.name.split(' ').map(n => n[0]).join('')}

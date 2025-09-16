@@ -245,6 +245,9 @@ export default function HRNotificationSettings() {
                 <AvatarImage 
                   src={user?.avatar} 
                   className="object-cover w-full h-full"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
                 />
                 <AvatarFallback className="text-lg bg-gray-200 text-gray-600 rounded-full">
                   {user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` : 'U'}
