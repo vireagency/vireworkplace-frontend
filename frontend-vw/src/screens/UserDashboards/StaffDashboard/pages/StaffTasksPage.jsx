@@ -163,7 +163,7 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-// User Search Component for Assignee - FIXED VERSION
+// FIXED: Assignee Search Component - Properly configured for the backend
 const AssigneeSearchInput = ({
   value,
   onValueChange,
@@ -180,43 +180,42 @@ const AssigneeSearchInput = ({
   const [searchError, setSearchError] = useState(null);
   const { accessToken, user: currentUser } = useAuth();
 
-  // FIXED: Use the correct API endpoint that matches your backend
+  // FIXED: Proper API URL construction that matches your backend
   const getAssigneeSearchApiUrl = () => {
     try {
       const baseUrl = getApiUrl();
-      console.log("=== FIXED ASSIGNEE SEARCH API CONFIG ===");
+      console.log("=== ASSIGNEE SEARCH API CONFIG ===");
       console.log("Raw base URL from config:", baseUrl);
-
-      // Clean up the base URL - remove any trailing slashes
-      const cleanBaseUrl = baseUrl?.replace(/\/+$/, "") || "";
-      console.log("Cleaned base URL:", cleanBaseUrl);
 
       let apiUrl;
 
-      if (!cleanBaseUrl) {
-        // Fallback if no base URL is configured
+      if (!baseUrl) {
+        // Fallback to localhost if no base URL is configured
         apiUrl = "http://localhost:6000/api/v1";
-        console.log("Using fallback API URL:", apiUrl);
-      } else if (cleanBaseUrl.includes("/api/v1")) {
-        // Base URL already includes the API path
-        apiUrl = cleanBaseUrl;
-        console.log("Base URL already includes /api/v1:", apiUrl);
+        console.warn("No base URL configured, using fallback:", apiUrl);
       } else {
-        // Append API version to base URL
-        apiUrl = `${cleanBaseUrl}/api/v1`;
-        console.log("Constructed API URL:", apiUrl);
+        // Clean up the base URL - remove any trailing slashes
+        const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+
+        if (cleanBaseUrl.includes("/api/v1")) {
+          // Base URL already includes the API path
+          apiUrl = cleanBaseUrl;
+        } else {
+          // Append API version to base URL
+          apiUrl = `${cleanBaseUrl}/api/v1`;
+        }
       }
 
-      // FIXED: Use the correct endpoint that matches your backend route
-      const correctSearchUrl = `${apiUrl}/tasks/assignees/search`;
+      // FIXED: Use the exact endpoint that matches your backend controller
+      const searchUrl = `${apiUrl}/tasks/assignees/search`;
 
-      console.log("Final assignee search URL:", correctSearchUrl);
-      console.log("========================================");
+      console.log("Final assignee search URL:", searchUrl);
+      console.log("=====================================");
 
-      return correctSearchUrl;
+      return searchUrl;
     } catch (error) {
       console.error("Error constructing assignee search API URL:", error);
-      // Return a fallback URL
+      // Return a fallback URL that matches your backend
       const fallbackUrl = "http://localhost:6000/api/v1/tasks/assignees/search";
       console.log("Using fallback URL:", fallbackUrl);
       return fallbackUrl;
@@ -241,6 +240,7 @@ const AssigneeSearchInput = ({
     );
   };
 
+  // FIXED: Search function that matches your backend controller expectations
   const searchUsers = async (query) => {
     if (!query || query.length < 2) {
       setUsers([]);
@@ -261,16 +261,16 @@ const AssigneeSearchInput = ({
 
       const searchUrl = getAssigneeSearchApiUrl();
 
-      console.log("=== USER SEARCH REQUEST ===");
+      console.log("=== ASSIGNEE SEARCH REQUEST ===");
       console.log("Search URL:", searchUrl);
       console.log("Search query:", query);
       console.log("Access token exists:", !!accessToken);
-      console.log("===========================");
+      console.log("===============================");
 
-      // FIXED: Use the correct query parameter that matches your backend
+      // FIXED: Make the request exactly as your backend expects
       const response = await axios.get(searchUrl, {
         params: {
-          query: query, // Your backend expects 'query' parameter
+          query: query.trim(), // Your backend expects 'query' parameter
         },
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -280,138 +280,129 @@ const AssigneeSearchInput = ({
         timeout: 10000, // 10 second timeout
       });
 
-      console.log("=== USER SEARCH RESPONSE ===");
+      console.log("=== ASSIGNEE SEARCH RESPONSE ===");
       console.log("Response status:", response.status);
       console.log("Response data:", response.data);
-      console.log("============================");
+      console.log("================================");
 
-      // Handle the response based on your backend structure
-      let userData = [];
+      // FIXED: Handle the response based on your backend controller structure
+      if (response.data && response.data.success) {
+        // Your backend returns: { success: true, message: '...', count: number, users: [...] }
+        const userData = response.data.users || [];
 
-      if (response.data && response.data.success !== false) {
-        // FIXED: Your backend returns 'users' array based on the provided code
-        userData = response.data.users || [];
+        console.log("Users from backend:", userData);
 
-        console.log("Extracted user data:", userData);
+        // Validate and transform user data
+        const validUsers = userData
+          .filter((user) => {
+            const hasValidId = user && (user._id || user.id);
+            const hasValidName = user && (user.firstName || user.lastName);
+            return hasValidId && hasValidName;
+          })
+          .map((user) => ({
+            _id: user._id,
+            id: user._id, // Ensure both _id and id are available
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            department: user.department || "",
+            jobTitle: user.jobTitle || "",
+            email: user.email || "",
+          }));
 
-        // Ensure userData is an array
-        if (!Array.isArray(userData)) {
-          console.warn("User data is not an array, converting:", userData);
-          userData = userData ? [userData] : [];
-        }
+        console.log("Processed valid users:", validUsers);
 
-        // Filter out invalid user objects and ensure required fields
-        userData = userData.filter((user) => {
-          const hasValidId = user && (user._id || user.id);
-          const hasValidName =
-            user && (user.firstName || user.name || user.email);
-          const isValid = hasValidId && hasValidName;
-
-          if (!isValid) {
-            console.warn("Filtering out invalid user:", user);
-          }
-
-          return isValid;
-        });
-
-        console.log("Filtered user data:", userData);
-
-        // Add current user to the top of results if they match the search
+        // Add current user to results if they match and aren't already included
         const currentUserMatch =
           currentUser &&
           (currentUser.firstName?.toLowerCase().includes(query.toLowerCase()) ||
-            currentUser.lastName?.toLowerCase().includes(query.toLowerCase()) ||
-            currentUser.email?.toLowerCase().includes(query.toLowerCase()));
+            currentUser.lastName?.toLowerCase().includes(query.toLowerCase()));
 
         if (
           currentUserMatch &&
-          !userData.find((u) => (u._id || u.id) === currentUser._id)
+          !validUsers.find((u) => u._id === currentUser._id)
         ) {
-          userData.unshift({
+          validUsers.unshift({
             _id: currentUser._id,
             id: currentUser._id,
-            firstName: currentUser.firstName,
-            lastName: currentUser.lastName,
-            email: currentUser.email,
+            firstName: currentUser.firstName || "",
+            lastName: currentUser.lastName || "",
+            department: currentUser.department || "",
+            jobTitle: currentUser.jobTitle || "",
+            email: currentUser.email || "",
             isCurrentUser: true,
           });
         }
 
-        setUsers(userData);
-        setIsOpen(userData.length > 0);
+        setUsers(validUsers);
+        setIsOpen(validUsers.length > 0);
         setSelectedIndex(-1);
 
-        console.log("Final users list set:", userData.length, "users");
+        console.log("Final users list:", validUsers.length, "users");
       } else {
-        console.warn("API response indicates failure:", response.data);
-        setUsers([]);
-        setIsOpen(false);
-        setSearchError(response.data.message || "Search request failed");
+        // Handle case where backend returns success: false
+        console.warn("Backend returned success: false:", response.data);
+        const errorMessage = response.data.message || "Search request failed";
+
+        if (response.data.message === "No matching users found") {
+          // This is expected when no users match
+          setUsers([]);
+          setIsOpen(false);
+          setSearchError(null); // Don't show error for no results
+        } else {
+          setSearchError(errorMessage);
+          setUsers([]);
+          setIsOpen(false);
+        }
       }
     } catch (error) {
-      console.error("=== USER SEARCH ERROR ===");
+      console.error("=== ASSIGNEE SEARCH ERROR ===");
       console.error("Error object:", error);
       console.error("Error message:", error.message);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
-      console.error("Error code:", error.code);
-      console.error("=========================");
+      console.error("=============================");
 
       let errorMessage = "Failed to search users";
 
       if (error.response) {
-        // Server responded with error status
         const status = error.response.status;
         const responseData = error.response.data;
 
         switch (status) {
           case 404:
-            errorMessage =
-              "User search endpoint not found. Please ensure your server has the '/api/v1/tasks/assignees/search' endpoint implemented.";
-            console.error(
-              "404 Error - Endpoint not found. Check if '/api/v1/tasks/assignees/search' exists on your server."
-            );
+            // Check if it's "no users found" vs "endpoint not found"
+            if (responseData?.message === "No matching users found") {
+              // This is expected when no users match the search
+              setUsers([]);
+              setIsOpen(false);
+              setSearchError(null);
+              return; // Don't show error
+            } else {
+              errorMessage = `Search endpoint not found. Please ensure your server has the '/api/v1/tasks/assignees/search' endpoint implemented.`;
+            }
             break;
           case 401:
             errorMessage = "Unauthorized access. Please log in again.";
-            console.error(
-              "401 Error - Authentication failed. Check access token."
-            );
             break;
           case 400:
             errorMessage =
-              responseData?.message || "Invalid search query parameters.";
-            console.error("400 Error - Bad request. Check query parameters.");
+              responseData?.message || "Invalid search parameters.";
             break;
           case 500:
             errorMessage = "Internal server error. Please try again later.";
-            console.error("500 Error - Server error. Check server logs.");
             break;
           default:
-            errorMessage =
-              responseData?.message ||
-              `Server error (${status}). Please try again.`;
+            errorMessage = responseData?.message || `Server error (${status})`;
         }
       } else if (error.code === "ECONNABORTED") {
         errorMessage = "Search request timed out. Please try again.";
-        console.error(
-          "Request timeout - Server is taking too long to respond."
-        );
-      } else if (
-        error.message?.includes("Network Error") ||
-        error.code === "NETWORK_ERROR"
-      ) {
-        errorMessage = "Network error. Please check your internet connection.";
-        console.error(
-          "Network error - Check internet connection and server availability."
-        );
+      } else if (error.message?.includes("Network Error")) {
+        errorMessage = "Network error. Please check your connection.";
       } else {
-        errorMessage =
-          error.message || "An unexpected error occurred during search.";
+        errorMessage = error.message || "An unexpected error occurred.";
       }
 
       console.error("Final error message:", errorMessage);
-
       setSearchError(errorMessage);
       setUsers([]);
       setIsOpen(false);
@@ -420,12 +411,13 @@ const AssigneeSearchInput = ({
     }
   };
 
+  // Debounced search effect
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (searchQuery.trim()) {
         searchUsers(searchQuery.trim());
       }
-    }, 500); // Debounce for better performance
+    }, 500);
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, accessToken]);
@@ -439,9 +431,7 @@ const AssigneeSearchInput = ({
   };
 
   const handleUserSelect = (user) => {
-    const fullName = `${user.firstName || user.name || ""} ${
-      user.lastName || ""
-    }`.trim();
+    const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
     setSearchQuery(fullName);
     onValueChange(fullName);
     onUserSelect(user._id || user.id);
@@ -483,7 +473,6 @@ const AssigneeSearchInput = ({
   };
 
   const handleBlur = () => {
-    // Delay hiding to allow click events to fire
     setTimeout(() => {
       setIsOpen(false);
       setSelectedIndex(-1);
@@ -536,9 +525,7 @@ const AssigneeSearchInput = ({
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">
                       {highlightText(
-                        `${user.firstName || user.name || ""} ${
-                          user.lastName || ""
-                        }`.trim(),
+                        `${user.firstName || ""} ${user.lastName || ""}`.trim(),
                         searchQuery
                       )}
                       {user.isCurrentUser && (
@@ -575,9 +562,6 @@ const AssigneeSearchInput = ({
               >
                 Try Again
               </button>
-              <div className="mt-2 text-xs text-gray-500">
-                Expected endpoint: /api/v1/tasks/assignees/search?query=
-              </div>
             </div>
           ) : hasSearched && searchQuery.length >= 2 ? (
             <div className="p-4 text-center text-gray-500 text-sm">
@@ -604,7 +588,7 @@ const AssigneeSearchInput = ({
 
       {/* Error message below input */}
       {searchError && !isOpen && (
-        <div className="absolute top-full left-0 mt-1 text-xs text-red-500 bg-red-50 p-2 rounded border border-red-200 max-w-md">
+        <div className="absolute top-full left-0 mt-1 text-xs text-red-500 bg-red-50 p-2 rounded border border-red-200 max-w-md z-10">
           <div className="font-medium">Search Error:</div>
           <div>{searchError}</div>
           <div className="mt-1 text-gray-600">
@@ -673,7 +657,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-green-600">Add new Task</h2>
         </div>
@@ -898,7 +881,6 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-green-600">Edit Task</h2>
         </div>
@@ -1264,10 +1246,6 @@ export default function StaffTasksPage() {
 
           setTasks(transformedTasks);
           console.log("Tasks fetched successfully:", transformedTasks);
-          console.log(
-            "Task IDs:",
-            transformedTasks.map((t) => ({ id: t.id, title: t.title }))
-          );
         } else {
           console.warn("API response data is not an array:", apiData);
           setTasks([]);
@@ -1342,7 +1320,6 @@ export default function StaffTasksPage() {
       });
 
       console.log("Task creation response:", response.data);
-      console.log("Response status:", response.status);
 
       if (response.data.success) {
         await fetchTasks();
@@ -1353,7 +1330,6 @@ export default function StaffTasksPage() {
     } catch (err) {
       console.error("Error adding task:", err);
       console.error("Error response:", err.response?.data);
-      console.error("Error status:", err.response?.status);
 
       let errorMessage = "Failed to add task";
 
@@ -1494,7 +1470,6 @@ export default function StaffTasksPage() {
       }
 
       console.log("Task update response:", response.data);
-      console.log("Response status:", response.status);
 
       if (response.data.success) {
         await fetchTasks();
@@ -1505,7 +1480,6 @@ export default function StaffTasksPage() {
     } catch (err) {
       console.error("Error updating task:", err);
       console.error("Error response:", err.response?.data);
-      console.error("Error status:", err.response?.status);
 
       let errorMessage = "Failed to update task";
 
@@ -1526,8 +1500,6 @@ export default function StaffTasksPage() {
   // Edit task
   const handleEditTask = (task) => {
     console.log("Edit task:", task);
-    console.log("Task ID for editing:", task.id);
-    console.log("Task ID type:", typeof task.id);
     setEditingTask(task);
     setShowEditModal(true);
   };
@@ -1546,9 +1518,6 @@ export default function StaffTasksPage() {
 
     return matchesSearch;
   });
-
-  // Get user's first name, fallback to "User" if not available
-  const userName = user?.firstName || "User";
 
   return (
     <StaffDashboardLayout
