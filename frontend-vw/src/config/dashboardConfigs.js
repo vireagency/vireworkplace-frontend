@@ -215,11 +215,11 @@ export const staffDashboardConfig = {
       url: "/staff/settings",
       icon: IconSettings,
     },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
+    // {
+    //   title: "Get Help",
+    //   url: "#",
+    //   icon: IconHelp,
+    // },
     {
       title: "Search",
       url: "#",
