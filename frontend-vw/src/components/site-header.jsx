@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
 // Avatar components for user representation
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 // Input component for search functionality
 import { Input } from "@/components/ui/input"
@@ -38,6 +38,7 @@ import { Search, Bell } from "lucide-react"
 
 // Custom authentication hook for user context
 import { useAuth } from "@/hooks/useAuth"
+import { getUserAvatarUrl, getUserInitials as getInitials } from "@/utils/avatarUtils"
 
 // React hooks for state management
 import { useState, useEffect, useRef } from "react"
@@ -230,13 +231,7 @@ export function SiteHeader() {
    * getUserInitials() // Returns "U" if no user or name data
    */
   const getUserInitials = () => {
-    // Check if user exists and has both first and last names
-    if (user && user.firstName && user.lastName) {
-      // Extract first character of first and last name, convert to uppercase
-      return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-    }
-    // Default fallback for users without names or unauthenticated users
-    return "U";
+    return getInitials(user);
   };
 
   return (
@@ -319,9 +314,13 @@ export function SiteHeader() {
           </Button>
           
           {/* User Avatar with Initials */}
-          <Avatar className="h-8 w-8 hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer">
-            {/* Avatar fallback showing user initials */}
-            <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm hover:bg-green-500/10">
+          <Avatar className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer">
+            <AvatarImage 
+              src={getUserAvatarUrl(user)} 
+              alt={user ? `${user.firstName} ${user.lastName}` : "User"}
+              className="object-cover w-full h-full"
+            />
+            <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm hover:bg-green-500/10 rounded-full">
               {/* Display user initials or fallback */}
               {getUserInitials()}
             </AvatarFallback>

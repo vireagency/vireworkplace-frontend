@@ -274,7 +274,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ 
+      value={{
         user, 
         accessToken, 
         loading, 
@@ -283,6 +283,7 @@ export const AuthProvider = ({ children }) => {
         signOut, 
         fetchUserProfile,
         updateProfile,
+        setUser,
         isTokenValid,
         isTokenExpired,
         getTokenExpiration

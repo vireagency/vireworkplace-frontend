@@ -71,6 +71,7 @@ import {
 
 // Custom authentication hook for user context
 import { useAuth } from "@/hooks/useAuth"
+import { getUserAvatarUrl } from "@/utils/avatarUtils"
 
 /**
  * AppSidebar Component
@@ -248,7 +249,7 @@ export function AppSidebar({
     user: {
       name: user ? `${user.firstName} ${user.lastName}` : "Loading...",  // User's full name or loading state
       email: user?.email || "loading@example.com",                      // User's email or placeholder
-      avatar: "/avatars/default.jpg",                                   // Default avatar image path
+      avatar: getUserAvatarUrl(user),                                    // User's profile image or null
     },
     ...finalConfig                                                      // Spread the navigation configuration
   };

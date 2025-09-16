@@ -45,7 +45,7 @@ import countryCodes from "@/data/countryCodes.json";
 // Force refresh - duplicate key fix applied
 
 // Custom Hooks and Utilities
-import useAuth from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff, Mail, Lock, User, Phone, Calendar as CalendarIcon, UserCheck } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -307,6 +307,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
           // Store user's first name in localStorage for welcome page
           localStorage.setItem('signup_firstName', formData.firstName);
           
+          console.log('Signup successful:', response.data);
           toast.success('Account created successfully! Please check your email for OTP verification.');
           onClose();
           
@@ -319,13 +320,29 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
             } 
           });
         } else {
+          console.error('Signup failed with status:', response.status, response.data);
           toast.error('Signup failed. Please try again.');
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
-      const errorMessage = error.response?.data?.message || 
-        (uiState.currentMode === 'login' ? 'An error occurred during login' : 'An error occurred during signup');
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      let errorMessage = 'An error occurred. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please contact support or try again later.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid data provided. Please check your information.';
+      } else if (uiState.currentMode === 'login') {
+        errorMessage = 'Login failed. Please check your credentials.';
+      } else {
+        errorMessage = 'Signup failed. Please try again.';
+      }
+      
       toast.error(errorMessage);
     } finally {
       updateUiState({ loading: false });

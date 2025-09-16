@@ -241,9 +241,12 @@ export default function HRNotificationSettings() {
           <div className="flex items-start space-x-6">
             {/* Profile Picture */}
             <div className="relative">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
+              <Avatar className="w-24 h-24 rounded-full overflow-hidden">
+                <AvatarImage 
+                  src={user?.avatar} 
+                  className="object-cover w-full h-full"
+                />
+                <AvatarFallback className="text-lg bg-gray-200 text-gray-600 rounded-full">
                   {user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` : 'U'}
                 </AvatarFallback>
               </Avatar>

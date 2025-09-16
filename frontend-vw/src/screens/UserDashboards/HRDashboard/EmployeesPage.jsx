@@ -373,9 +373,12 @@ export default function EmployeesPage() {
                   <TableRow key={employee.id} className="hover:bg-gray-50 border-b border-gray-100">
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center space-x-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={employee.avatar} />
-                          <AvatarFallback className="bg-gray-300 text-gray-600">
+                        <Avatar className="w-10 h-10 rounded-full overflow-hidden">
+                          <AvatarImage 
+                            src={employee.avatar} 
+                            className="object-cover w-full h-full"
+                          />
+                          <AvatarFallback className="bg-gray-300 text-gray-600 rounded-full">
                             {employee.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
@@ -483,9 +486,12 @@ export default function EmployeesPage() {
             <div className="space-y-6">
               {/* Employee Header */}
               <div className="flex items-start space-x-4">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={selectedEmployee.avatar} />
-                  <AvatarFallback className="text-lg bg-gray-300 text-gray-600">
+                <Avatar className="w-20 h-20 rounded-full overflow-hidden">
+                  <AvatarImage 
+                    src={selectedEmployee.avatar} 
+                    className="object-cover w-full h-full"
+                  />
+                  <AvatarFallback className="text-lg bg-gray-300 text-gray-600 rounded-full">
                     {selectedEmployee.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>

@@ -44,7 +44,7 @@ import countryCodes from "@/data/countryCodes.json";
 // Force refresh - duplicate key fix applied
 
 // Custom Hooks and Utilities
-import useAuth from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff, Mail, Lock, User, Phone, Calendar as CalendarIcon, UserCheck } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";

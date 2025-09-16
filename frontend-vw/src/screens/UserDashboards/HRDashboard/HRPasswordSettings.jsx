@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Lock, Shield, Key } from "lucide-react";
 import { IconPlus } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
+import ProfileImageUpload from "@/components/ProfileImageUpload";
 import { hrDashboardConfig } from "@/config/dashboardConfigs";
 
 // StatusBadge component moved outside to prevent recreation on every render
@@ -149,27 +150,17 @@ export default function HRPasswordSettings() {
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
           <div className="flex items-start space-x-6">
-            {/* Profile Picture */}
-            <div className="relative">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
-                  {user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` : 'U'}
-                </AvatarFallback>
-              </Avatar>
-              {/* Green plus icon overlay */}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <IconPlus className="w-3 h-3 text-white" />
-              </div>
-            </div>
+            {/* Profile Picture Upload */}
+            <ProfileImageUpload
+              size="w-24 h-24"
+              currentImageUrl={user?.avatar}
+              userName={user ? `${user.firstName} ${user.lastName}` : ''}
+              showActions={true}
+              showSizeHint={true}
+            />
 
             {/* Profile Details */}
             <div className="flex-1">
-              <div className="flex items-center space-x-4 mb-2">
-                <button className="text-red-500 text-sm hover:underline cursor-pointer">Remove</button>
-                <button className="text-green-500 text-sm hover:underline cursor-pointer">Update</button>
-              </div>
-              <p className="text-sm text-gray-400 mb-2">Recommended size: 400X400px</p>
               <h3 className="text-lg font-bold text-gray-800 mb-1">
                 {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
               </h3>

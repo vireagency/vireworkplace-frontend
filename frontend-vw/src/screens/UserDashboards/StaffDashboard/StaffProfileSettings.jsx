@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useAuth } from "@/hooks/useAuth"
+import ProfileImageUpload from "@/components/ProfileImageUpload"
 import { 
   IconPlus,
   IconUser, 
