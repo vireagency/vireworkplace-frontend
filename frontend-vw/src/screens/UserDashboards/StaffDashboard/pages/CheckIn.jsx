@@ -14,6 +14,12 @@ import {
 import StaffDashboardMainPage from "@/screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 import { useAuth } from "@/hooks/useAuth";
 
+// Hardcoded fallback coordinates for office location (Vire Agency Office)
+const FALLBACK_OFFICE_COORDINATES = {
+  latitude: 5.767477,
+  longitude: -0.180019,
+};
+
 export default function CheckIn() {
   const navigate = useNavigate();
   const { user, accessToken } = useAuth();
@@ -30,6 +36,8 @@ export default function CheckIn() {
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [userData, setUserData] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [locationError, setLocationError] = useState(null);
+  const [hasValidLocation, setHasValidLocation] = useState(false);
 
   // Fetch user data
   const fetchUserData = async () => {
@@ -223,15 +231,19 @@ export default function CheckIn() {
     fetchUserData();
   }, [user]);
 
-  // Get user's current location with improved accuracy
+  // Get user's current location with improved accuracy and fallback
   const getCurrentLocation = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported by this browser"));
+        const error = new Error("Geolocation is not supported by this browser");
+        setLocationError(error.message);
+        reject(error);
         return;
       }
 
       setIsGettingLocation(true);
+      setLocationError(null);
+      setHasValidLocation(false);
 
       // Clear previous location data for fresh reading
       setLocation({ latitude: null, longitude: null });
@@ -246,15 +258,20 @@ export default function CheckIn() {
             accuracy,
           });
 
-          setLocation({ latitude, longitude });
+          const locationData = { latitude, longitude };
+          setLocation(locationData);
           setIsGettingLocation(false);
-          resolve({ latitude, longitude, accuracy });
+          setHasValidLocation(true);
+          setLocationError(null);
+          resolve(locationData);
         },
         (error) => {
           setIsGettingLocation(false);
+          setHasValidLocation(false);
           console.error("Geolocation error:", error);
 
-          let errorMessage = "Office check-in requires being on location.";
+          let errorMessage =
+            "Office check-in requires being at the office location.";
 
           switch (error.code) {
             case error.PERMISSION_DENIED:
@@ -274,6 +291,7 @@ export default function CheckIn() {
               break;
           }
 
+          setLocationError(errorMessage);
           reject(new Error(errorMessage));
         },
         {
@@ -299,6 +317,11 @@ export default function CheckIn() {
         console.log("Location permission denied or failed:", error.message);
         // Don't show error here, let user proceed and handle it during check-in
       }
+    } else {
+      // Reset location state when switching to remote
+      setLocation({ latitude: null, longitude: null });
+      setHasValidLocation(false);
+      setLocationError(null);
     }
   };
 
@@ -377,10 +400,12 @@ export default function CheckIn() {
             errorMsg.toLowerCase().includes("location") ||
             errorMsg.toLowerCase().includes("office") ||
             errorMsg.toLowerCase().includes("geofence") ||
-            errorMsg.toLowerCase().includes("coordinates")
+            errorMsg.toLowerCase().includes("coordinates") ||
+            errorMsg.toLowerCase().includes("gps") ||
+            errorMsg.toLowerCase().includes("presence")
           ) {
             throw new Error(
-              "Office check-in requires being on location. Couldn't check in. Please try again."
+              "Office check-in requires being at the office location. Please ensure you are within the office premises and try again."
             );
           }
 
@@ -600,6 +625,14 @@ export default function CheckIn() {
                 </div>
               )}
 
+              {/* Location Error Notice */}
+              {selectedLocation === "office" && locationError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                  <AlertTriangle className="w-4 h-4" />
+                  {locationError}
+                </div>
+              )}
+
               {/* Action Buttons Section */}
               <div className="flex gap-3 pt-2">
                 <Button
@@ -646,16 +679,17 @@ export default function CheckIn() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg text-slate-900 mb-2">
-                  {error.includes("location")
-                    ? "Office check-in requires being on location."
+                  {error.includes("location") ||
+                  error.includes("office") ||
+                  error.includes("gps") ||
+                  error.includes("geofence")
+                    ? "Office Location Required"
                     : error.includes("already checked in")
                     ? "Already Checked In"
                     : "Check-in Failed"}
                 </h3>
                 <p className="text-slate-500 text-sm">
-                  {error.includes("location")
-                    ? "Couldn't check in. Please try again."
-                    : error || "Something went wrong. Please try again."}
+                  {error || "Something went wrong. Please try again."}
                 </p>
               </div>
               <div className="flex gap-3 pt-2">
