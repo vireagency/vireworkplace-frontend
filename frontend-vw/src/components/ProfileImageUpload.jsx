@@ -238,8 +238,14 @@ export default function ProfileImageUpload({
         console.log('Profile fetch result:', profileResult)
         
         if (profileResult.success) {
+          // Add a timestamp to help with cache-busting
+          const updatedUserData = {
+            ...profileResult.data,
+            avatarUpdatedAt: Date.now()
+          }
+          
           // Update the user context with the new profile data
-          setUser(profileResult.data)
+          setUser(updatedUserData)
           
           // Check if the avatar field was updated
           if (profileResult.data?.avatar) {
@@ -321,7 +327,7 @@ export default function ProfileImageUpload({
     <div className="flex flex-col items-center space-y-4">
       {/* Profile Image */}
       <div className="relative">
-        <Avatar className={`${size} rounded-full overflow-hidden`}>
+        <Avatar className={`${size} rounded-full overflow-hidden`} key={user?.avatarUpdatedAt || user?.avatar}>
           <AvatarImage 
             src={getCurrentImageUrl()} 
             alt={userName || "Profile"}

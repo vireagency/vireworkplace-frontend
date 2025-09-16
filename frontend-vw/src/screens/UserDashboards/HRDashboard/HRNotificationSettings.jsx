@@ -241,7 +241,7 @@ export default function HRNotificationSettings() {
           <div className="flex items-start space-x-6">
             {/* Profile Picture */}
             <div className="relative">
-              <Avatar className="w-24 h-24 rounded-full overflow-hidden">
+              <Avatar className="w-24 h-24 rounded-full overflow-hidden" key={user?.avatarUpdatedAt || user?.avatar}>
                 <AvatarImage 
                   src={user?.avatar} 
                   className="object-cover w-full h-full"

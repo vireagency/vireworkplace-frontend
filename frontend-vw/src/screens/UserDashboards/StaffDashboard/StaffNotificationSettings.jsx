@@ -270,7 +270,7 @@ export default function StaffNotificationSettings() {
           <div className="flex items-start space-x-6">
             {/* Profile Picture */}
             <div className="relative">
-              <Avatar className="w-24 h-24">
+              <Avatar className="w-24 h-24" key={user?.avatarUpdatedAt || user?.avatar}>
                 <AvatarImage src={user?.avatar} />
                 <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
                   {user

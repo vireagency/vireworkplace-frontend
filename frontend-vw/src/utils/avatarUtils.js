@@ -33,7 +33,10 @@ export const getUserAvatarUrl = (user) => {
   // Add cache-busting parameter to prevent browser caching
   if (avatarUrl) {
     const separator = avatarUrl.includes('?') ? '&' : '?'
-    return `${avatarUrl}${separator}t=${Date.now()}`
+    // Use a more stable cache-busting approach that changes when the image actually changes
+    const cacheKey = user.avatarUpdatedAt || user.updatedAt || Date.now()
+    // Add both version and timestamp for more aggressive cache-busting
+    return `${avatarUrl}${separator}v=${cacheKey}&t=${Date.now()}`
   }
   
   return null
