@@ -1650,9 +1650,17 @@ export default function StaffTasksPage() {
     return matchesSearch;
   });
 
+  // Dynamically update the badge for the Tasks sidebar item
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    productivity: staffDashboardConfig.productivity.map((item) =>
+      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
+    ),
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
