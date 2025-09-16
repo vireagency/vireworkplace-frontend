@@ -163,7 +163,7 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-// FIXED: Assignee Search Component - Properly configured for the backend
+// FIXED: Assignee Search Component with correct API endpoint
 const AssigneeSearchInput = ({
   value,
   onValueChange,
@@ -178,9 +178,17 @@ const AssigneeSearchInput = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const [selectedUserData, setSelectedUserData] = useState(null);
   const { accessToken, user: currentUser } = useAuth();
 
-  // FIXED: Proper API URL construction that matches your backend
+  // Initialize search query from value prop
+  useEffect(() => {
+    if (value !== searchQuery) {
+      setSearchQuery(value || "");
+    }
+  }, [value]);
+
+  // FIXED: Correct API URL construction that matches backend
   const getAssigneeSearchApiUrl = () => {
     try {
       const baseUrl = getApiUrl();
@@ -206,7 +214,7 @@ const AssigneeSearchInput = ({
         }
       }
 
-      // FIXED: Use the exact endpoint that matches your backend controller
+      // FIXED: Use the exact endpoint from your API documentation
       const searchUrl = `${apiUrl}/tasks/assignees/search`;
 
       console.log("Final assignee search URL:", searchUrl);
@@ -240,7 +248,7 @@ const AssigneeSearchInput = ({
     );
   };
 
-  // FIXED: Search function that matches your backend controller expectations
+  // FIXED: Search function that uses correct API endpoint
   const searchUsers = async (query) => {
     if (!query || query.length < 2) {
       setUsers([]);
@@ -285,7 +293,7 @@ const AssigneeSearchInput = ({
       console.log("Response data:", response.data);
       console.log("================================");
 
-      // FIXED: Handle the response based on your backend controller structure
+      // FIXED: Handle the response based on your backend structure
       if (response.data && response.data.success) {
         // Your backend returns: { success: true, message: '...', count: number, users: [...] }
         const userData = response.data.users || [];
@@ -295,7 +303,7 @@ const AssigneeSearchInput = ({
         // Validate and transform user data
         const validUsers = userData
           .filter((user) => {
-            const hasValidId = user && (user._id || user.id);
+            const hasValidId = user && user._id;
             const hasValidName = user && (user.firstName || user.lastName);
             return hasValidId && hasValidName;
           })
@@ -307,6 +315,7 @@ const AssigneeSearchInput = ({
             department: user.department || "",
             jobTitle: user.jobTitle || "",
             email: user.email || "",
+            fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
           }));
 
         console.log("Processed valid users:", validUsers);
@@ -329,6 +338,9 @@ const AssigneeSearchInput = ({
             department: currentUser.department || "",
             jobTitle: currentUser.jobTitle || "",
             email: currentUser.email || "",
+            fullName: `${currentUser.firstName || ""} ${
+              currentUser.lastName || ""
+            }`.trim(),
             isCurrentUser: true,
           });
         }
@@ -428,17 +440,36 @@ const AssigneeSearchInput = ({
     onValueChange(newValue);
     setSelectedIndex(-1);
     setSearchError(null);
+
+    // Reset selected user if input is cleared
+    if (!newValue.trim()) {
+      setSelectedUserData(null);
+      onUserSelect(null);
+    }
   };
 
+  // FIXED: Better user selection handling
   const handleUserSelect = (user) => {
-    const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    const fullName =
+      user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim();
+
+    console.log("=== USER SELECTION ===");
+    console.log("Selected user:", user);
+    console.log("Full name:", fullName);
+    console.log("User ID:", user._id);
+    console.log("=====================");
+
     setSearchQuery(fullName);
+    setSelectedUserData(user);
     onValueChange(fullName);
-    onUserSelect(user._id || user.id);
+    onUserSelect(user._id); // Make sure we pass the _id
     setUsers([]);
     setIsOpen(false);
     setSelectedIndex(-1);
     setSearchError(null);
+
+    // Show success feedback
+    toast.success(`Selected ${fullName} as assignee`);
   };
 
   const handleKeyDown = (e) => {
@@ -499,6 +530,13 @@ const AssigneeSearchInput = ({
         </div>
       )}
 
+      {/* Success indicator when user is selected */}
+      {selectedUserData && !loading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <CheckCircle2 className="w-4 h-4 text-green-500" />
+        </div>
+      )}
+
       {/* Error indicator */}
       {searchError && !loading && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -524,10 +562,7 @@ const AssigneeSearchInput = ({
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">
-                      {highlightText(
-                        `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-                        searchQuery
-                      )}
+                      {highlightText(user.fullName, searchQuery)}
                       {user.isCurrentUser && (
                         <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                           You
@@ -601,7 +636,7 @@ const AssigneeSearchInput = ({
   );
 };
 
-// Add Task Modal Component
+// FIXED: Add Task Modal Component using correct API endpoint
 const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -630,27 +665,53 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.title.trim()) {
-      setIsSubmitting(true);
-      try {
-        // If no assignee is selected, default to current user
-        const assigneeId = formData.assignedTo || user?._id;
 
-        await onAddTask({
-          title: formData.title,
-          description: formData.description,
-          assignedTo: assigneeId,
-          dueDate: formData.dueDate,
-          priority: formData.priority || "Medium",
-        });
-        onClose();
-        toast.success("Task created successfully!");
-      } catch (error) {
-        console.error("Error adding task:", error);
-        toast.error("Failed to create task. Please try again.");
-      } finally {
-        setIsSubmitting(false);
+    console.log("=== ADD TASK FORM SUBMISSION ===");
+    console.log("Form data:", formData);
+    console.log("Current user:", user);
+    console.log("===============================");
+
+    if (!formData.title.trim()) {
+      toast.error("Task title is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // FIXED: Better assignee handling with validation
+      const assigneeId = formData.assignedTo || user?._id;
+
+      if (!assigneeId) {
+        toast.error("Unable to determine task assignee. Please try again.");
+        return;
       }
+
+      console.log("=== TASK CREATION DATA ===");
+      console.log("Assignee ID:", assigneeId);
+      console.log("Title:", formData.title);
+      console.log("Description:", formData.description);
+      console.log("Due Date:", formData.dueDate);
+      console.log("Priority:", formData.priority);
+      console.log("=========================");
+
+      const taskData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        assignedTo: assigneeId, // This should be a MongoDB ObjectId string
+        dueDate: formData.dueDate || null,
+        priority: formData.priority || "Medium",
+      };
+
+      await onAddTask(taskData);
+      onClose();
+      toast.success("Task created successfully!");
+    } catch (error) {
+      console.error("Error adding task:", error);
+      const errorMessage =
+        error.message || "Failed to create task. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -668,7 +729,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               htmlFor="title"
               className="text-sm font-medium text-gray-900"
             >
-              Task Title
+              Task Title <span className="text-red-500">*</span>
             </Label>
             <Input
               id="title"
@@ -751,9 +812,12 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   setFormData({ ...formData, assigneeSearch: value })
                 }
                 selectedUser={formData.assignedTo}
-                onUserSelect={(userId) =>
-                  setFormData({ ...formData, assignedTo: userId })
-                }
+                onUserSelect={(userId) => {
+                  console.log("=== ASSIGNEE SELECTED ===");
+                  console.log("User ID:", userId);
+                  console.log("========================");
+                  setFormData({ ...formData, assignedTo: userId });
+                }}
                 placeholder="Search by name"
               />
               {formData.assignedTo ? (
@@ -803,7 +867,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
             <Button
               type="submit"
               className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !formData.title.trim()}
             >
               {isSubmitting ? "Adding..." : "Add Task"}
             </Button>
@@ -814,7 +878,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   );
 };
 
-// Edit Task Modal Component
+// FIXED: Edit Task Modal Component
 const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -831,13 +895,14 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
   // Initialize form data when task changes
   useEffect(() => {
     if (task && isOpen) {
+      const assigneeName = task.assignee || "";
       setFormData({
         title: task.title || "",
         description: task.description || "",
         dueDate: task.dueDate || "",
         priority: task.priority || "Medium",
         status: task.status || "Pending",
-        assigneeSearch: task.assignee || "",
+        assigneeSearch: assigneeName,
         assignedTo: task.assignedTo?._id || null,
       });
     }
@@ -845,34 +910,51 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.title.trim()) {
-      setIsSubmitting(true);
-      try {
-        console.log("EditTaskModal - Submitting form data:", formData);
-        console.log("EditTaskModal - Task ID:", task.id);
 
-        const updateData = {
-          title: formData.title.trim(),
-          description: formData.description?.trim() || "",
-          assignedTo: formData.assignedTo || user?._id,
-          dueDate: formData.dueDate || null,
-          priority: formData.priority || "Medium",
-          status: formData.status || "Pending",
-        };
+    console.log("=== EDIT TASK FORM SUBMISSION ===");
+    console.log("Form data:", formData);
+    console.log("Current user:", user);
+    console.log("Task ID:", task?.id);
+    console.log("================================");
 
-        console.log("EditTaskModal - Update data being sent:", updateData);
+    if (!formData.title.trim()) {
+      toast.error("Task title is required");
+      return;
+    }
 
-        await onUpdateTask(task.id, updateData);
-        onClose();
-        toast.success("Task updated successfully!");
-      } catch (error) {
-        console.error("EditTaskModal - Error updating task:", error);
-        const errorMessage =
-          error.message || "Failed to update task. Please try again.";
-        toast.error(errorMessage);
-      } finally {
-        setIsSubmitting(false);
+    setIsSubmitting(true);
+    try {
+      // FIXED: Better assignee handling
+      const assigneeId = formData.assignedTo || user?._id;
+
+      if (!assigneeId) {
+        toast.error("Unable to determine task assignee. Please try again.");
+        return;
       }
+
+      const updateData = {
+        title: formData.title.trim(),
+        description: formData.description?.trim() || "",
+        assignedTo: assigneeId,
+        dueDate: formData.dueDate || null,
+        priority: formData.priority || "Medium",
+        status: formData.status || "Pending",
+      };
+
+      console.log("=== TASK UPDATE DATA ===");
+      console.log("Update data being sent:", updateData);
+      console.log("=======================");
+
+      await onUpdateTask(task.id, updateData);
+      onClose();
+      toast.success("Task updated successfully!");
+    } catch (error) {
+      console.error("EditTaskModal - Error updating task:", error);
+      const errorMessage =
+        error.message || "Failed to update task. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -892,7 +974,7 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
               htmlFor="edit-title"
               className="text-sm font-medium text-gray-900"
             >
-              Task Title
+              Task Title <span className="text-red-500">*</span>
             </Label>
             <Input
               id="edit-title"
@@ -996,9 +1078,12 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
                   setFormData({ ...formData, assigneeSearch: value })
                 }
                 selectedUser={formData.assignedTo}
-                onUserSelect={(userId) =>
-                  setFormData({ ...formData, assignedTo: userId })
-                }
+                onUserSelect={(userId) => {
+                  console.log("=== ASSIGNEE SELECTED IN EDIT ===");
+                  console.log("User ID:", userId);
+                  console.log("===============================");
+                  setFormData({ ...formData, assignedTo: userId });
+                }}
                 placeholder="Search by name"
               />
             </div>
@@ -1048,7 +1133,7 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
             <Button
               type="submit"
               className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !formData.title.trim()}
             >
               {isSubmitting ? "Updating..." : "Update Task"}
             </Button>
@@ -1165,7 +1250,7 @@ export default function StaffTasksPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  // API configuration with proper URL handling
+  // FIXED: API configuration with proper URL handling
   const getFullApiUrl = () => {
     const baseUrl = getApiUrl();
     console.log("Base API URL from config:", baseUrl);
@@ -1179,7 +1264,7 @@ export default function StaffTasksPage() {
     }
   };
 
-  // Fetch tasks from API
+  // FIXED: Fetch tasks using correct API endpoint
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -1203,6 +1288,7 @@ export default function StaffTasksPage() {
 
       const queryString = params.toString();
       const apiUrl = getFullApiUrl();
+      // FIXED: Use correct endpoint from API documentation
       const url = `${apiUrl}/tasks${queryString ? `?${queryString}` : ""}`;
 
       console.log("Fetching tasks from:", url);
@@ -1282,36 +1368,48 @@ export default function StaffTasksPage() {
     }
   };
 
-  // Add new task
+  // FIXED: Add new task using correct API endpoint
   const handleAddTask = async (taskData) => {
     try {
       if (!accessToken) {
         throw new Error("No access token available. Please log in again.");
       }
 
-      console.log("Adding new task:", taskData);
+      console.log("=== ADDING NEW TASK ===");
+      console.log("Task data received:", taskData);
+      console.log("Current user:", user);
+      console.log("======================");
 
       const apiUrl = getFullApiUrl();
-      const url = `${apiUrl}/tasks`;
+      // FIXED: Use correct endpoint from API documentation
+      const url = `${apiUrl}/tasks/create`;
       console.log("API URL:", url);
 
-      // Clean up the task data - remove empty strings and null values
-      const cleanedTaskData = Object.fromEntries(
-        Object.entries({
-          title: taskData.title?.trim(),
-          description: taskData.description?.trim() || "",
-          assignedTo: taskData.assignedTo,
-          dueDate: taskData.dueDate || null,
-          priority: taskData.priority || "Medium",
-        }).filter(
-          ([key, value]) =>
-            value !== null && value !== undefined && value !== ""
-        )
-      );
+      // FIXED: Improved task data validation and preparation
+      const preparedTaskData = {
+        title: taskData.title?.trim(),
+        description: taskData.description?.trim() || "",
+        assignedTo: taskData.assignedTo, // Should be a valid MongoDB ObjectId
+        dueDate: taskData.dueDate || null,
+        priority: taskData.priority || "Medium",
+      };
 
-      console.log("Cleaned task data:", cleanedTaskData);
+      // Validate required fields
+      if (!preparedTaskData.title) {
+        throw new Error("Task title is required");
+      }
 
-      const response = await axios.post(url, cleanedTaskData, {
+      if (!preparedTaskData.assignedTo) {
+        throw new Error("Task must be assigned to someone");
+      }
+
+      console.log("=== PREPARED TASK DATA ===");
+      console.log("Prepared task data:", preparedTaskData);
+      console.log("Assignee ID:", preparedTaskData.assignedTo);
+      console.log("Assignee ID type:", typeof preparedTaskData.assignedTo);
+      console.log("========================");
+
+      const response = await axios.post(url, preparedTaskData, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
@@ -1319,17 +1417,23 @@ export default function StaffTasksPage() {
         timeout: 15000,
       });
 
-      console.log("Task creation response:", response.data);
+      console.log("=== TASK CREATION RESPONSE ===");
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+      console.log("=============================");
 
       if (response.data.success) {
         await fetchTasks();
         console.log("Task added successfully");
+        toast.success("Task created and assigned successfully!");
       } else {
         throw new Error(response.data.message || "Failed to add task");
       }
     } catch (err) {
-      console.error("Error adding task:", err);
+      console.error("=== ERROR ADDING TASK ===");
+      console.error("Error object:", err);
       console.error("Error response:", err.response?.data);
+      console.error("========================");
 
       let errorMessage = "Failed to add task";
 
@@ -1341,13 +1445,22 @@ export default function StaffTasksPage() {
         errorMessage = err.message;
       }
 
+      // Handle specific error cases
+      if (
+        err.response?.status === 404 &&
+        errorMessage.includes("Assigned user not found")
+      ) {
+        errorMessage =
+          "The selected assignee was not found. Please select a valid user.";
+      }
+
       console.error("Final error message:", errorMessage);
       setError(`Failed to add task: ${errorMessage}`);
-      throw err;
+      throw new Error(errorMessage);
     }
   };
 
-  // Update task status
+  // FIXED: Update task status using correct API endpoint
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       console.log("Updating task status:", { taskId, newStatus });
@@ -1357,6 +1470,7 @@ export default function StaffTasksPage() {
       }
 
       const apiUrl = getFullApiUrl();
+      // FIXED: Use correct endpoint from API documentation
       const response = await axios.patch(
         `${apiUrl}/tasks/${taskId}/status`,
         { status: newStatus },
@@ -1389,7 +1503,7 @@ export default function StaffTasksPage() {
     }
   };
 
-  // Delete task
+  // FIXED: Delete task using correct API endpoint
   const handleDeleteTask = async (taskId) => {
     if (!confirm("Are you sure you want to delete this task?")) {
       return;
@@ -1401,6 +1515,7 @@ export default function StaffTasksPage() {
       }
 
       const apiUrl = getFullApiUrl();
+      // FIXED: Use correct endpoint from API documentation
       const response = await axios.delete(`${apiUrl}/tasks/${taskId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -1421,65 +1536,72 @@ export default function StaffTasksPage() {
     }
   };
 
-  // Update task
+  // FIXED: Update task using correct API endpoint
   const handleUpdateTask = async (taskId, taskData) => {
     try {
       if (!accessToken) {
         throw new Error("No access token available. Please log in again.");
       }
 
-      console.log("Updating task:", { taskId, taskData });
+      console.log("=== UPDATING TASK ===");
+      console.log("Task ID:", taskId);
+      console.log("Task data:", taskData);
+      console.log("====================");
 
       const apiUrl = getFullApiUrl();
+      // FIXED: Use correct endpoint from API documentation
       const url = `${apiUrl}/tasks/${taskId}`;
       console.log("API URL:", url);
 
-      // Clean up the task data - remove empty strings and null values
-      const cleanedTaskData = Object.fromEntries(
-        Object.entries(taskData).filter(
-          ([key, value]) =>
-            value !== null && value !== undefined && value !== ""
-        )
-      );
+      // FIXED: Improved task data validation and preparation
+      const preparedTaskData = {
+        title: taskData.title?.trim(),
+        description: taskData.description?.trim() || "",
+        assignedTo: taskData.assignedTo,
+        dueDate: taskData.dueDate || null,
+        priority: taskData.priority || "Medium",
+        status: taskData.status || "Pending",
+      };
 
-      console.log("Cleaned task data:", cleanedTaskData);
-
-      // Try the main update endpoint first
-      let response;
-      try {
-        response = await axios.patch(url, cleanedTaskData, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 15000,
-        });
-      } catch (patchError) {
-        console.log(
-          "PATCH request failed, trying PUT:",
-          patchError.response?.status
-        );
-        // Fallback to PUT if PATCH fails
-        response = await axios.put(url, cleanedTaskData, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 15000,
-        });
+      // Validate required fields
+      if (!preparedTaskData.title) {
+        throw new Error("Task title is required");
       }
 
-      console.log("Task update response:", response.data);
+      if (!preparedTaskData.assignedTo) {
+        throw new Error("Task must be assigned to someone");
+      }
+
+      console.log("=== PREPARED UPDATE DATA ===");
+      console.log("Prepared update data:", preparedTaskData);
+      console.log("===========================");
+
+      // FIXED: Use PUT method as per API documentation
+      const response = await axios.put(url, preparedTaskData, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      });
+
+      console.log("=== TASK UPDATE RESPONSE ===");
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+      console.log("===========================");
 
       if (response.data.success) {
         await fetchTasks();
         console.log("Task updated successfully");
+        toast.success("Task updated successfully!");
       } else {
         throw new Error(response.data.message || "Failed to update task");
       }
     } catch (err) {
-      console.error("Error updating task:", err);
+      console.error("=== ERROR UPDATING TASK ===");
+      console.error("Error object:", err);
       console.error("Error response:", err.response?.data);
+      console.error("==========================");
 
       let errorMessage = "Failed to update task";
 
@@ -1491,9 +1613,18 @@ export default function StaffTasksPage() {
         errorMessage = err.message;
       }
 
+      // Handle specific error cases
+      if (
+        err.response?.status === 404 &&
+        errorMessage.includes("Assigned user not found")
+      ) {
+        errorMessage =
+          "The selected assignee was not found. Please select a valid user.";
+      }
+
       console.error("Final error message:", errorMessage);
       setError(`Failed to update task: ${errorMessage}`);
-      throw err;
+      throw new Error(errorMessage);
     }
   };
 
