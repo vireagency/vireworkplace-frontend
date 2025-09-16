@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
@@ -17,34 +22,34 @@ const OTPConfirmationPage = () => {
 
   // Force dark theme for authentication pages
   useEffect(() => {
-    document.documentElement.classList.remove('light')
-    document.documentElement.classList.add('dark')
-    document.documentElement.style.colorScheme = 'dark'
-  }, [])
+    document.documentElement.classList.remove("light");
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
+  }, []);
 
   // Initialize state from location.state or localStorage
   useEffect(() => {
     const stateData = location.state;
-    
+
     if (stateData) {
       // Store in localStorage for fallback
-      localStorage.setItem('otp_reason', stateData.reason);
+      localStorage.setItem("otp_reason", stateData.reason);
       if (stateData.email) {
-        localStorage.setItem('otp_email', stateData.email);
+        localStorage.setItem("otp_email", stateData.email);
       }
       if (stateData.tempToken) {
-        localStorage.setItem('temp_token', stateData.tempToken);
+        localStorage.setItem("temp_token", stateData.tempToken);
       }
-      
+
       setReason(stateData.reason);
       setEmail(stateData.email || "");
       setTempToken(stateData.tempToken || "");
     } else {
       // Fallback to localStorage if page is refreshed
-      const storedReason = localStorage.getItem('otp_reason');
-      const storedEmail = localStorage.getItem('otp_email');
-      const storedTempToken = localStorage.getItem('temp_token');
-      
+      const storedReason = localStorage.getItem("otp_reason");
+      const storedEmail = localStorage.getItem("otp_email");
+      const storedTempToken = localStorage.getItem("temp_token");
+
       if (storedReason) {
         setReason(storedReason);
         setEmail(storedEmail || "");
@@ -77,7 +82,7 @@ const OTPConfirmationPage = () => {
 
     try {
       let response;
-      
+
       if (reason === "signup") {
         // Verify account for signup
         if (!tempToken) {
@@ -85,23 +90,23 @@ const OTPConfirmationPage = () => {
           navigate("/");
           return;
         }
-        
+
         response = await axios.post(
           "https://vireworkplace-backend-hpca.onrender.com/api/v1/auth/otp/verify-account",
           { otp },
           {
             headers: {
-              'Authorization': `Bearer ${tempToken}`
-            }
+              Authorization: `Bearer ${tempToken}`,
+            },
           }
         );
-        
+
         if (response.status === 200) {
           toast.success("Account verified successfully!");
           // Clear localStorage
-          localStorage.removeItem('otp_reason');
-          localStorage.removeItem('otp_email');
-          localStorage.removeItem('temp_token');
+          localStorage.removeItem("otp_reason");
+          localStorage.removeItem("otp_email");
+          localStorage.removeItem("temp_token");
           // Navigate to welcome user page
           navigate("/welcome-user");
         }
@@ -111,47 +116,51 @@ const OTPConfirmationPage = () => {
           toast.error("Email is required for password reset");
           return;
         }
-        
+
         // Get temporary token for forgot password flow
-        const forgotPasswordToken = localStorage.getItem('forgot_password_token');
-        
+        const forgotPasswordToken = localStorage.getItem(
+          "forgot_password_token"
+        );
+
         if (!forgotPasswordToken) {
           toast.error("Invalid access. Please request OTP again.");
           navigate("/forgot-password");
           return;
         }
-        
+
         response = await axios.post(
           "https://vireworkplace-backend-hpca.onrender.com/api/v1/auth/forgot-password/verify-otp",
           { otp }, // Only send OTP in body, not email
           {
             headers: {
-              'Authorization': `Bearer ${forgotPasswordToken}`
-            }
+              Authorization: `Bearer ${forgotPasswordToken}`,
+            },
           }
         );
-        
+
         if (response.status === 200) {
           const resetToken = response.data.resetToken;
-          
+
           // Store resetToken in localStorage
           if (resetToken) {
-            localStorage.setItem('reset_token', resetToken);
+            localStorage.setItem("reset_token", resetToken);
           }
-          
+
           toast.success("OTP verified successfully!");
           // Clear OTP-related localStorage items
-          localStorage.removeItem('otp_reason');
-          localStorage.removeItem('otp_email');
-          localStorage.removeItem('temp_token');
-          localStorage.removeItem('forgot_password_token'); // Clear forgot password token
+          localStorage.removeItem("otp_reason");
+          localStorage.removeItem("otp_email");
+          localStorage.removeItem("temp_token");
+          localStorage.removeItem("forgot_password_token"); // Clear forgot password token
           // Navigate to reset password page with token
           navigate("/reset-password", { state: { resetToken } });
         }
       }
     } catch (error) {
       console.error("OTP verification error:", error);
-      const errorMessage = error.response?.data?.message || "Failed to verify OTP. Please try again.";
+      const errorMessage =
+        error.response?.data?.message ||
+        "Failed to verify OTP. Please try again.";
       toast.error(errorMessage);
     } finally {
       setIsVerifying(false);
@@ -186,8 +195,8 @@ const OTPConfirmationPage = () => {
   };
 
   const getTitle = () => {
-    return reason === "forgot-password" 
-      ? "Verify Password Reset" 
+    return reason === "forgot-password"
+      ? "Verify Password Reset"
       : "Verify your identity";
   };
 
@@ -201,7 +210,7 @@ const OTPConfirmationPage = () => {
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Green Ellipse Background */}
       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 scale-x-200 scale-y-160 w-96 h-96 bg-primary/30 rounded-t blur-3xl contrast-100 brightness-70"></div>
-      
+
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent"></div>
 
@@ -209,8 +218,12 @@ const OTPConfirmationPage = () => {
       <nav className="relative z-10 flex items-center justify-between p-6 lg:px-8">
         <div className="flex items-center">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Vire Workplace</h1>
-            <p className="text-muted-foreground text-sm">Enterprise Management Platform</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              Vire Workplace
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Enterprise Management Platform
+            </p>
           </div>
         </div>
       </nav>
@@ -222,12 +235,12 @@ const OTPConfirmationPage = () => {
           <Badge className="mb-22 bg-primary/20 text-primary border-primary/30">
             Vire Workplace
           </Badge>
-          
+
           {/* Checkmark Icon */}
           <div className="flex justify-center mb-6">
-            <img 
-              src="/verification-icon-8 1.svg" 
-              alt="Verification Icon" 
+            <img
+              src="/verification-icon-8 1.svg"
+              alt="Verification Icon"
               className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28"
             />
           </div>
@@ -249,7 +262,7 @@ const OTPConfirmationPage = () => {
               value={otp}
               onChange={(value) => {
                 // Filter out any non-numeric characters
-                const numericValue = value.replace(/\D/g, '');
+                const numericValue = value.replace(/\D/g, "");
                 setOtp(numericValue);
               }}
               className="gap-2"
@@ -257,31 +270,31 @@ const OTPConfirmationPage = () => {
               inputMode="numeric"
             >
               <InputOTPGroup>
-                <InputOTPSlot 
-                  index={0} 
+                <InputOTPSlot
+                  index={0}
                   className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
-                <InputOTPSlot 
-                  index={1} 
+                <InputOTPSlot
+                  index={1}
                   className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
-                <InputOTPSlot 
-                  index={2} 
+                <InputOTPSlot
+                  index={2}
                   className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
               </InputOTPGroup>
               <InputOTPSeparator />
               <InputOTPGroup>
-                <InputOTPSlot 
-                  index={3} 
+                <InputOTPSlot
+                  index={3}
                   className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
-                <InputOTPSlot 
-                  index={4} 
+                <InputOTPSlot
+                  index={4}
                   className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
-                <InputOTPSlot 
-                  index={5} 
+                <InputOTPSlot
+                  index={5}
                   className="w-12 h-12 text-center text-lg font-semibold bg-white/10 border-white/20 text-white rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-text caret-primary"
                 />
               </InputOTPGroup>

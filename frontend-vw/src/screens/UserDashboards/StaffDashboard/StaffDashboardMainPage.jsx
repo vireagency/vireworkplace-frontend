@@ -241,9 +241,17 @@ export default function StaffDashboardMainPage() {
     navigate("/staff/employees");
   };
 
+  // Dynamically update the badge for the Tasks sidebar item
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    productivity: staffDashboardConfig.productivity.map((item) =>
+      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
+    ),
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -279,7 +287,7 @@ export default function StaffDashboardMainPage() {
             <CardHeader>
               <CardDescription>My Tasks Today</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                8
+                {tasks.length}
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
@@ -294,7 +302,11 @@ export default function StaffDashboardMainPage() {
             <CardHeader>
               <CardDescription>Completed Tasks</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                6
+                {
+                  tasks.filter(
+                    (task) => task.status?.toLowerCase() === "completed"
+                  ).length
+                }
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
@@ -309,7 +321,10 @@ export default function StaffDashboardMainPage() {
             <CardHeader>
               <CardDescription>Hours Worked Today</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                7.5
+                {/* Replace with actual hours if available, fallback to 0 */}
+                {typeof user?.hoursWorkedToday === "number"
+                  ? user.hoursWorkedToday
+                  : 0}
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
@@ -324,7 +339,10 @@ export default function StaffDashboardMainPage() {
             <CardHeader>
               <CardDescription>Performance Score</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                92%
+                {/* Replace with actual score if available, fallback to 0% */}
+                {typeof user?.performanceScore === "number"
+                  ? `${user.performanceScore}%`
+                  : "0%"}
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
