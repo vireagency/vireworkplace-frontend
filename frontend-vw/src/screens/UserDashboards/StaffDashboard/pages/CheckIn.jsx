@@ -392,17 +392,8 @@ export default function CheckIn() {
     setLocationError(null);
     setIsLocationValidForOffice(false);
 
-    // If user selects office, immediately request and validate location
-    if (locationType === "office") {
-      try {
-        await checkLocationPermission();
-        await getCurrentLocation();
-      } catch (error) {
-        console.log("Location validation failed:", error.message);
-        // Error is already handled in getCurrentLocation
-      }
-    } else {
-      // Reset location state when switching to remote
+    // Reset location state when switching to remote
+    if (locationType === "remote") {
       setLocation({ latitude: null, longitude: null });
       setHasValidLocation(false);
       setLocationError(null);
@@ -518,40 +509,16 @@ export default function CheckIn() {
       let checkInResult;
 
       if (selectedLocation === "office") {
-        // Validate location for office check-in
-        if (!hasValidLocation || !isLocationValidForOffice) {
-          console.log("Getting fresh location for office check-in...");
-          const userLocation = await getCurrentLocation();
+        // Fetch and validate location for office check-in
+        console.log("Getting fresh location for office check-in...");
+        const userLocation = await getCurrentLocation();
 
-          // Double-check distance validation
-          const distance = calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            OFFICE_COORDINATES.latitude,
-            OFFICE_COORDINATES.longitude
-          );
-
-          if (distance > MAX_OFFICE_DISTANCE) {
-            throw new Error(
-              `You are ${Math.round(
-                distance
-              )}m away from the office. You must be within ${MAX_OFFICE_DISTANCE}m to check in at the office.`
-            );
-          }
-
-          checkInResult = await checkInToAPI(
-            "office",
-            userLocation.latitude,
-            userLocation.longitude
-          );
-        } else {
-          // Use existing validated location
-          checkInResult = await checkInToAPI(
-            "office",
-            location.latitude,
-            location.longitude
-          );
-        }
+        // Since getCurrentLocation already rejects if invalid, proceed to API
+        checkInResult = await checkInToAPI(
+          "office",
+          userLocation.latitude,
+          userLocation.longitude
+        );
       } else {
         // For remote check-in, no location needed
         checkInResult = await checkInToAPI("remote");
@@ -677,16 +644,13 @@ export default function CheckIn() {
                         </Label>
                         {selectedLocation === "office" && (
                           <div className="text-xs text-slate-500 mt-1">
-                            Location verification required
+                            Location will be verified on check-in
                           </div>
                         )}
                       </div>
                     </div>
                     {selectedLocation === "office" && (
                       <div className="flex items-center gap-2">
-                        {isLocationValidForOffice && (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                        )}
                         <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                       </div>
                     )}
@@ -784,11 +748,7 @@ export default function CheckIn() {
                 <Button
                   onClick={handleCheckIn}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium"
-                  disabled={
-                    isLoading ||
-                    isGettingLocation ||
-                    (selectedLocation === "office" && !isLocationValidForOffice)
-                  }
+                  disabled={isLoading || isGettingLocation}
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
