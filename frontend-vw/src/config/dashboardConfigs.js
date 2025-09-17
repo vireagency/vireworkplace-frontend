@@ -174,7 +174,7 @@ export const staffDashboardConfig = {
     },
     {
       title: "Evaluations",
-      url: "/staff/evaluations",
+      url: "/staff/evaluation",
       icon: IconFileText,
     },
   ],

@@ -226,14 +226,13 @@ export default function Evaluation() {
   const [error, setError] = useState(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
-
-  // Metrics state
   const [metrics, setMetrics] = useState({
     inProgress: 0,
     reviewsDue: 0,
     completedReviews: 0,
     averagePerformanceRating: 0,
   });
+  const [tasks, setTasks] = useState([]);
 
   // API configuration
   const API_URL = getApiUrl();
@@ -303,6 +302,21 @@ export default function Evaluation() {
     }
   };
 
+  // Fetch staff tasks for sidebar badge
+  const fetchTasks = async () => {
+    try {
+      if (!accessToken) return;
+      const response = await apiClient.get("/tasks");
+      if (response.data.success) {
+        setTasks(response.data.data || response.data.tasks || []);
+      } else {
+        setTasks([]);
+      }
+    } catch {
+      setTasks([]);
+    }
+  };
+
   // Handle evaluation click
   const handleEvaluationClick = (evaluation) => {
     setSelectedEvaluation(evaluation);
@@ -322,11 +336,20 @@ export default function Evaluation() {
   // Initial fetch
   useEffect(() => {
     fetchEvaluations();
+    fetchTasks();
   }, [accessToken]);
+
+  // Dynamically update the badge for the Tasks sidebar item
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    productivity: staffDashboardConfig.productivity.map((item) =>
+      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
+    ),
+  };
 
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
