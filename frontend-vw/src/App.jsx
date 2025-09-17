@@ -19,7 +19,6 @@
 
 // Toast notification components for user feedback
 import { Toaster } from "@/components/ui/sonner";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 
 // Tooltip provider for enhanced user experience
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -200,7 +199,6 @@ const App = () => (
         <TooltipProvider>
           {/* Toast notification system for user feedback */}
           <Toaster />
-          <Sonner />
 
           {/* Client-side routing configuration */}
           <BrowserRouter>

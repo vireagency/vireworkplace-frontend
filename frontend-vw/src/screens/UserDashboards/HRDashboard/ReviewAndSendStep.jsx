@@ -143,7 +143,13 @@ export default function ReviewAndSendStep({ data, onUpdate }) {
                 className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
               >
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={employee.avatar} alt={employee.name} />
+                  <AvatarImage 
+                    src={employee.avatar} 
+                    alt={employee.name}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
                   <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm">
                     {employee.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

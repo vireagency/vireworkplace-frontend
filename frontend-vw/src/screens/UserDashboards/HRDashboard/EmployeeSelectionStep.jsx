@@ -175,7 +175,13 @@ export default function EmployeeSelectionStep({ data, onUpdate }) {
                     />
                     
                     <Avatar className="w-10 h-10">
-                      <AvatarImage src={employee.avatar} alt={employee.name} />
+                      <AvatarImage 
+                        src={employee.avatar} 
+                        alt={employee.name}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
                       <AvatarFallback className="bg-gray-200 text-gray-700 font-medium">
                         {employee.name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
