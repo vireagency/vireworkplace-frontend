@@ -30,20 +30,50 @@ export const getUserAvatarUrl = (user) => {
                    user.profileImageUrl ||
                    null
   
-  // Add cache-busting parameters to prevent browser caching
+  // Add stable cache-busting parameters that only change when the image actually changes
   if (avatarUrl) {
     const separator = avatarUrl.includes('?') ? '&' : '?'
     
-    // Use profileImagePublicId for more reliable cache busting
-    const cacheKey = user.profileImagePublicId || user.avatarUpdatedAt || user.updatedAt || Date.now()
-    const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(7)
+    // Use profileImagePublicId for stable cache busting - only changes when image is updated
+    const cacheKey = user.profileImagePublicId || user.avatarUpdatedAt || user.updatedAt
     
-    // Add cache-busting parameters
-    return `${avatarUrl}${separator}v=${cacheKey}&t=${timestamp}&r=${random}`
+    // Only add cache-busting if we have a stable cache key
+    if (cacheKey) {
+      return `${avatarUrl}${separator}v=${cacheKey}`
+    }
+    
+    // If no stable cache key, return the original URL
+    return avatarUrl
   }
   
   return null
+}
+
+/**
+ * Get stable user avatar URL (memoized)
+ * @description Returns a stable avatar URL that only changes when the image actually changes
+ * @param {Object} user - User object
+ * @returns {string|null} Stable avatar URL or null if not found
+ * 
+ * @example
+ * const stableAvatarUrl = getStableAvatarUrl(user)
+ * // This URL will remain the same across re-renders unless the image changes
+ */
+export const getStableAvatarUrl = (user) => {
+  if (!user) return null
+  
+  // Prioritize profileImage from API response (most reliable)
+  const avatarUrl = user.profileImage || 
+                   user.avatar || 
+                   user.imageUrl || 
+                   user.profilePicture || 
+                   user.image ||
+                   user.profileImageUrl ||
+                   null
+  
+  // Return the original URL without cache-busting for stability
+  // Cache busting will be handled by the profileImagePublicId when the image changes
+  return avatarUrl
 }
 
 /**

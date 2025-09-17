@@ -93,6 +93,9 @@ import {
 // Custom authentication hook for user management
 import { useAuth } from "@/hooks/useAuth"
 
+// Avatar utility functions
+import { getUserAvatarUrl, getStableAvatarUrl, getUserInitials } from "@/utils/avatarUtils"
+
 // React Router hook for navigation
 import { useNavigate } from "react-router-dom"
 
@@ -213,9 +216,12 @@ export const NavUser = React.memo(function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               
               {/* User avatar with fallback */}
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
+              <Avatar 
+                key={user?.profileImagePublicId || user?.profileImage || user?.avatar || 'default'}
+                className="h-8 w-8 rounded-lg grayscale"
+              >
                 <AvatarImage 
-                  src={user?.avatar || ''} 
+                  src={getStableAvatarUrl(user)} 
                   alt={user?.name || 'User'} 
                   onError={(e) => {
                     e.target.style.display = 'none';

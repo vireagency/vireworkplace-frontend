@@ -38,7 +38,7 @@ import { Search, Bell, X, Check, Trash2, Eye } from "lucide-react"
 
 // Custom authentication hook for user context
 import { useAuth } from "@/hooks/useAuth"
-import { getUserAvatarUrl, getUserInitials as getInitials } from "@/utils/avatarUtils"
+import { getUserAvatarUrl, getStableAvatarUrl, getUserInitials as getInitials } from "@/utils/avatarUtils"
 
 // Notification context
 import { useNotifications } from "@/contexts/NotificationProvider"
@@ -569,9 +569,12 @@ export function SiteHeader() {
           </div>
           
           {/* User Avatar with Initials */}
-          <Avatar className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer">
+          <Avatar 
+            key={user?.profileImagePublicId || user?.profileImage || user?.avatar || 'default'}
+            className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
+          >
             <AvatarImage 
-              src={getUserAvatarUrl(user)} 
+              src={getStableAvatarUrl(user)} 
               alt={user ? `${user.firstName} ${user.lastName}` : "User"}
               className="object-cover w-full h-full"
             />
