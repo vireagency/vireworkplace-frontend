@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Search, Filter, MapPin, Clock, MoreVertical, Edit, Eye, Users, Mail, Briefcase, X } from "lucide-react"
 import axios from "axios"
 import { useAuth } from "@/hooks/useAuth"
+import { contextSearchApi } from "@/services/contextSearchApi"
+import { toast } from "sonner"
 
 // API configuration - using the centralized API config
 import { getApiUrl } from "@/config/apiConfig"
@@ -34,6 +36,11 @@ export default function EmployeesPage() {
   const itemsPerPage = 5
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
+  
+  // Contextual search states
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   // Fetch employees from API
   useEffect(() => {
@@ -114,22 +121,89 @@ export default function EmployeesPage() {
     fetchEmployees()
   }, [])
 
+  // Contextual search function
+  const performContextualSearch = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults([])
+      setHasSearched(false)
+      return
+    }
+
+    if (!accessToken) {
+      toast.error('Authentication required for search')
+      return
+    }
+
+    setIsSearching(true)
+    setHasSearched(true)
+
+    try {
+      console.log('Performing contextual search for employees:', query)
+      const result = await contextSearchApi.searchEmployees(query.trim(), accessToken)
+      
+      if (result.success) {
+        console.log('Contextual search results:', result.data)
+        
+        // Transform API data to match our component structure
+        const transformedResults = result.data.results.map(emp => ({
+          id: emp._id,
+          name: `${emp.firstName} ${emp.lastName}`,
+          email: emp.email,
+          role: emp.jobRole,
+          department: emp.department,
+          status: emp.attendanceStatus,
+          location: emp.locationToday,
+          checkIn: emp.checkInTime,
+          isLate: emp.isLate,
+          avatar: emp.avatar || null
+        }))
+        
+        setSearchResults(transformedResults)
+        toast.success(`Found ${transformedResults.length} employees matching "${query}"`)
+      } else {
+        console.error('Contextual search failed:', result.error)
+        toast.error(result.error || 'Search failed')
+        setSearchResults([])
+      }
+    } catch (error) {
+      console.error('Contextual search error:', error)
+      toast.error('Search failed. Please try again.')
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Handle search input change with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.trim().length >= 2) {
+        performContextualSearch(searchTerm)
+      } else {
+        setSearchResults([])
+        setHasSearched(false)
+      }
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, accessToken])
+
   // Filter employees based on search and filters
   const filteredEmployees = useMemo(() => {
     console.log("Filtering employees:", employees.length, "total employees")
-    const filtered = employees.filter(employee => {
-      const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          employee.role.toLowerCase().includes(searchTerm.toLowerCase())
-      
+    
+    // If we have search results, use them; otherwise use all employees
+    const employeesToFilter = hasSearched && searchResults.length > 0 ? searchResults : employees
+    
+    const filtered = employeesToFilter.filter(employee => {
       const matchesStatus = statusFilter === "all" || employee.status === statusFilter
       const matchesDepartment = departmentFilter === "all" || employee.department === departmentFilter
       
-      return matchesSearch && matchesStatus && matchesDepartment
+      return matchesStatus && matchesDepartment
     })
     console.log("Filtered employees:", filtered.length, "employees after filtering")
     return filtered
-  }, [employees, searchTerm, statusFilter, departmentFilter])
+  }, [employees, searchResults, hasSearched, statusFilter, departmentFilter])
 
   // Pagination
   const totalItems = filteredEmployees.length
@@ -251,7 +325,19 @@ export default function EmployeesPage() {
       <div className="min-h-screen bg-gray-50">
       {/* Page Header */}
       <div className="mb-8 ml-6">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-2">Employee List Overview</h1>
+        <div className="flex items-center space-x-4 mb-2">
+          <h1 className="text-2xl font-bold text-zinc-900">Employee List Overview</h1>
+          {hasSearched && searchResults.length > 0 && (
+            <span className="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+              {searchResults.length} search result{searchResults.length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {hasSearched && searchResults.length === 0 && searchTerm && (
+            <span className="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">
+              No results for "{searchTerm}"
+            </span>
+          )}
+        </div>
         <p className="text-zinc-500">Manage and monitor employee information across the organization.</p>
       </div>
 
@@ -305,8 +391,26 @@ export default function EmployeesPage() {
                   placeholder="Search employees..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-80"
+                  className="pl-10 pr-10 w-full sm:w-80"
+                  disabled={isSearching}
                 />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+                {searchTerm && !isSearching && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("")
+                      setSearchResults([])
+                      setHasSearched(false)
+                    }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
