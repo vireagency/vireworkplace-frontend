@@ -156,6 +156,13 @@ const EvaluationModal = ({
   onClose,
   evaluation,
   onStartEvaluation,
+  showForm,
+  onSubmitForm,
+  formResponses,
+  setFormResponses,
+  formComments,
+  setFormComments,
+  submitting,
 }) => {
   if (!evaluation) return null;
 
@@ -175,28 +182,94 @@ const EvaluationModal = ({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-3">
-              Instructions
-            </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              {evaluation.instructions}
-            </p>
+        {!showForm ? (
+          <div className="space-y-6 py-4">
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 mb-3">
+                Instructions
+              </h4>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {evaluation.instructions}
+              </p>
+            </div>
           </div>
-        </div>
-
-        <DialogFooter className="flex items-center space-x-3">
-          <Button variant="outline" onClick={onClose} className="px-6">
-            Cancel
-          </Button>
-          <Button
-            onClick={() => onStartEvaluation(evaluation)}
-            className="bg-green-600 hover:bg-green-700 px-6"
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSubmitForm();
+            }}
+            className="space-y-6 py-4"
           >
-            Start Evaluation
-          </Button>
-        </DialogFooter>
+            {Array.isArray(evaluation.questions) &&
+            evaluation.questions.length > 0 ? (
+              evaluation.questions.map((q, idx) => (
+                <div key={q.id || idx} className="mb-4">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    {q.text}
+                  </label>
+                  <Input
+                    type="text"
+                    value={formResponses[q.id] || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        [q.id]: e.target.value,
+                      })
+                    }
+                    placeholder="Your answer..."
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-500">
+                No questions found for this evaluation.
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Comments
+              </label>
+              <Input
+                type="text"
+                value={formComments}
+                onChange={(e) => setFormComments(e.target.value)}
+                placeholder="Additional comments..."
+              />
+            </div>
+            <DialogFooter className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={onClose}
+                className="px-6"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 px-6"
+                disabled={submitting}
+              >
+                {submitting ? "Submitting..." : "Submit Evaluation"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+
+        {!showForm && (
+          <DialogFooter className="flex items-center space-x-3">
+            <Button variant="outline" onClick={onClose} className="px-6">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => onStartEvaluation(evaluation)}
+              className="bg-green-600 hover:bg-green-700 px-6"
+            >
+              Start Evaluation
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -226,6 +299,10 @@ export default function Evaluation() {
   const [error, setError] = useState(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formResponses, setFormResponses] = useState({});
+  const [formComments, setFormComments] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [metrics, setMetrics] = useState({
     inProgress: 0,
     reviewsDue: 0,
@@ -253,52 +330,84 @@ export default function Evaluation() {
     return config;
   });
 
-  // Fetch evaluations from API
+  // Fetch evaluations assigned to staff
   const fetchEvaluations = async () => {
     try {
       setLoading(true);
       setError(null);
-
       if (!accessToken) {
         throw new Error("No access token available. Please log in again.");
       }
-
-      // For demo purposes, we'll use mock data that matches the Figma design
-      // In real implementation, this would be an API call
-      const mockEvaluations = [
+      const response = await apiClient.get(
+        "/api/v1/dashboard/staff/evaluations/reviews",
         {
-          id: "eval-1",
-          title: "Annual Performance Evaluation Form",
-          description: "Assess overall performance and contributions",
-          instructions:
-            "This review is designed to assess your performance over the past year. Please provide honest and thoughtful responses to each question. Your feedback will be used to help you grow and develop in your role.",
-          dueDate: "July 31, 2024",
-          status: "pending",
-          type: "self-assessment",
-        },
-      ];
-
-      const mockMetrics = {
-        inProgress: 0,
-        reviewsDue: 1,
-        completedReviews: 0,
-        averagePerformanceRating: 0,
-      };
-
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setEvaluations(mockEvaluations);
-      setMetrics(mockMetrics);
-    } catch (err) {
-      console.error("Error fetching evaluations:", err);
-      setError(
-        err.message ||
-          "An unexpected error occurred while fetching evaluations."
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
       );
+      if (response.data && Array.isArray(response.data)) {
+        setEvaluations(response.data);
+        // Optionally, calculate metrics from response.data
+        setMetrics({
+          inProgress: response.data.filter((e) => e.status === "in progress")
+            .length,
+          reviewsDue: response.data.filter((e) => e.status === "pending")
+            .length,
+          completedReviews: response.data.filter(
+            (e) => e.status === "completed"
+          ).length,
+          averagePerformanceRating: 0, // Set if available in API
+        });
+      } else {
+        setEvaluations([]);
+      }
+    } catch (err) {
+      setError(err.message || "Failed to fetch evaluations.");
       setEvaluations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch a specific evaluation form by ID
+  const fetchEvaluationById = async (id) => {
+    try {
+      if (!accessToken) return null;
+      const response = await apiClient.get(
+        `/api/v1/dashboard/staff/evaluations/reviews/${id}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (response.data) {
+        return response.data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Submit evaluation response
+  const submitEvaluationResponse = async (id, responses, comments) => {
+    try {
+      if (!accessToken) throw new Error("No access token available.");
+      const payload = { responses, comments };
+      const response = await apiClient.post(
+        `/api/v1/dashboard/staff/evaluations/reviews/${id}/response`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (response.data) {
+        toast.success("Evaluation response submitted successfully!");
+        return true;
+      }
+      toast.error("Failed to submit evaluation response.");
+      return false;
+    } catch (err) {
+      toast.error(err.message || "Failed to submit evaluation response.");
+      return false;
     }
   };
 
@@ -317,20 +426,44 @@ export default function Evaluation() {
     }
   };
 
-  // Handle evaluation click
-  const handleEvaluationClick = (evaluation) => {
-    setSelectedEvaluation(evaluation);
+  // Handle evaluation click: fetch full evaluation form
+  const handleEvaluationClick = async (evaluation) => {
+    const fullEvaluation = await fetchEvaluationById(evaluation.id);
+    setSelectedEvaluation(fullEvaluation || evaluation);
     setShowEvaluationModal(true);
+    setShowForm(false);
+    setFormResponses({});
+    setFormComments("");
   };
 
-  // Handle start evaluation
+  // Show the evaluation form
   const handleStartEvaluation = (evaluation) => {
-    setShowEvaluationModal(false);
-    toast.success("Evaluation Started", {
-      description: `You have started the ${evaluation.title}.`,
-    });
-    // Here you would navigate to the actual evaluation form
-    // navigate(`/staff/evaluations/${evaluation.id}/form`);
+    setShowForm(true);
+    setFormResponses({});
+    setFormComments("");
+  };
+
+  // Submit the evaluation form
+  const handleSubmitForm = async () => {
+    if (!selectedEvaluation) return;
+    setSubmitting(true);
+    // Prepare responses array
+    const responsesArr = Object.entries(formResponses).map(
+      ([questionId, answer]) => ({ questionId, answer })
+    );
+    const success = await submitEvaluationResponse(
+      selectedEvaluation.id,
+      responsesArr,
+      formComments
+    );
+    setSubmitting(false);
+    if (success) {
+      setShowEvaluationModal(false);
+      setShowForm(false);
+      setFormResponses({});
+      setFormComments("");
+      fetchEvaluations();
+    }
   };
 
   // Initial fetch
@@ -357,20 +490,16 @@ export default function Evaluation() {
       {/* Header Section */}
       <div className="px-4 lg:px-6 pb-4">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Evaluations Overview
-              </h1>
-              <p className="text-gray-500 mt-1">
-                Manage and track evaluations.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Active</span>
-            </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Evaluations Overview
+            </h1>
+            <p className="text-gray-500 mt-1">Manage and track evaluations.</p>
           </div>
+          <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-gray-50 text-green-700 border border-green-100 rounded-full">
+            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+            Active
+          </span>
         </div>
       </div>
 
@@ -478,6 +607,13 @@ export default function Evaluation() {
         onClose={() => setShowEvaluationModal(false)}
         evaluation={selectedEvaluation}
         onStartEvaluation={handleStartEvaluation}
+        showForm={showForm}
+        onSubmitForm={handleSubmitForm}
+        formResponses={formResponses}
+        setFormResponses={setFormResponses}
+        formComments={formComments}
+        setFormComments={setFormComments}
+        submitting={submitting}
       />
     </StaffDashboardLayout>
   );
