@@ -114,16 +114,14 @@ const CheckOut = lazy(() =>
 );
 
 const Evaluation = lazy(() =>
-  import("./screens/UserDashboards/StaffDashboard/pages/Evaluation")
+  import("./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationPage")
 );
 
 // New Staff Dashboard Pages - Lazy loaded
 const StaffPerformancePage = lazy(() =>
   import("./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage")
 );
-const StaffEvaluationsPage = lazy(() =>
-  import("./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationsPage")
-);
+
 const StaffTasksPage = lazy(() =>
   import("./screens/UserDashboards/StaffDashboard/pages/StaffTasksPage")
 );
@@ -420,15 +418,6 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="Staff">
                     <StaffPerformancePage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/staff/evaluations"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffEvaluationsPage />
                   </ProtectedRoute>
                 }
               />
