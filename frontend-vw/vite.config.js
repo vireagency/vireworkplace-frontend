@@ -116,7 +116,11 @@ export default defineConfig(({ command, mode }) => {
     
     define: {
       // Define global constant for current environment mode
-      __APP_ENV__: JSON.stringify(mode)
+      __APP_ENV__: JSON.stringify(mode),
+      // Polyfill process for browser environment
+      'process.env': 'import.meta.env',
+      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process': '{}'
     }
   }
 })

@@ -47,6 +47,10 @@ const AuthContext = createContext();
  * @param {React.ReactNode} props.children - Child components to wrap with auth context
  */
 export const AuthProvider = ({ children }) => {
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
   // Initialize user state from localStorage if available
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
@@ -119,6 +123,22 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // Fetch fresh profile data on app mount to ensure we have latest data
+  useEffect(() => {
+    if (accessToken && user) {
+      console.log('App mounted with user data, fetching fresh profile to ensure latest data...');
+      fetchUserProfile();
+    }
+  }, [accessToken]); // Only run when accessToken changes (on login)
+
+  // Fix missing workId by fetching fresh profile data
+  useEffect(() => {
+    if (user && !user.workId && accessToken) {
+      console.log('User data missing workId, fetching fresh profile...');
+      fetchUserProfile();
+    }
+  }, [user, accessToken]);
+
   /**
    * Sign in user with work ID and password
    * 
@@ -170,8 +190,8 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Sign out user and clear authentication data
-   *
-   * Removes the access token and user object from both state and localStorage.
+   * 
+   * Clears the user state, access token, and removes stored data from localStorage.
    * Use this to explicitly end a user session (e.g., from a logout button).
    *
    * @returns {void}

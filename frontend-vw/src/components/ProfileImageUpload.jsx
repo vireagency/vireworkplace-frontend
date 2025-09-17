@@ -6,7 +6,7 @@
  * @since 2024
  */
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -41,12 +41,36 @@ export default function ProfileImageUpload({
   // HOOKS AND STATE
   // ============================================================================
   
-  const { user, accessToken, updateProfile, fetchUserProfile, setUser } = useAuth()
+  const { user, accessToken, fetchUserProfile, setUser } = useAuth()
   const fileInputRef = useRef(null)
   
   const [isUploading, setIsUploading] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [forceRerender, setForceRerender] = useState(0)
+
+  // ============================================================================
+  // EFFECTS
+  // ============================================================================
+  
+  /**
+   * Clear preview when user avatar is updated
+   */
+  useEffect(() => {
+    if (user?.profileImage && previewUrl) {
+      console.log('User profile image updated, clearing preview')
+      setPreviewUrl(null)
+    }
+  }, [user?.profileImage, previewUrl])
+
+  /**
+   * Force re-render when user data changes
+   */
+  useEffect(() => {
+    if (user?.profileImage) {
+      setForceRerender(prev => prev + 1)
+    }
+  }, [user?.profileImage])
 
   // ============================================================================
   // UTILITY FUNCTIONS
@@ -146,17 +170,63 @@ export default function ProfileImageUpload({
    * @returns {string|null} Image URL
    */
   const getCurrentImageUrl = () => {
+    // Use preview URL if available (during upload)
+    if (previewUrl) {
+      return previewUrl
+    }
+    
+    // Use currentImageUrl prop if provided
+    if (currentImageUrl) {
+      return currentImageUrl
+    }
+    
+    // Use user's profileImage from API data
+    if (user?.profileImage) {
+      return user.profileImage
+    }
+    
+    // Fallback to other possible avatar fields
     const userAvatarUrl = getUserAvatarUrl(user)
     
     console.log('getCurrentImageUrl - Debug:', {
       previewUrl,
       currentImageUrl,
+      userProfileImage: user?.profileImage,
       userAvatarUrl,
       userKeys: user ? Object.keys(user) : 'No user',
-      fullUser: user
+      forceRerender
     })
     
-    return previewUrl || currentImageUrl || userAvatarUrl
+    return userAvatarUrl
+  }
+
+  /**
+   * Fetch fresh profile data from API
+   * @returns {Promise<Object>} Profile fetch result
+   */
+  const fetchFreshProfile = async () => {
+    try {
+      console.log('Fetching fresh profile data from API...')
+      const result = await fetchUserProfile()
+      
+      if (result.success && result.data) {
+        console.log('Fresh profile data fetched:', result.data)
+        
+        // Update user state with fresh data
+        setUser(result.data)
+        
+        // Force re-render
+        setForceRerender(prev => prev + 1)
+        
+        return result
+      } else {
+        console.error('Failed to fetch fresh profile:', result.error)
+        return { success: false, error: result.error }
+      }
+    } catch (error) {
+      console.error('Error fetching fresh profile:', error)
+      return { success: false, error: error.message }
+    }
   }
 
   // ============================================================================
@@ -211,11 +281,7 @@ export default function ProfileImageUpload({
    * @param {File} file - File to upload
    */
   const handleImageUpload = async (file) => {
-    console.log('ProfileImageUpload - Debug Info:', {
-      user: user,
-      accessToken: accessToken ? 'Present' : 'Missing',
-      tokenLength: accessToken?.length
-    })
+    console.log('ProfileImageUpload - Starting upload process')
     
     if (!accessToken) {
       toast.error("Authentication required. Please log in to upload images")
@@ -224,59 +290,36 @@ export default function ProfileImageUpload({
     }
 
     try {
+      // Step 1: Upload image to backend
+      console.log('Step 1: Uploading image to backend...')
       const response = await uploadProfileImage(file, accessToken)
       
       console.log('Upload response:', response)
       
       if (response.success) {
-        // Wait a moment for the image to be processed on the server
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Step 2: Wait for backend processing
+        console.log('Step 2: Waiting for backend to process image...')
+        await new Promise(resolve => setTimeout(resolve, 2000))
         
-        // Fetch updated user profile to get the new avatar URL
-        const profileResult = await fetchUserProfile()
-        
-        console.log('Profile fetch result:', profileResult)
+        // Step 3: Fetch fresh profile data from API
+        console.log('Step 3: Fetching fresh profile data from API...')
+        const profileResult = await fetchFreshProfile()
         
         if (profileResult.success) {
-          // Add a timestamp to help with cache-busting
-          const updatedUserData = {
-            ...profileResult.data,
-            avatarUpdatedAt: Date.now()
-          }
+          console.log('Step 4: Profile data updated successfully')
           
-          // Update the user context with the new profile data
-          setUser(updatedUserData)
+          // Clear preview since we now have fresh data
+          setPreviewUrl(null)
           
-          // Check if the avatar field was updated
-          if (profileResult.data?.avatar) {
-            console.log('Avatar URL found and user context updated:', profileResult.data.avatar)
-            toast.success("Profile image updated successfully!")
-            setPreviewUrl(null) // Clear preview since user context is updated
-          } else {
-            console.log('No avatar field in profile data, trying alternative fields')
-            // Try alternative field names
-            const avatarUrl = profileResult.data?.profileImage || 
-                             profileResult.data?.imageUrl || 
-                             profileResult.data?.profilePicture ||
-                             profileResult.data?.image
-            
-            if (avatarUrl) {
-              console.log('Found avatar in alternative field and user context updated:', avatarUrl)
-              toast.success("Profile image updated successfully!")
-              setPreviewUrl(null) // Clear preview since user context is updated
-            } else {
-              console.log('No avatar field found in any expected location')
-              toast.success("Profile image uploaded successfully, but there may be a delay in displaying the new image")
-              setPreviewUrl(null)
-            }
-          }
+          // Show success message
+          toast.success("Profile image updated successfully!")
           
           // Call callback if provided
           if (onImageUpdate) {
             onImageUpdate(profileResult.data)
           }
         } else {
-          // If profile fetch fails, still show success but warn about potential display issues
+          console.error('Failed to fetch fresh profile data:', profileResult.error)
           toast.success("Profile image uploaded successfully, but there may be a delay in displaying the new image")
           setPreviewUrl(null)
         }
@@ -323,17 +366,27 @@ export default function ProfileImageUpload({
   // RENDER
   // ============================================================================
   
+  // Create a unique key for the Avatar component to force re-render
+  const avatarKey = `${user?.profileImage || 'no-image'}-${user?.profileImagePublicId || 0}-${forceRerender}-${Date.now()}`
+  
   return (
     <div className="flex flex-col items-center space-y-4">
       {/* Profile Image */}
       <div className="relative">
-        <Avatar className={`${size} rounded-full overflow-hidden`} key={user?.avatarUpdatedAt || user?.avatar}>
+        <Avatar 
+          className={`${size} rounded-full overflow-hidden`} 
+          key={avatarKey}
+        >
           <AvatarImage 
             src={getCurrentImageUrl()} 
             alt={userName || "Profile"}
             className="object-cover w-full h-full"
             onError={(e) => {
+              console.log('Avatar image failed to load:', e.target.src)
               e.target.style.display = 'none';
+            }}
+            onLoad={() => {
+              console.log('Avatar image loaded successfully:', getCurrentImageUrl())
             }}
           />
           <AvatarFallback className="text-lg bg-gray-200 text-gray-600 rounded-full">

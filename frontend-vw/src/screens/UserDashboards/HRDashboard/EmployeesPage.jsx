@@ -31,7 +31,6 @@ export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [departmentFilter, setDepartmentFilter] = useState("all")
-  const [viewFilter, setViewFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -344,46 +343,7 @@ export default function EmployeesPage() {
       <Card className="bg-white border border-gray-200 shadow-sm ml-6 mr-6">
         {/* Filters Bar */}
         <div className="border-b border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-wrap gap-3">
-              <div 
-                className={`border rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${
-                  viewFilter === "all" 
-                    ? "bg-gray-50 border-gray-200" 
-                    : "bg-white border-gray-200 hover:bg-gray-50"
-                }`}
-                onClick={() => setViewFilter("all")}
-              >
-                <span className={`text-sm font-medium ${
-                  viewFilter === "all" ? "text-gray-700" : "text-gray-600"
-                }`}>View all</span>
-              </div>
-              <div 
-                className={`border rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${
-                  viewFilter === "monitored" 
-                    ? "bg-gray-50 border-gray-200" 
-                    : "bg-white border-gray-200 hover:bg-gray-50"
-                }`}
-                onClick={() => setViewFilter("monitored")}
-              >
-                <span className={`text-sm font-medium ${
-                  viewFilter === "monitored" ? "text-gray-700" : "text-gray-600"
-                }`}>Monitored</span>
-              </div>
-              <div 
-                className={`border rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${
-                  viewFilter === "teams" 
-                    ? "bg-gray-50 border-gray-200" 
-                    : "bg-white border-gray-200 hover:bg-gray-50"
-                }`}
-                onClick={() => setViewFilter("teams")}
-              >
-                <span className={`text-sm font-medium ${
-                  viewFilter === "teams" ? "text-gray-700" : "text-gray-600"
-                }`}>Teams</span>
-              </div>
-            </div>
-
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -437,10 +397,7 @@ export default function EmployeesPage() {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="w-4 h-4" />
-                Filters
-              </Button>
+              
             </div>
           </div>
 

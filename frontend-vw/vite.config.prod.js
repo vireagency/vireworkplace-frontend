@@ -95,7 +95,10 @@ export default defineConfig({
   define: {
     // Define production environment
     __APP_ENV__: JSON.stringify('production'),
-    'process.env.NODE_ENV': JSON.stringify('production')
+    'process.env.NODE_ENV': JSON.stringify('production'),
+    // Polyfill process for browser environment
+    'process.env': 'import.meta.env',
+    'process': '{}'
   },
   
   // ============================================================================
