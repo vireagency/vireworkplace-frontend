@@ -167,26 +167,9 @@ const OTPConfirmationPage = () => {
     }
   };
 
-  const handleResendOTP = async () => {
+  const handleResendOTP = () => {
     if (reason === "signup") {
-      // Try to resend OTP directly for signup
-      try {
-        const response = await axios.post(
-          "https://vireworkplace-backend-hpca.onrender.com/api/v1/auth/otp/resend",
-          { email }
-        );
-        
-        if (response.status === 200) {
-          toast.success("OTP has been resent to your email");
-        } else {
-          toast.error("Failed to resend OTP. Please try again.");
-        }
-      } catch (error) {
-        console.error("Resend OTP error:", error);
-        toast.error("Failed to resend OTP. Please try again.");
-        // Fallback to navigation
-        navigate("/otp-request");
-      }
+      navigate("/otp-request");
     } else if (reason === "forgot-password") {
       navigate("/forgot-password");
     } else {
