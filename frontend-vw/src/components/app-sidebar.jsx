@@ -7,7 +7,7 @@
  */
 
 // React core library for component creation
-import * as React from "react"
+import * as React from "react";
 
 // ============================================================================
 // ICON IMPORTS
@@ -15,40 +15,40 @@ import * as React from "react"
 
 // Tabler icons for navigation items and UI elements
 import {
-  IconCamera,              // Camera icon for capture functionality
-  IconChartBar,            // Chart icon for analytics
-  IconDashboard,           // Dashboard icon for main dashboard
-  IconDatabase,            // Database icon for data library
-  IconFileAi,              // AI file icon for prompts
-  IconFileDescription,     // File description icon for proposals
-  IconFileWord,            // Word file icon for word assistant
-  IconFolder,              // Folder icon for projects
-  IconHelp,                // Help icon for support
-  IconInnerShadowTop,      // Shadow icon for visual effects
-  IconListDetails,         // List icon for lifecycle management
-  IconReport,              // Report icon for reports section
-  IconSearch,              // Search icon for search functionality
-  IconSettings,            // Settings icon for configuration
-  IconUsers,               // Users icon for team management
-} from "@tabler/icons-react"
+  IconCamera, // Camera icon for capture functionality
+  IconChartBar, // Chart icon for analytics
+  IconDashboard, // Dashboard icon for main dashboard
+  IconDatabase, // Database icon for data library
+  IconFileAi, // AI file icon for prompts
+  IconFileDescription, // File description icon for proposals
+  IconFileWord, // Word file icon for word assistant
+  IconFolder, // Folder icon for projects
+  IconHelp, // Help icon for support
+  IconInnerShadowTop, // Shadow icon for visual effects
+  IconListDetails, // List icon for lifecycle management
+  IconReport, // Report icon for reports section
+  IconSearch, // Search icon for search functionality
+  IconSettings, // Settings icon for configuration
+  IconUsers, // Users icon for team management
+} from "@tabler/icons-react";
 
 // ============================================================================
 // UI COMPONENT IMPORTS
 // ============================================================================
 
 // Badge component for notifications and status indicators
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge";
 
 // ============================================================================
 // NAVIGATION COMPONENT IMPORTS
 // ============================================================================
 
 // Navigation components for different sections of the sidebar
-import { NavDocuments } from "@/components/nav-documents"       // Documents navigation
-import { NavMain } from "@/components/nav-main"                 // Main navigation items
-import { NavSecondary } from "@/components/nav-secondary"       // Secondary navigation
-import { NavUser } from "@/components/nav-user"                 // User profile section
-import { NavCategorized } from "@/components/nav-categorized"   // Categorized navigation
+import { NavDocuments } from "@/components/nav-documents"; // Documents navigation
+import { NavMain } from "@/components/nav-main"; // Main navigation items
+import { NavSecondary } from "@/components/nav-secondary"; // Secondary navigation
+import { NavUser } from "@/components/nav-user"; // User profile section
+import { NavCategorized } from "@/components/nav-categorized"; // Categorized navigation
 
 // ============================================================================
 // SIDEBAR UI COMPONENTS
@@ -56,22 +56,22 @@ import { NavCategorized } from "@/components/nav-categorized"   // Categorized n
 
 // Sidebar layout components from the UI library
 import {
-  Sidebar,                 // Main sidebar container
-  SidebarContent,          // Sidebar content area
-  SidebarFooter,           // Sidebar footer section
-  SidebarHeader,           // Sidebar header section
-  SidebarMenu,             // Sidebar menu container
-  SidebarMenuButton,       // Sidebar menu button
-  SidebarMenuItem,         // Sidebar menu item
-} from "@/components/ui/sidebar"
+  Sidebar, // Main sidebar container
+  SidebarContent, // Sidebar content area
+  SidebarFooter, // Sidebar footer section
+  SidebarHeader, // Sidebar header section
+  SidebarMenu, // Sidebar menu container
+  SidebarMenuButton, // Sidebar menu button
+  SidebarMenuItem, // Sidebar menu item
+} from "@/components/ui/sidebar";
 
 // ============================================================================
 // HOOK IMPORTS
 // ============================================================================
 
 // Custom authentication hook for user context
-import { useAuth } from "@/hooks/useAuth"
-import { getUserAvatarUrl } from "@/utils/avatarUtils"
+import { useAuth } from "@/hooks/useAuth";
+import { getUserAvatarUrl } from "@/utils/avatarUtils";
 
 /**
  * AppSidebar Component
@@ -81,7 +81,7 @@ import { getUserAvatarUrl } from "@/utils/avatarUtils"
  * @param {Object} [props.config] - Custom navigation configuration to override defaults
  * @param {...any} props - Additional props passed to the Sidebar component
  * @returns {JSX.Element} The application sidebar component
- * 
+ *
  * Features:
  * - Collapsible sidebar with offcanvas behavior
  * - Role-based navigation configuration
@@ -91,8 +91,8 @@ import { getUserAvatarUrl } from "@/utils/avatarUtils"
  * - Responsive design for different screen sizes
  */
 export function AppSidebar({
-  config,                   // Custom navigation configuration
-  ...props                  // Additional props for the Sidebar component
+  config, // Custom navigation configuration
+  ...props // Additional props for the Sidebar component
 }) {
   // Get current authenticated user and loading state
   const { user, loading } = useAuth();
@@ -100,135 +100,138 @@ export function AppSidebar({
   // ============================================================================
   // DEFAULT NAVIGATION CONFIGURATION
   // ============================================================================
-  
+
   // Default navigation structure when no custom config is provided
   const defaultConfig = {
     // ========================================================================
     // MAIN NAVIGATION ITEMS
     // ========================================================================
-    
+
     navMain: [
       {
-        title: "Dashboard",           // Dashboard navigation item
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconDashboard,          // Dashboard icon
+        title: "Dashboard", // Dashboard navigation item
+        url: "#", // Navigation URL (placeholder)
+        icon: IconDashboard, // Dashboard icon
       },
       {
-        title: "Lifecycle",           // Lifecycle management
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconListDetails,        // List details icon
+        title: "Lifecycle", // Lifecycle management
+        url: "#", // Navigation URL (placeholder)
+        icon: IconListDetails, // List details icon
       },
       {
-        title: "Analytics",           // Analytics and reporting
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconChartBar,           // Chart bar icon
+        title: "Analytics", // Analytics and reporting
+        url: "#", // Navigation URL (placeholder)
+        icon: IconChartBar, // Chart bar icon
       },
       {
-        title: "Projects",            // Project management
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconFolder,             // Folder icon
+        title: "Projects", // Project management
+        url: "#", // Navigation URL (placeholder)
+        icon: IconFolder, // Folder icon
       },
       {
-        title: "Team",                // Team management
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconUsers,              // Users icon
+        title: "Team", // Team management
+        url: "#", // Navigation URL (placeholder)
+        icon: IconUsers, // Users icon
       },
     ],
-    
+
     // ========================================================================
     // CLOUD-BASED NAVIGATION ITEMS
     // ========================================================================
-    
+
     navClouds: [
       {
-        title: "Capture",             // Capture functionality
-        icon: IconCamera,             // Camera icon
-        isActive: true,               // Active state indicator
-        url: "#",                     // Navigation URL (placeholder)
-        items: [                      // Sub-navigation items
+        title: "Capture", // Capture functionality
+        icon: IconCamera, // Camera icon
+        isActive: true, // Active state indicator
+        url: "#", // Navigation URL (placeholder)
+        items: [
+          // Sub-navigation items
           {
             title: "Active Proposals", // Active proposals sub-item
-            url: "#",                 // Sub-navigation URL
+            url: "#", // Sub-navigation URL
           },
           {
-            title: "Archived",        // Archived items sub-item
-            url: "#",                 // Sub-navigation URL
+            title: "Archived", // Archived items sub-item
+            url: "#", // Sub-navigation URL
           },
         ],
       },
       {
-        title: "Proposal",            // Proposal management
-        icon: IconFileDescription,    // File description icon
-        url: "#",                     // Navigation URL (placeholder)
-        items: [                      // Sub-navigation items
+        title: "Proposal", // Proposal management
+        icon: IconFileDescription, // File description icon
+        url: "#", // Navigation URL (placeholder)
+        items: [
+          // Sub-navigation items
           {
             title: "Active Proposals", // Active proposals sub-item
-            url: "#",                 // Sub-navigation URL
+            url: "#", // Sub-navigation URL
           },
           {
-            title: "Archived",        // Archived items sub-item
-            url: "#",                 // Sub-navigation URL
+            title: "Archived", // Archived items sub-item
+            url: "#", // Sub-navigation URL
           },
         ],
       },
       {
-        title: "Prompts",             // AI prompts functionality
-        icon: IconFileAi,             // AI file icon
-        url: "#",                     // Navigation URL (placeholder)
-        items: [                      // Sub-navigation items
+        title: "Prompts", // AI prompts functionality
+        icon: IconFileAi, // AI file icon
+        url: "#", // Navigation URL (placeholder)
+        items: [
+          // Sub-navigation items
           {
             title: "Active Proposals", // Active proposals sub-item
-            url: "#",                 // Sub-navigation URL
+            url: "#", // Sub-navigation URL
           },
           {
-            title: "Archived",        // Archived items sub-item
-            url: "#",                 // Sub-navigation URL
+            title: "Archived", // Archived items sub-item
+            url: "#", // Sub-navigation URL
           },
         ],
       },
     ],
-    
+
     // ========================================================================
     // SECONDARY NAVIGATION ITEMS
     // ========================================================================
-    
+
     navSecondary: [
       {
-        title: "Settings",            // Application settings
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconSettings,           // Settings icon
+        title: "Settings", // Application settings
+        url: "#", // Navigation URL (placeholder)
+        icon: IconSettings, // Settings icon
       },
       {
-        title: "Get Help",            // Help and support
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconHelp,               // Help icon
+        title: "Get Help", // Help and support
+        url: "#", // Navigation URL (placeholder)
+        icon: IconHelp, // Help icon
       },
       {
-        title: "Search",              // Search functionality
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconSearch,             // Search icon
+        title: "Search", // Search functionality
+        url: "#", // Navigation URL (placeholder)
+        icon: IconSearch, // Search icon
       },
     ],
-    
+
     // ========================================================================
     // DOCUMENTS NAVIGATION ITEMS
     // ========================================================================
-    
+
     documents: [
       {
-        name: "Data Library",         // Data library access
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconDatabase,           // Database icon
+        name: "Data Library", // Data library access
+        url: "#", // Navigation URL (placeholder)
+        icon: IconDatabase, // Database icon
       },
       {
-        name: "Reports",              // Reports section
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconReport,             // Report icon
+        name: "Reports", // Reports section
+        url: "#", // Navigation URL (placeholder)
+        icon: IconReport, // Report icon
       },
       {
-        name: "Word Assistant",       // Word processing assistance
-        url: "#",                     // Navigation URL (placeholder)
-        icon: IconFileWord,           // Word file icon
+        name: "Word Assistant", // Word processing assistance
+        url: "#", // Navigation URL (placeholder)
+        icon: IconFileWord, // Word file icon
       },
     ],
   };
@@ -236,85 +239,94 @@ export function AppSidebar({
   // ============================================================================
   // CONFIGURATION MERGING
   // ============================================================================
-  
+
   // Use custom configuration if provided, otherwise fall back to default configuration
   const finalConfig = config || defaultConfig;
 
   // ============================================================================
   // USER DATA PREPARATION
   // ============================================================================
-  
+
   // Create user data object from API response for navigation components
   const userData = {
     user: {
-      name: user ? `${user.firstName} ${user.lastName}` : "Loading...",  // User's full name or loading state
-      email: user?.email || "loading@example.com",                      // User's email or placeholder
-      avatar: getUserAvatarUrl(user),                                    // User's profile image or null
+      name: user ? `${user.firstName} ${user.lastName}` : "Loading...", // User's full name or loading state
+      email: user?.email || "loading@example.com", // User's email or placeholder
+      avatar: getUserAvatarUrl(user), // User's profile image or null
     },
-    ...finalConfig                                                      // Spread the navigation configuration
+    ...finalConfig, // Spread the navigation configuration
   };
 
   return (
     // ============================================================================
     // SIDEBAR CONTAINER
     // ============================================================================
-    
+
     <Sidebar collapsible="offcanvas" {...props}>
-      
       {/* ========================================================================
            SIDEBAR HEADER
            ========================================================================
            
            Contains the application logo and branding
            ======================================================================== */}
-      
+
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             {/* Logo button that links to home */}
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="#" className="flex items-center">   
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:!p-1.5"
+            >
+              <a href="#" className="flex items-center">
                 {/* Application logo */}
-                <img src="/VireWorkplace.svg" alt="Vire Workplace" className="h-6 w-auto" />
+                <img
+                  src="/VireWorkplace.svg"
+                  alt="Vire Workplace"
+                  className="h-6 w-auto"
+                />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       {/* ========================================================================
            SIDEBAR CONTENT
            ========================================================================
            
            Main navigation sections and content
            ======================================================================== */}
-      
+
       <SidebarContent>
         {/* Main navigation items (Dashboard, Lifecycle, Analytics, etc.) */}
-        <NavMain items={userData.navMain} actionButtons={userData.actionButtons} />
-        
+        <NavMain
+          items={userData.navMain}
+          actionButtons={userData.actionButtons}
+        />
+
         {/* Categorized navigation (Analytics, Teams, Productivity, Company) */}
-        <NavCategorized 
+        <NavCategorized
           analytics={userData.analytics}
           teams={userData.teams}
           productivity={userData.productivity}
           company={userData.company}
         />
-        
+
         {/* Documents navigation (Data Library, Reports, Word Assistant) */}
         <NavDocuments items={userData.documents} />
-        
+
         {/* Secondary navigation (Settings, Help, Search) - positioned at bottom */}
         <NavSecondary items={userData.navSecondary} className="mt-auto" />
       </SidebarContent>
-      
+
       {/* ========================================================================
            SIDEBAR FOOTER
            ========================================================================
            
            User profile section at the bottom of the sidebar
            ======================================================================== */}
-      
+
       <SidebarFooter>
         {/* User profile display with avatar and information */}
         <NavUser user={userData.user} />

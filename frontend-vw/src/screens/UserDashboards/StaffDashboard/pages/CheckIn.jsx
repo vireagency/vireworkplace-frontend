@@ -13,11 +13,31 @@ import {
 } from "lucide-react";
 import StaffDashboardMainPage from "@/screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
-// Hardcoded fallback coordinates for office location (Vire Agency Office)
-const FALLBACK_OFFICE_COORDINATES = {
+// Office coordinates for location validation
+const OFFICE_COORDINATES = {
   latitude: 5.767477,
   longitude: -0.180019,
+};
+
+// Maximum distance from office in meters (100m = ~328 feet)
+const MAX_OFFICE_DISTANCE = 100;
+
+// Calculate distance between two coordinates using Haversine formula
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
 };
 
 export default function CheckIn() {
@@ -38,13 +58,16 @@ export default function CheckIn() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [locationError, setLocationError] = useState(null);
   const [hasValidLocation, setHasValidLocation] = useState(false);
+  const [locationPermissionStatus, setLocationPermissionStatus] =
+    useState("prompt");
+  const [isLocationValidForOffice, setIsLocationValidForOffice] =
+    useState(false);
 
   // Fetch user data
   const fetchUserData = async () => {
     try {
       setIsLoadingUser(true);
 
-      // Get auth token from multiple possible sources
       let token =
         accessToken ||
         localStorage.getItem("authToken") ||
@@ -71,7 +94,6 @@ export default function CheckIn() {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Clear invalid token and redirect to login
           localStorage.removeItem("authToken");
           localStorage.removeItem("token");
           localStorage.removeItem("access_token");
@@ -91,7 +113,6 @@ export default function CheckIn() {
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
-      // Use fallback data for demo purposes
       const lsFirst =
         localStorage.getItem("signup_firstName") ||
         localStorage.getItem("firstName") ||
@@ -116,7 +137,7 @@ export default function CheckIn() {
     }
   };
 
-  // Get user initials for avatar fallback with proper fallback logic
+  // Get user initials for avatar fallback
   const getUserInitials = () => {
     const safe = (s) => (typeof s === "string" ? s : "");
     const email = safe(userData?.email);
@@ -176,16 +197,13 @@ export default function CheckIn() {
 
     if (!url) return null;
 
-    // If the URL is already complete, return it
     if (url.startsWith("http")) {
       return url;
     }
 
-    // If it's a relative URL, construct the full URL
     return `https://www.api.vire.agency${url}`;
   };
 
-  // Handle profile image load error
   const handleImageError = (e) => {
     console.log("Profile image failed to load, using fallback");
     e.target.style.display = "none";
@@ -231,7 +249,23 @@ export default function CheckIn() {
     fetchUserData();
   }, [user]);
 
-  // Get user's current location with improved accuracy and fallback
+  // Check location permissions
+  const checkLocationPermission = async () => {
+    if (!navigator.permissions) return "prompt";
+
+    try {
+      const permission = await navigator.permissions.query({
+        name: "geolocation",
+      });
+      setLocationPermissionStatus(permission.state);
+      return permission.state;
+    } catch (error) {
+      console.error("Error checking location permission:", error);
+      return "prompt";
+    }
+  };
+
+  // Get user's current location with enhanced accuracy and validation
   const getCurrentLocation = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -244,9 +278,19 @@ export default function CheckIn() {
       setIsGettingLocation(true);
       setLocationError(null);
       setHasValidLocation(false);
+      setIsLocationValidForOffice(false);
 
       // Clear previous location data for fresh reading
       setLocation({ latitude: null, longitude: null });
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000, // Increased timeout to 15 seconds
+        maximumAge: 0, // Force fresh location reading
+      };
+
+      // Show loading toast
+      toast.info("Getting your location...", { duration: 2000 });
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -256,49 +300,86 @@ export default function CheckIn() {
             latitude,
             longitude,
             accuracy,
+            timestamp: new Date(position.timestamp).toISOString(),
           });
 
-          const locationData = { latitude, longitude };
+          // Calculate distance from office
+          const distanceFromOffice = calculateDistance(
+            latitude,
+            longitude,
+            OFFICE_COORDINATES.latitude,
+            OFFICE_COORDINATES.longitude
+          );
+
+          console.log("Distance from office:", distanceFromOffice, "meters");
+
+          const locationData = {
+            latitude,
+            longitude,
+            accuracy,
+            distanceFromOffice,
+            timestamp: position.timestamp,
+          };
+
           setLocation(locationData);
           setIsGettingLocation(false);
           setHasValidLocation(true);
           setLocationError(null);
+
+          // Check if user is within office bounds
+          if (selectedLocation === "office") {
+            const isWithinOfficeBounds =
+              distanceFromOffice <= MAX_OFFICE_DISTANCE;
+            setIsLocationValidForOffice(isWithinOfficeBounds);
+
+            if (!isWithinOfficeBounds) {
+              const errorMsg = `You are ${Math.round(
+                distanceFromOffice
+              )}m away from the office. You must be within ${MAX_OFFICE_DISTANCE}m to check in at the office.`;
+              setLocationError(errorMsg);
+              toast.error("Too far from office location");
+              reject(new Error(errorMsg));
+              return;
+            } else {
+              toast.success("Location verified - you're at the office!");
+            }
+          }
+
           resolve(locationData);
         },
         (error) => {
           setIsGettingLocation(false);
           setHasValidLocation(false);
+          setIsLocationValidForOffice(false);
           console.error("Geolocation error:", error);
 
-          let errorMessage =
-            "Office check-in requires being at the office location.";
+          let errorMessage = "Unable to get your location.";
 
           switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage =
-                "Location access denied. Please enable location permissions and try again.";
+                "Location access denied. Please enable location permissions in your browser settings and try again.";
+              setLocationPermissionStatus("denied");
               break;
             case error.POSITION_UNAVAILABLE:
               errorMessage =
-                "Location information is unavailable. Please try again.";
+                "Location information is unavailable. Please ensure GPS is enabled and try again.";
               break;
             case error.TIMEOUT:
-              errorMessage = "Location request timed out. Please try again.";
+              errorMessage =
+                "Location request timed out. Please try again or check your GPS signal.";
               break;
             default:
               errorMessage =
-                "An unknown error occurred while getting your location.";
+                "An unknown error occurred while getting your location. Please try again.";
               break;
           }
 
           setLocationError(errorMessage);
+          toast.error("Location error: " + errorMessage);
           reject(new Error(errorMessage));
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0, // Force fresh location reading
-        }
+        options
       );
     });
   };
@@ -308,14 +389,17 @@ export default function CheckIn() {
     if (isLoading || isGettingLocation) return;
 
     setSelectedLocation(locationType);
+    setLocationError(null);
+    setIsLocationValidForOffice(false);
 
-    // If user selects office, immediately request location permission
+    // If user selects office, immediately request and validate location
     if (locationType === "office") {
       try {
+        await checkLocationPermission();
         await getCurrentLocation();
       } catch (error) {
-        console.log("Location permission denied or failed:", error.message);
-        // Don't show error here, let user proceed and handle it during check-in
+        console.log("Location validation failed:", error.message);
+        // Error is already handled in getCurrentLocation
       }
     } else {
       // Reset location state when switching to remote
@@ -325,14 +409,13 @@ export default function CheckIn() {
     }
   };
 
-  // API call to check in - Updated to properly consume the API
+  // API call to check in with enhanced error handling
   const checkInToAPI = async (
     workingLocation,
     latitude = null,
     longitude = null
   ) => {
     try {
-      // Get auth token from multiple possible sources
       let token =
         accessToken ||
         localStorage.getItem("authToken") ||
@@ -342,7 +425,6 @@ export default function CheckIn() {
         sessionStorage.getItem("token") ||
         sessionStorage.getItem("access_token");
 
-      // If no token found, throw an error
       if (!token) {
         throw new Error("Authentication token not found. Please log in again.");
       }
@@ -351,7 +433,7 @@ export default function CheckIn() {
         workingLocation: workingLocation,
       };
 
-      // Add coordinates for office check-in as required by API
+      // Add coordinates for office check-in
       if (
         workingLocation === "office" &&
         latitude !== null &&
@@ -375,11 +457,8 @@ export default function CheckIn() {
         }
       );
 
-      // Handle the response according to API specification
       if (!response.ok) {
-        // Handle specific HTTP status codes
         if (response.status === 401 || response.status === 403) {
-          // Clear invalid token and redirect to login
           localStorage.removeItem("authToken");
           localStorage.removeItem("token");
           localStorage.removeItem("access_token");
@@ -389,12 +468,10 @@ export default function CheckIn() {
           throw new Error("Session expired. Please log in again.");
         }
 
-        // Handle 400 Bad Request (location/validation errors)
         if (response.status === 400) {
           const errorData = await response.json();
           console.error("Check-in 400 error:", errorData);
 
-          // Check if it's a location-related error
           const errorMsg = errorData.message || "Invalid request";
           if (
             errorMsg.toLowerCase().includes("location") ||
@@ -412,20 +489,15 @@ export default function CheckIn() {
           throw new Error(errorMsg);
         }
 
-        // Handle other error status codes
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
       }
 
-      // Parse successful response (201 Created)
       const data = await response.json();
-
-      // Log the successful response for debugging
       console.log("Check-in successful response:", data);
 
-      // Verify response format matches API specification
       if (data.success !== true) {
         throw new Error("Unexpected response format from server");
       }
@@ -437,7 +509,7 @@ export default function CheckIn() {
     }
   };
 
-  // Handle location selection and check-in
+  // Handle check-in with comprehensive validation
   const handleCheckIn = async () => {
     setIsLoading(true);
     setError("");
@@ -446,31 +518,51 @@ export default function CheckIn() {
       let checkInResult;
 
       if (selectedLocation === "office") {
-        // For office check-in, get fresh location
-        console.log("Starting office check-in process...");
-        const userLocation = await getCurrentLocation();
+        // Validate location for office check-in
+        if (!hasValidLocation || !isLocationValidForOffice) {
+          console.log("Getting fresh location for office check-in...");
+          const userLocation = await getCurrentLocation();
 
-        console.log("Using location for check-in:", {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-        });
+          // Double-check distance validation
+          const distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            OFFICE_COORDINATES.latitude,
+            OFFICE_COORDINATES.longitude
+          );
 
-        checkInResult = await checkInToAPI(
-          "office",
-          userLocation.latitude,
-          userLocation.longitude
-        );
+          if (distance > MAX_OFFICE_DISTANCE) {
+            throw new Error(
+              `You are ${Math.round(
+                distance
+              )}m away from the office. You must be within ${MAX_OFFICE_DISTANCE}m to check in at the office.`
+            );
+          }
+
+          checkInResult = await checkInToAPI(
+            "office",
+            userLocation.latitude,
+            userLocation.longitude
+          );
+        } else {
+          // Use existing validated location
+          checkInResult = await checkInToAPI(
+            "office",
+            location.latitude,
+            location.longitude
+          );
+        }
       } else {
         // For remote check-in, no location needed
         checkInResult = await checkInToAPI("remote");
       }
 
-      // Log successful check-in data
       console.log("Check-in completed successfully:", checkInResult);
 
-      // Success - show success toast with API response data
+      // Success - show success toast
       setShowMainDialog(false);
       setShowSuccessToast(true);
+      toast.success("Successfully checked in!");
 
       // Navigate after showing success message
       setTimeout(() => {
@@ -482,25 +574,26 @@ export default function CheckIn() {
       setError(error.message);
       setShowMainDialog(false);
       setShowErrorDialog(true);
+      toast.error(error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle cancel action - Navigate to staff landing page
   const handleCancel = () => {
     setShowMainDialog(false);
     navigate("/staff");
   };
 
-  // Handle error dialog retry
   const handleTryAgain = () => {
     setShowErrorDialog(false);
     setShowMainDialog(true);
     setError("");
+    setLocationError(null);
+    setHasValidLocation(false);
+    setIsLocationValidForOffice(false);
   };
 
-  // Handle error dialog discard
   const handleDiscard = () => {
     setShowErrorDialog(false);
     navigate("/staff");
@@ -532,7 +625,7 @@ export default function CheckIn() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 space-y-6">
-              {/* Header Section - Avatar and Time */}
+              {/* Header Section */}
               <div className="flex items-center justify-between">
                 <Avatar className="h-12 w-12">
                   <AvatarImage
@@ -582,10 +675,20 @@ export default function CheckIn() {
                         >
                           Office (In-person)
                         </Label>
+                        {selectedLocation === "office" && (
+                          <div className="text-xs text-slate-500 mt-1">
+                            Location verification required
+                          </div>
+                        )}
                       </div>
                     </div>
                     {selectedLocation === "office" && (
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <div className="flex items-center gap-2">
+                        {isLocationValidForOffice && (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        )}
+                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      </div>
                     )}
                   </div>
 
@@ -608,6 +711,11 @@ export default function CheckIn() {
                         >
                           Home (Remote)
                         </Label>
+                        {selectedLocation === "remote" && (
+                          <div className="text-xs text-slate-500 mt-1">
+                            No location verification needed
+                          </div>
+                        )}
                       </div>
                     </div>
                     {selectedLocation === "remote" && (
@@ -617,23 +725,53 @@ export default function CheckIn() {
                 </div>
               </div>
 
-              {/* Location Status and Debug Info */}
+              {/* Location Status */}
               {isGettingLocation && (
                 <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Getting your location...
+                  Verifying your location...
                 </div>
               )}
 
-              {/* Location Error Notice */}
+              {/* Location Success */}
+              {selectedLocation === "office" && isLocationValidForOffice && (
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+                  <CheckCircle className="w-4 h-4" />
+                  Location verified - you're at the office!
+                </div>
+              )}
+
+              {/* Location Error */}
               {selectedLocation === "office" && locationError && (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                  <AlertTriangle className="w-4 h-4" />
-                  {locationError}
+                <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium mb-1">Location Required</div>
+                    <div>{locationError}</div>
+                    {locationPermissionStatus === "denied" && (
+                      <div className="mt-2 text-xs text-red-500">
+                        Please enable location permissions in your browser
+                        settings
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Action Buttons Section */}
+              {/* Office Distance Info */}
+              {selectedLocation === "office" &&
+                hasValidLocation &&
+                location.distanceFromOffice && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
+                    <Info className="w-3 h-3" />
+                    Distance from office:{" "}
+                    {Math.round(location.distanceFromOffice)}m
+                    {location.accuracy &&
+                      ` (±${Math.round(location.accuracy)}m accuracy)`}
+                  </div>
+                )}
+
+              {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
@@ -645,8 +783,12 @@ export default function CheckIn() {
                 </Button>
                 <Button
                   onClick={handleCheckIn}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium relative overflow-hidden"
-                  disabled={isLoading || isGettingLocation}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium"
+                  disabled={
+                    isLoading ||
+                    isGettingLocation ||
+                    (selectedLocation === "office" && !isLocationValidForOffice)
+                  }
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
@@ -667,7 +809,7 @@ export default function CheckIn() {
         </div>
       )}
 
-      {/* Error Dialog Section */}
+      {/* Error Dialog */}
       {showErrorDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
@@ -679,16 +821,9 @@ export default function CheckIn() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg text-slate-900 mb-2">
-                  {error.includes("location") ||
-                  error.includes("office") ||
-                  error.includes("gps") ||
-                  error.includes("geofence")
-                    ? "Office Location Required"
-                    : error.includes("already checked in")
-                    ? "Already Checked In"
-                    : "Check-in Failed"}
+                  Check-in Failed
                 </h3>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm max-w-md mx-auto">
                   {error || "Something went wrong. Please try again."}
                 </p>
               </div>
@@ -712,7 +847,7 @@ export default function CheckIn() {
         </div>
       )}
 
-      {/* Success Toast Section */}
+      {/* Success Toast */}
       {showSuccessToast && (
         <div className="fixed top-4 right-4 bg-white border border-slate-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 transform transition-all duration-300 ease-in-out">
           <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
