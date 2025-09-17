@@ -70,8 +70,13 @@ import {
 // ============================================================================
 
 // Custom authentication hook for user context
+<<<<<<< HEAD
 import { useAuth } from "@/hooks/useAuth";
 import { getUserAvatarUrl } from "@/utils/avatarUtils";
+=======
+import { useAuth } from "@/hooks/useAuth"
+import { getUserAvatarUrl, getStableAvatarUrl } from "@/utils/avatarUtils"
+>>>>>>> 8b5371c10d95af192e6a575212effcd23e59801a
 
 /**
  * AppSidebar Component
@@ -250,9 +255,15 @@ export function AppSidebar({
   // Create user data object from API response for navigation components
   const userData = {
     user: {
+<<<<<<< HEAD
       name: user ? `${user.firstName} ${user.lastName}` : "Loading...", // User's full name or loading state
       email: user?.email || "loading@example.com", // User's email or placeholder
       avatar: getUserAvatarUrl(user), // User's profile image or null
+=======
+      name: user ? `${user.firstName} ${user.lastName}` : "Loading...",  // User's full name or loading state
+      email: user?.email || "loading@example.com",                      // User's email or placeholder
+      avatar: getStableAvatarUrl(user),                                  // User's profile image or null
+>>>>>>> 8b5371c10d95af192e6a575212effcd23e59801a
     },
     ...finalConfig, // Spread the navigation configuration
   };

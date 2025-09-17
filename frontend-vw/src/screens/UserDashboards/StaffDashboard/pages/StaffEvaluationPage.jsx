@@ -1,11 +1,3 @@
-/**
- * @fileoverview Staff Evaluation Page Component
- * @description Complete evaluation management interface matching Figma design
- * @author Vire Development Team
- * @version 1.0.0
- * @since 2024
- */
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,7 +8,8 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
-  MoreHorizontal,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import axios from "axios";
 
@@ -89,64 +82,83 @@ const EvaluationStatusBadge = ({ status }) => {
 
 // Metric Card Component
 const MetricCard = ({ title, value, change, changeType = "positive" }) => {
+  const getChangeColor = () => {
+    if (changeType === "positive") return "text-green-600";
+    if (changeType === "negative") return "text-red-600";
+    return "text-gray-600";
+  };
+
+  const getChangePrefix = () => {
+    if (changeType === "positive") return "+ ";
+    if (changeType === "negative") return "";
+    return "";
+  };
+
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-              {title}
-            </p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
-          </div>
-          {change && (
-            <div
-              className={`flex items-center text-sm font-medium ${
-                changeType === "positive" ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {changeType === "positive" ? "+" : ""}
-              {change}
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          )}
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-6 text-center">
+        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+          {title}
         </div>
+        <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
+        {change && (
+          <div className={`text-xs font-medium ${getChangeColor()}`}>
+            {getChangePrefix()}
+            {change}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
 // Evaluation Item Component
-const EvaluationItem = ({ evaluation, onClick }) => {
+const EvaluationItem = ({ evaluation, onClick, loading = false }) => {
   return (
     <div
-      className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
-      onClick={() => onClick(evaluation)}
+      className={`flex items-center justify-between p-4 transition-all border-b border-gray-100 last:border-b-0 ${
+        loading
+          ? "opacity-50 cursor-not-allowed"
+          : "hover:bg-gray-50 cursor-pointer"
+      }`}
+      onClick={() => !loading && onClick(evaluation)}
     >
       <div className="flex items-center space-x-3">
         <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
           <FileText className="w-4 h-4 text-blue-600" />
         </div>
-        <div>
+        <div className="flex-1">
           <h4 className="text-sm font-medium text-gray-900">
             {evaluation.title}
           </h4>
           <p className="text-sm text-gray-500 mt-1">{evaluation.description}</p>
+          {evaluation.dueDate && (
+            <p className="text-xs text-blue-600 mt-1">
+              Due: {new Date(evaluation.dueDate).toLocaleDateString()}
+            </p>
+          )}
         </div>
       </div>
-      <ChevronRight className="w-5 h-5 text-gray-400" />
+      <div className="flex items-center space-x-2">
+        <EvaluationStatusBadge status={evaluation.status} />
+        {!loading && <ChevronRight className="w-5 h-5 text-gray-400" />}
+        {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+      </div>
     </div>
   );
 };
 
 // Empty State Component
-const EmptyState = ({ icon: Icon, title, description }) => (
-  <div className="flex flex-col items-center justify-center py-16">
-    <div className="w-16 h-16 border border-gray-200 rounded-lg flex items-center justify-center mb-4">
-      <Icon className="w-8 h-8 text-gray-400" />
+const EmptyState = ({ icon: Icon, title, description, action }) => (
+  <div className="flex flex-col items-center justify-center py-16 px-4">
+    <div className="w-16 h-16 mb-6 text-gray-300">
+      <Search className="w-16 h-16" />
     </div>
-    <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-    <p className="text-gray-500 text-center max-w-md">{description}</p>
+    <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+      {title}
+    </h3>
+    <p className="text-gray-500 text-center max-w-md mb-6">{description}</p>
+    {action && action}
   </div>
 );
 
@@ -163,35 +175,73 @@ const EvaluationModal = ({
   formComments,
   setFormComments,
   submitting,
+  loading,
 }) => {
-  if (!evaluation) return null;
+  if (!evaluation && !loading) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader className="space-y-4">
           <div className="flex items-center space-x-2 text-gray-600">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Evaluations Overview</span>
           </div>
-          <div className="space-y-2">
-            <DialogTitle className="text-xl font-semibold text-gray-900">
-              {evaluation.title}
-            </DialogTitle>
-            <p className="text-sm text-blue-600">Due by {evaluation.dueDate}</p>
-          </div>
+          {loading ? (
+            <div className="flex items-center space-x-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading evaluation details...</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                {evaluation?.title}
+              </DialogTitle>
+              {evaluation?.dueDate && (
+                <p className="text-sm text-blue-600">
+                  Due by {new Date(evaluation.dueDate).toLocaleDateString()}
+                </p>
+              )}
+              <EvaluationStatusBadge status={evaluation?.status} />
+            </div>
+          )}
         </DialogHeader>
 
-        {!showForm ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-600">Loading evaluation form...</p>
+            </div>
+          </div>
+        ) : !showForm ? (
           <div className="space-y-6 py-4">
             <div>
               <h4 className="text-sm font-medium text-gray-900 mb-3">
                 Instructions
               </h4>
               <p className="text-sm text-gray-600 leading-relaxed">
-                {evaluation.instructions}
+                {evaluation?.instructions ||
+                  evaluation?.description ||
+                  "Please complete this evaluation to provide feedback on your performance and development."}
               </p>
             </div>
+
+            {evaluation?.requirements && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                  Requirements
+                </h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {evaluation.requirements.map((req, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ) : (
           <form
@@ -201,48 +251,77 @@ const EvaluationModal = ({
             }}
             className="space-y-6 py-4"
           >
-            {Array.isArray(evaluation.questions) &&
+            <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg mb-4">
+              Please provide thoughtful responses to help with your performance
+              review.
+            </div>
+
+            {Array.isArray(evaluation?.questions) &&
             evaluation.questions.length > 0 ? (
               evaluation.questions.map((q, idx) => (
-                <div key={q.id || idx} className="mb-4">
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    {q.text}
+                <div key={q.id || idx} className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-900">
+                    {q.text || q.question}
+                    {q.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
-                  <Input
-                    type="text"
-                    value={formResponses[q.id] || ""}
-                    onChange={(e) =>
-                      setFormResponses({
-                        ...formResponses,
-                        [q.id]: e.target.value,
-                      })
-                    }
-                    placeholder="Your answer..."
-                  />
+                  {q.type === "textarea" || q.text?.length > 100 ? (
+                    <textarea
+                      value={formResponses[q.id] || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          [q.id]: e.target.value,
+                        })
+                      }
+                      placeholder="Your response..."
+                      className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                      required={q.required}
+                    />
+                  ) : (
+                    <Input
+                      type="text"
+                      value={formResponses[q.id] || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          [q.id]: e.target.value,
+                        })
+                      }
+                      placeholder="Your answer..."
+                      required={q.required}
+                    />
+                  )}
                 </div>
               ))
             ) : (
-              <div className="text-gray-500">
-                No questions found for this evaluation.
+              <div className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p>No specific questions found for this evaluation.</p>
+                <p className="text-sm mt-1">
+                  Please provide your comments below.
+                </p>
               </div>
             )}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Comments
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-900">
+                Additional Comments
               </label>
-              <Input
-                type="text"
+              <textarea
                 value={formComments}
                 onChange={(e) => setFormComments(e.target.value)}
-                placeholder="Additional comments..."
+                placeholder="Any additional feedback or comments..."
+                className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
               />
             </div>
-            <DialogFooter className="flex items-center space-x-3">
+
+            <DialogFooter className="flex items-center space-x-3 pt-4">
               <Button
                 variant="outline"
                 type="button"
                 onClick={onClose}
                 className="px-6"
+                disabled={submitting}
               >
                 Cancel
               </Button>
@@ -251,13 +330,20 @@ const EvaluationModal = ({
                 className="bg-green-600 hover:bg-green-700 px-6"
                 disabled={submitting}
               >
-                {submitting ? "Submitting..." : "Submit Evaluation"}
+                {submitting ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Submitting...</span>
+                  </div>
+                ) : (
+                  "Submit Evaluation"
+                )}
               </Button>
             </DialogFooter>
           </form>
         )}
 
-        {!showForm && (
+        {!showForm && !loading && (
           <DialogFooter className="flex items-center space-x-3">
             <Button variant="outline" onClick={onClose} className="px-6">
               Cancel
@@ -265,8 +351,11 @@ const EvaluationModal = ({
             <Button
               onClick={() => onStartEvaluation(evaluation)}
               className="bg-green-600 hover:bg-green-700 px-6"
+              disabled={evaluation?.status === "completed"}
             >
-              Start Evaluation
+              {evaluation?.status === "completed"
+                ? "Completed"
+                : "Start Evaluation"}
             </Button>
           </DialogFooter>
         )}
@@ -278,13 +367,29 @@ const EvaluationModal = ({
 // Loading State Component
 const LoadingState = () => (
   <div className="flex flex-col items-center justify-center py-16">
-    <div className="w-8 h-8 animate-spin border-2 border-green-500 border-t-transparent rounded-full mb-4"></div>
+    <Loader2 className="w-8 h-8 animate-spin mb-4 text-green-500" />
     <h3 className="text-lg font-semibold text-gray-900 mb-2">
       Loading evaluations...
     </h3>
     <p className="text-gray-500 text-center">
       Please wait while we fetch your evaluations.
     </p>
+  </div>
+);
+
+// Error State Component
+const ErrorState = ({ error, onRetry }) => (
+  <div className="flex flex-col items-center justify-center py-16">
+    <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      Failed to Load Evaluations
+    </h3>
+    <p className="text-gray-500 text-center max-w-md mb-6">
+      {error || "Something went wrong while loading your evaluations."}
+    </p>
+    <Button onClick={onRetry} className="bg-green-600 hover:bg-green-700">
+      Try Again
+    </Button>
   </div>
 );
 
@@ -303,6 +408,7 @@ export default function Evaluation() {
   const [formResponses, setFormResponses] = useState({});
   const [formComments, setFormComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [evaluationLoading, setEvaluationLoading] = useState(false);
   const [metrics, setMetrics] = useState({
     inProgress: 0,
     reviewsDue: 0,
@@ -312,57 +418,134 @@ export default function Evaluation() {
   const [tasks, setTasks] = useState([]);
 
   // API configuration
-  const API_URL = getApiUrl();
+  const getEvaluationsApiBaseUrl = () => {
+    const baseUrl = getApiUrl();
+    const cleanBaseUrl = baseUrl
+      ? baseUrl.replace(/\/+$/, "")
+      : "http://localhost:6000";
+    const noApiV1 = cleanBaseUrl.replace(/\/api\/v1$/, "");
+    return `${noApiV1}`;
+  };
 
-  // Create axios instance with default config
+  // Create axios instance with correct base URL
   const apiClient = axios.create({
-    baseURL: API_URL,
+    baseURL: getEvaluationsApiBaseUrl(),
     headers: {
       "Content-Type": "application/json",
     },
+    timeout: 30000, // 30 second timeout
   });
 
   // Add request interceptor to include auth token
-  apiClient.interceptors.request.use((config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+  apiClient.interceptors.request.use(
+    (config) => {
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  });
+  );
+
+  // Add response interceptor for better error handling
+  apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/login");
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!accessToken || !user) {
+      navigate("/login");
+    }
+  }, [accessToken, user, navigate]);
 
   // Fetch evaluations assigned to staff
-  const fetchEvaluations = async () => {
+  const fetchEvaluations = async (showToast = false) => {
     try {
       setLoading(true);
       setError(null);
+
       if (!accessToken) {
         throw new Error("No access token available. Please log in again.");
       }
+
       const response = await apiClient.get(
-        "/api/v1/dashboard/staff/evaluations/reviews",
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+        "/api/v1/dashboard/staff/evaluations/reviews"
       );
-      if (response.data && Array.isArray(response.data)) {
-        setEvaluations(response.data);
-        // Optionally, calculate metrics from response.data
-        setMetrics({
-          inProgress: response.data.filter((e) => e.status === "in progress")
-            .length,
-          reviewsDue: response.data.filter((e) => e.status === "pending")
-            .length,
-          completedReviews: response.data.filter(
-            (e) => e.status === "completed"
-          ).length,
-          averagePerformanceRating: 0, // Set if available in API
-        });
+
+      let evaluationsData = [];
+
+      if (
+        response.data &&
+        response.data.success &&
+        Array.isArray(response.data.data)
+      ) {
+        evaluationsData = response.data.data;
+      } else if (response.data && Array.isArray(response.data)) {
+        evaluationsData = response.data;
       } else {
-        setEvaluations([]);
+        evaluationsData = [];
+      }
+
+      // Transform and enrich evaluation data
+      const enrichedEvaluations = evaluationsData.map((evaluation) => ({
+        ...evaluation,
+        id: evaluation._id || evaluation.id,
+        title: evaluation.title || "Evaluation",
+        description: evaluation.description || "Performance evaluation",
+        status: (evaluation.status || "pending").toLowerCase(),
+        dueDate: evaluation.dueDate || null,
+        questions: evaluation.questions || [],
+        instructions: evaluation.instructions || evaluation.description,
+      }));
+
+      setEvaluations(enrichedEvaluations);
+
+      // Calculate metrics
+      setMetrics({
+        inProgress: enrichedEvaluations.filter(
+          (e) => e.status === "in progress"
+        ).length,
+        reviewsDue: enrichedEvaluations.filter((e) => e.status === "pending")
+          .length,
+        completedReviews: enrichedEvaluations.filter(
+          (e) => e.status === "completed"
+        ).length,
+        averagePerformanceRating:
+          enrichedEvaluations.length > 0
+            ? (
+                enrichedEvaluations.reduce(
+                  (sum, e) => sum + (e.rating || 0),
+                  0
+                ) / enrichedEvaluations.length
+              ).toFixed(1)
+            : 0,
+      });
+
+      if (showToast && enrichedEvaluations.length > 0) {
+        toast.success(`Loaded ${enrichedEvaluations.length} evaluations`);
       }
     } catch (err) {
-      setError(err.message || "Failed to fetch evaluations.");
+      console.error("Error fetching evaluations:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to fetch evaluations.";
+      setError(errorMessage);
       setEvaluations([]);
+
+      if (showToast) {
+        toast.error("Failed to load evaluations");
+      }
     } finally {
       setLoading(false);
     }
@@ -371,19 +554,25 @@ export default function Evaluation() {
   // Fetch a specific evaluation form by ID
   const fetchEvaluationById = async (id) => {
     try {
+      setEvaluationLoading(true);
       if (!accessToken) return null;
+
       const response = await apiClient.get(
-        `/api/v1/dashboard/staff/evaluations/reviews/${id}`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+        `/api/v1/dashboard/staff/evaluations/reviews/${id}`
       );
-      if (response.data) {
+
+      if (response.data && response.data.success) {
+        return response.data.data;
+      } else if (response.data) {
         return response.data;
       }
       return null;
-    } catch {
+    } catch (err) {
+      console.error("Error fetching evaluation by ID:", err);
+      toast.error("Failed to load evaluation details");
       return null;
+    } finally {
+      setEvaluationLoading(false);
     }
   };
 
@@ -391,22 +580,31 @@ export default function Evaluation() {
   const submitEvaluationResponse = async (id, responses, comments) => {
     try {
       if (!accessToken) throw new Error("No access token available.");
-      const payload = { responses, comments };
+
+      const payload = {
+        responses: responses || [],
+        comments: comments || "",
+      };
+
       const response = await apiClient.post(
         `/api/v1/dashboard/staff/evaluations/reviews/${id}/response`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+        payload
       );
-      if (response.data) {
+
+      if (response.data && (response.data.success || response.status === 200)) {
         toast.success("Evaluation response submitted successfully!");
         return true;
+      } else {
+        toast.error("Failed to submit evaluation response.");
+        return false;
       }
-      toast.error("Failed to submit evaluation response.");
-      return false;
     } catch (err) {
-      toast.error(err.message || "Failed to submit evaluation response.");
+      console.error("Error submitting evaluation:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to submit evaluation response.";
+      toast.error(errorMessage);
       return false;
     }
   };
@@ -415,29 +613,41 @@ export default function Evaluation() {
   const fetchTasks = async () => {
     try {
       if (!accessToken) return;
-      const response = await apiClient.get("/tasks");
-      if (response.data.success) {
+      const response = await apiClient.get("/api/v1/tasks");
+      if (response.data && response.data.success) {
         setTasks(response.data.data || response.data.tasks || []);
       } else {
         setTasks([]);
       }
-    } catch {
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
       setTasks([]);
     }
   };
 
   // Handle evaluation click: fetch full evaluation form
   const handleEvaluationClick = async (evaluation) => {
-    const fullEvaluation = await fetchEvaluationById(evaluation.id);
-    setSelectedEvaluation(fullEvaluation || evaluation);
+    setSelectedEvaluation(evaluation);
     setShowEvaluationModal(true);
     setShowForm(false);
     setFormResponses({});
     setFormComments("");
+
+    // If the evaluation doesn't have detailed questions, try to fetch them
+    if (!evaluation.questions || evaluation.questions.length === 0) {
+      const fullEvaluation = await fetchEvaluationById(evaluation.id);
+      if (fullEvaluation) {
+        setSelectedEvaluation(fullEvaluation);
+      }
+    }
   };
 
   // Show the evaluation form
   const handleStartEvaluation = (evaluation) => {
+    if (evaluation.status === "completed") {
+      toast.info("This evaluation has already been completed.");
+      return;
+    }
     setShowForm(true);
     setFormResponses({});
     setFormComments("");
@@ -446,38 +656,80 @@ export default function Evaluation() {
   // Submit the evaluation form
   const handleSubmitForm = async () => {
     if (!selectedEvaluation) return;
-    setSubmitting(true);
-    // Prepare responses array
-    const responsesArr = Object.entries(formResponses).map(
-      ([questionId, answer]) => ({ questionId, answer })
+
+    // Validate required fields
+    const requiredQuestions =
+      selectedEvaluation.questions?.filter((q) => q.required) || [];
+    const missingResponses = requiredQuestions.filter(
+      (q) => !formResponses[q.id]?.trim()
     );
-    const success = await submitEvaluationResponse(
-      selectedEvaluation.id,
-      responsesArr,
-      formComments
-    );
-    setSubmitting(false);
-    if (success) {
-      setShowEvaluationModal(false);
-      setShowForm(false);
-      setFormResponses({});
-      setFormComments("");
-      fetchEvaluations();
+
+    if (missingResponses.length > 0) {
+      toast.error("Please complete all required fields.");
+      return;
     }
+
+    setSubmitting(true);
+    try {
+      // Prepare responses array
+      const responsesArr = Object.entries(formResponses)
+        .map(([questionId, answer]) => ({ questionId, answer: answer?.trim() }))
+        .filter((r) => r.answer); // Remove empty responses
+
+      const success = await submitEvaluationResponse(
+        selectedEvaluation.id,
+        responsesArr,
+        formComments.trim()
+      );
+
+      if (success) {
+        setShowEvaluationModal(false);
+        setShowForm(false);
+        setFormResponses({});
+        setFormComments("");
+        setSelectedEvaluation(null);
+
+        // Refresh evaluations to reflect the update
+        await fetchEvaluations();
+      }
+    } catch (error) {
+      console.error("Error submitting evaluation:", error);
+      toast.error("Failed to submit evaluation. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setShowEvaluationModal(false);
+    setShowForm(false);
+    setFormResponses({});
+    setFormComments("");
+    setSelectedEvaluation(null);
   };
 
   // Initial fetch
   useEffect(() => {
-    fetchEvaluations();
-    fetchTasks();
+    if (accessToken) {
+      fetchEvaluations();
+      fetchTasks();
+    }
   }, [accessToken]);
 
-  // Dynamically update the badge for the Tasks sidebar item
+  // Dynamically update the badges for sidebar items
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
-    productivity: staffDashboardConfig.productivity.map((item) =>
-      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
-    ),
+    analytics:
+      staffDashboardConfig.analytics?.map((item) =>
+        item.title === "Evaluations"
+          ? { ...item, badge: evaluations.length }
+          : item
+      ) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) =>
+        item.title === "Tasks" ? { ...item, badge: tasks.length } : item
+      ) || [],
   };
 
   return (
@@ -489,122 +741,153 @@ export default function Evaluation() {
     >
       {/* Header Section */}
       <div className="px-4 lg:px-6 pb-4">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Evaluations Overview
-            </h1>
-            <p className="text-gray-500 mt-1">Manage and track evaluations.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-xl font-medium text-gray-900">
+                Evaluations Overview
+              </h1>
+              <p className="text-sm text-gray-500">
+                Manage and track your performance evaluations.
+              </p>
+            </div>
           </div>
-          <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-gray-50 text-green-700 border border-green-100 rounded-full">
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-            Active
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-green-50 text-green-700 border border-green-200 rounded-full">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+              Active
+            </span>
+            <Button
+              onClick={() => fetchEvaluations(true)}
+              variant="outline"
+              size="sm"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Refresh"
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Metrics Cards */}
       <div className="px-4 lg:px-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="IN PROGRESS"
             value={metrics.inProgress}
-            change="36%"
-            changeType="positive"
+            change="Updated"
+            changeType="neutral"
           />
           <MetricCard
             title="REVIEWS DUE"
             value={metrics.reviewsDue}
-            change="14%"
+            change="Pending"
             changeType="negative"
           />
           <MetricCard
             title="COMPLETED REVIEWS"
             value={metrics.completedReviews}
-            change="36%"
+            change="Done"
             changeType="positive"
           />
           <MetricCard
-            title="AVERAGE PERFORMANCE RATING"
-            value={metrics.averagePerformanceRating}
-            change="36%"
-            changeType="positive"
+            title="TOTAL EVALUATIONS"
+            value={evaluations.length}
+            change="Available"
+            changeType="neutral"
           />
         </div>
       </div>
 
       {/* Main Content */}
       <div className="px-4 lg:px-6">
-        <Card>
-          <CardContent className="p-0">
-            {loading ? (
-              <LoadingState />
-            ) : evaluations.length === 0 ? (
-              <EmptyState
-                icon={Search}
-                title="No active evaluations"
-                description="All evaluations assigned or provided to you will appear here."
-              />
-            ) : (
-              <div>
-                {/* Self-Assessment Section */}
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Self-Assessment Evaluation
-                  </h3>
-                  <p className="text-sm text-blue-600 mb-4">
-                    Please click to access the review form, make any necessary
-                    modifications, and submit
-                  </p>
-
-                  <div className="bg-white border border-gray-200 rounded-lg">
-                    {evaluations
-                      .filter(
-                        (evaluation) => evaluation.type === "self-assessment"
-                      )
-                      .map((evaluation) => (
-                        <EvaluationItem
-                          key={evaluation.id}
-                          evaluation={evaluation}
-                          onClick={handleEvaluationClick}
-                        />
-                      ))}
+        <Card className="shadow-sm">
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState error={error} onRetry={() => fetchEvaluations(true)} />
+          ) : evaluations.length === 0 ? (
+            <EmptyState
+              title="No evaluations available"
+              description="You don't have any evaluations assigned at the moment. Check back later or contact your HR department if you believe this is an error."
+              action={
+                <Button
+                  onClick={() => fetchEvaluations(true)}
+                  variant="outline"
+                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                >
+                  Refresh Evaluations
+                </Button>
+              }
+            />
+          ) : (
+            <div>
+              {/* Self-Assessment Section */}
+              <div className="p-4 sm:p-6 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Performance Evaluations
+                    </h3>
+                    <p className="text-sm text-blue-600">
+                      Click on any evaluation to view details and submit your
+                      responses
+                    </p>
+                  </div>
+                  <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                    {evaluations.length} evaluation
+                    {evaluations.length !== 1 ? "s" : ""} available
                   </div>
                 </div>
 
-                {/* Other Evaluations Section - if any exist */}
-                {evaluations.filter(
-                  (evaluation) => evaluation.type !== "self-assessment"
-                ).length > 0 && (
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Other Evaluations
-                    </h3>
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      {evaluations
-                        .filter(
-                          (evaluation) => evaluation.type !== "self-assessment"
-                        )
-                        .map((evaluation) => (
-                          <EvaluationItem
-                            key={evaluation.id}
-                            evaluation={evaluation}
-                            onClick={handleEvaluationClick}
-                          />
-                        ))}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {evaluations.map((evaluation) => (
+                    <EvaluationItem
+                      key={evaluation.id}
+                      evaluation={evaluation}
+                      onClick={handleEvaluationClick}
+                      loading={evaluationLoading}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Additional Information Section */}
+              <div className="p-4 sm:p-6 bg-gray-50">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-blue-600" />
                     </div>
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-1">
+                      Evaluation Guidelines
+                    </h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• Complete all evaluations before their due dates</li>
+                      <li>• Provide honest and thoughtful responses</li>
+                      <li>• Use specific examples when possible</li>
+                      <li>
+                        • Contact HR if you need assistance or have questions
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
-            )}
-          </CardContent>
+            </div>
+          )}
         </Card>
       </div>
 
       {/* Evaluation Detail Modal */}
       <EvaluationModal
         isOpen={showEvaluationModal}
-        onClose={() => setShowEvaluationModal(false)}
+        onClose={handleCloseModal}
         evaluation={selectedEvaluation}
         onStartEvaluation={handleStartEvaluation}
         showForm={showForm}
@@ -614,6 +897,7 @@ export default function Evaluation() {
         formComments={formComments}
         setFormComments={setFormComments}
         submitting={submitting}
+        loading={evaluationLoading}
       />
     </StaffDashboardLayout>
   );
