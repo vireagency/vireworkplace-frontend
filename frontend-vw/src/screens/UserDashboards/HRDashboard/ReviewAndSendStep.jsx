@@ -52,7 +52,7 @@ const evaluationPeriods = {
 };
 
 export default function ReviewAndSendStep({ data, onUpdate }) {
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(data.reviewDeadline || '');
   const [reminderSettings, setReminderSettings] = useState({
     enabled: true,
     frequency: '3-days'
@@ -70,6 +70,30 @@ export default function ReviewAndSendStep({ data, onUpdate }) {
   );
 
   const estimatedTime = Math.ceil(totalQuestions * 1.5); // 1.5 minutes per question
+
+  // Convert due date selection to actual date
+  const getDueDateFromSelection = (selection) => {
+    const now = new Date();
+    switch (selection) {
+      case '1-week':
+        return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      case '2-weeks':
+        return new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      case '1-month':
+        return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      default:
+        return null;
+    }
+  };
+
+  // Update parent when due date changes
+  const handleDueDateChange = (value) => {
+    setDueDate(value);
+    const actualDate = getDueDateFromSelection(value);
+    if (actualDate) {
+      onUpdate({ reviewDeadline: actualDate });
+    }
+  };
 
   return (
     <div className="space-y-6" style={{'--card': 'oklch(1 0 0)', '--card-foreground': 'oklch(0.145 0 0)'}}>
@@ -184,7 +208,7 @@ export default function ReviewAndSendStep({ data, onUpdate }) {
             </label>
             <div className="flex items-center space-x-2">
               <Calendar className="w-4 h-4 text-gray-500" />
-              <Select value={dueDate} onValueChange={setDueDate}>
+              <Select value={dueDate} onValueChange={handleDueDateChange}>
                 <SelectTrigger className="max-w-xs bg-white text-gray-900 border-gray-300 cursor-pointer">
                   <SelectValue placeholder="Select due date" />
                 </SelectTrigger>

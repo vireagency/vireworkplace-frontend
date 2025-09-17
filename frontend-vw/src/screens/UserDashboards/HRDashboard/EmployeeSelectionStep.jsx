@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,26 +6,73 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Users, Filter } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
+import axios from 'axios';
+import { apiConfig } from '@/config/apiConfig';
 
-// Mock employee data
-const employees = [
-  { id: '1', name: 'William Ofosu Parwar', department: 'Engineering', team: 'Frontend', avatar: '/api/placeholder/40/40' },
-  { id: '2', name: 'Sarah Mitchell', department: 'Engineering', team: 'Backend', avatar: '/api/placeholder/40/40' },
-  { id: '3', name: 'James Rodriguez', department: 'Engineering', team: 'DevOps', avatar: '/api/placeholder/40/40' },
-  { id: '4', name: 'Emily Chen', department: 'Design', team: 'UX', avatar: '/api/placeholder/40/40' },
-  { id: '5', name: 'Michael Thompson', department: 'Marketing', team: 'Growth', avatar: '/api/placeholder/40/40' },
-  { id: '6', name: 'Ava Green', department: 'Marketing', team: 'Content', avatar: '/api/placeholder/40/40' },
-  { id: '7', name: 'David Wilson', department: 'Sales', team: 'Enterprise', avatar: '/api/placeholder/40/40' },
-  { id: '8', name: 'Lisa Johnson', department: 'HR', team: 'Operations', avatar: '/api/placeholder/40/40' },
-];
-
-const departments = ['All Departments', 'Engineering', 'Design', 'Marketing', 'Sales', 'HR'];
-const teams = ['All Teams', 'Frontend', 'Backend', 'DevOps', 'UX', 'Growth', 'Content', 'Enterprise', 'Operations'];
+// API URL
+const API_URL = apiConfig.baseURL;
 
 export default function EmployeeSelectionStep({ data, onUpdate }) {
+  const { accessToken } = useAuth();
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
   const [selectedTeam, setSelectedTeam] = useState('All Teams');
+
+  // Fetch employees from API
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true);
+        
+        if (!accessToken) {
+          throw new Error('No access token available. Please log in again.');
+        }
+        
+        const response = await axios.get(`${API_URL}/employees/list`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.data.success) {
+          // Transform API data to match our component structure
+          const transformedEmployees = response.data.data.map(emp => ({
+            id: emp._id,
+            name: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email,
+            role: emp.jobRole,
+            department: emp.department,
+            team: emp.jobRole, // Using jobRole as team since API doesn't have team field
+            status: emp.attendanceStatus,
+            location: emp.locationToday,
+            checkIn: emp.checkInTime,
+            isLate: emp.isLate,
+            avatar: emp.avatar || null
+          }));
+          
+          setEmployees(transformedEmployees);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch employees');
+        }
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+        setError(error.message || 'Failed to fetch employees');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, [accessToken]);
+
+  // Get unique departments and teams from fetched employees
+  const departments = ['All Departments', ...new Set(employees.map(emp => emp.department).filter(Boolean))];
+  const teams = ['All Teams', ...new Set(employees.map(emp => emp.team).filter(Boolean))];
 
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -62,6 +109,59 @@ export default function EmployeeSelectionStep({ data, onUpdate }) {
 
   const allFilteredSelected = filteredEmployees.length > 0 && 
     filteredEmployees.every(emp => data.selectedEmployees.includes(emp.id));
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-gray-900">Select Employees</h2>
+          <p className="text-gray-600">
+            Choose which employees should receive this evaluation.
+          </p>
+        </div>
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading employees...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-gray-900">Select Employees</h2>
+          <p className="text-gray-600">
+            Choose which employees should receive this evaluation.
+          </p>
+        </div>
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="text-center py-12">
+              <div className="text-red-500 text-4xl mb-4">⚠️</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Employees</h3>
+              <p className="text-gray-500 mb-4">{error}</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="bg-green-500 hover:bg-green-600"
+              >
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

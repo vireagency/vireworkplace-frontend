@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -40,6 +40,15 @@ const evaluationPeriods = [
 ];
 
 export default function EvaluationTypeStep({ data, onUpdate }) {
+  const handleTypeChange = useCallback((value) => {
+    console.log('Type change triggered:', value);
+    onUpdate({ type: value });
+  }, [onUpdate]);
+
+  const handlePeriodChange = useCallback((value) => {
+    onUpdate({ period: value });
+  }, [onUpdate]);
+
   return (
     <div className="space-y-8" style={{'--card': 'oklch(1 0 0)', '--card-foreground': 'oklch(0.145 0 0)'}}>
       {/* Header */}
@@ -63,19 +72,30 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
 
             <RadioGroup
               value={data.type}
-              onValueChange={(value) => onUpdate({ type: value })}
+              onValueChange={handleTypeChange}
               className="space-y-3"
             >
               {evaluationTypes.map((type) => (
-                                  <div
-                    key={type.id}
-                    className={`flex items-center space-x-4 rounded-lg border p-4 transition-colors cursor-pointer ${
-                      data.type === type.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:bg-gray-50'
-                    }`}
-                  >
-                  <RadioGroupItem value={type.id} id={type.id} />
+                <div
+                  key={type.id}
+                  className={`flex items-center space-x-4 rounded-lg border p-4 transition-colors cursor-pointer ${
+                    data.type === type.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                  onClick={() => {
+                    console.log('Direct click on type:', type.id);
+                    handleTypeChange(type.id);
+                  }}
+                >
+                  <RadioGroupItem 
+                    value={type.id} 
+                    id={type.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('RadioGroupItem click:', type.id);
+                    }}
+                  />
                   <div className="flex-1 space-y-1">
                     <Label
                       htmlFor={type.id}
@@ -105,7 +125,7 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
               </Label>
               <Select
                 value={data.period}
-                onValueChange={(value) => onUpdate({ period: value })}
+                onValueChange={handlePeriodChange}
               >
                 <SelectTrigger className="w-full max-w-md bg-white text-gray-900 border-gray-300 cursor-pointer">
                   <div className="flex items-center space-x-2">
