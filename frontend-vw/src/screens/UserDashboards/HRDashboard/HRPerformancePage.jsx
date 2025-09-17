@@ -634,10 +634,10 @@ export default function HRPerformancePage() {
                 <CardContent>
                   <div className="text-center">
                     <div className="text-4xl font-bold text-blue-600 mb-2">
-                      {performanceTrends.TopPerformingDepartment?.department || 'N/A'}
+                      {performanceTrends.TopPerformingDepartment?.department || '0'}
                     </div>
                     <div className="text-2xl font-semibold text-slate-900 mb-1">
-                      {performanceTrends.TopPerformingDepartment?.avgScore?.toFixed(1) || 'N/A'}
+                      {performanceTrends.TopPerformingDepartment?.avgScore?.toFixed(1) || '0.0'}
                     </div>
                     <div className="text-sm text-slate-600 mb-4">
                       Average Score

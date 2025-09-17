@@ -24,6 +24,13 @@
  */
 
 // ============================================================================
+// REACT IMPORTS
+// ============================================================================
+
+// React core library for component creation and memoization
+import React from "react"
+
+// ============================================================================
 // ICON IMPORTS
 // ============================================================================
 
@@ -86,6 +93,9 @@ import {
 // Custom authentication hook for user management
 import { useAuth } from "@/hooks/useAuth"
 
+// Avatar utility functions
+import { getUserAvatarUrl, getStableAvatarUrl, getUserInitials } from "@/utils/avatarUtils"
+
 // React Router hook for navigation
 import { useNavigate } from "react-router-dom"
 
@@ -111,7 +121,7 @@ import { toast } from "sonner"
  * - Toast notifications for user feedback
  * - Account, billing, and notification options
  */
-export function NavUser({
+export const NavUser = React.memo(function NavUser({
   user                      // User object containing profile information
 }) {
   // ============================================================================
@@ -206,8 +216,17 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               
               {/* User avatar with fallback */}
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={user.avatar} alt={user.name} />
+              <Avatar 
+                key={user?.profileImagePublicId || user?.profileImage || user?.avatar || 'default'}
+                className="h-8 w-8 rounded-lg grayscale"
+              >
+                <AvatarImage 
+                  src={getStableAvatarUrl(user)} 
+                  alt={user?.name || 'User'} 
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
                 <AvatarFallback className="rounded-lg bg-gray-200 text-gray-700 font-medium text-sm">
                   {getUserInitials()}
                 </AvatarFallback>
@@ -250,7 +269,13 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 {/* User avatar in dropdown */}
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage 
+                    src={user?.avatar || ''} 
+                    alt={user?.name || 'User'} 
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
                   <AvatarFallback className="rounded-lg bg-gray-200 text-gray-700 font-medium text-sm">
                     {getUserInitials()}
                   </AvatarFallback>
@@ -344,4 +369,4 @@ export function NavUser({
       </SidebarMenuItem>
     </SidebarMenu>
   );
-}
+});

@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input"
 // ============================================================================
 
 // Search and notification icons from Lucide React
-import { Search, Bell } from "lucide-react"
+import { Search, Bell, X, Check, Trash2, Eye } from "lucide-react"
 
 // ============================================================================
 // HOOK IMPORTS
@@ -38,7 +38,10 @@ import { Search, Bell } from "lucide-react"
 
 // Custom authentication hook for user context
 import { useAuth } from "@/hooks/useAuth"
-import { getUserAvatarUrl, getUserInitials as getInitials } from "@/utils/avatarUtils"
+import { getUserAvatarUrl, getStableAvatarUrl, getUserInitials as getInitials } from "@/utils/avatarUtils"
+
+// Notification context
+import { useNotifications } from "@/contexts/NotificationProvider"
 
 // React hooks for state management
 import { useState, useEffect, useRef } from "react"
@@ -81,6 +84,9 @@ export function SiteHeader() {
   // Get current authenticated user from auth context
   const { user, accessToken } = useAuth();
   
+  // Get notification context
+  const { notifications, unreadCount, markAsRead, deleteNotification, getUserInfo } = useNotifications();
+  
   // ============================================================================
   // SEARCH STATE MANAGEMENT
   // ============================================================================
@@ -100,6 +106,126 @@ export function SiteHeader() {
   // Search results container ref
   const searchResultsRef = useRef(null);
   
+  // ============================================================================
+  // NOTIFICATION STATE MANAGEMENT
+  // ============================================================================
+  
+  // Notification dropdown visibility
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Notification dropdown ref
+  const notificationRef = useRef(null);
+  
+  // ============================================================================
+  // NOTIFICATION FUNCTIONALITY
+  // ============================================================================
+  
+  /**
+   * Handle notification bell click
+   */
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+  };
+  
+  /**
+   * Handle mark as read
+   * @param {string} id - Notification ID
+   */
+  const handleMarkAsRead = async (id) => {
+    await markAsRead(id);
+  };
+  
+  /**
+   * Handle delete notification
+   * @param {string} id - Notification ID
+   */
+  const handleDeleteNotification = async (id) => {
+    await deleteNotification(id);
+  };
+  
+  /**
+   * Check if notification can be deleted
+   * @param {Object} notification - Notification object
+   * @returns {boolean} Whether notification can be deleted
+   */
+  const canDeleteNotification = (notification) => {
+    const { userId, role } = getUserInfo();
+    
+    // HR users can delete most notifications
+    if (role === 'HR' || role === 'Admin') {
+      return true;
+    }
+    
+    // For other users, check if it's a personal notification
+    if (notification.recipients && notification.recipients.includes(userId)) {
+      return true;
+    }
+    
+    // If no recipients field, allow deletion for personal notifications
+    if (!notification.recipients && notification.userId === userId) {
+      return true;
+    }
+    
+    // Default to allowing deletion (can be made more restrictive if needed)
+    return true;
+  };
+  
+  /**
+   * Format notification date
+   * @param {string} dateString - Date string
+   * @returns {string} Formatted date
+   */
+  const formatNotificationDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  /**
+   * Get notification icon based on type
+   * @param {Object} notification - Notification object
+   * @returns {JSX.Element} Icon component
+   */
+  const getNotificationIcon = (notification) => {
+    const title = notification.title?.toLowerCase() || '';
+    const message = notification.message?.toLowerCase() || '';
+    
+    if (title.includes('evaluation') || message.includes('evaluation')) {
+      return (
+        <div className="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
+          <Check className="w-4 h-4 text-green-600" />
+        </div>
+      );
+    } else if (title.includes('performance') || message.includes('performance')) {
+      return (
+        <div className="w-6 h-6 bg-orange-100 rounded flex items-center justify-center">
+          <Eye className="w-4 h-4 text-orange-600" />
+        </div>
+      );
+    } else {
+      return (
+        <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+          <Bell className="w-4 h-4 text-blue-600" />
+        </div>
+      );
+    }
+  };
+
+  /**
+   * Handle mark all as read
+   */
+  const handleMarkAllAsRead = async () => {
+    const unreadNotifications = notifications.filter(n => !n.isRead);
+    for (const notification of unreadNotifications) {
+      await markAsRead(notification._id || notification.id);
+    }
+  };
+
   // ============================================================================
   // SEARCH FUNCTIONALITY
   // ============================================================================
@@ -215,6 +341,15 @@ export function SiteHeader() {
       ) {
         setSearchResults(null);
       }
+      
+      // Close notification dropdown
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target) &&
+        !event.target.closest('[data-notification-bell]')
+      ) {
+        setShowNotifications(false);
+      }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
@@ -304,19 +439,142 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-4">
           
           {/* Notification Bell Button */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="relative p-2 hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
-          >
-            {/* Bell icon for notifications */}
-            <Bell className="h-5 w-5" />
-          </Button>
+          <div className="relative" ref={notificationRef}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="relative p-2 hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
+              onClick={handleNotificationClick}
+              data-notification-bell
+            >
+              {/* Bell icon for notifications */}
+              <Bell className="h-5 w-5" />
+              
+              {/* Unread count badge */}
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Button>
+            
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <div className="absolute right-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                {/* Header */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500">{notifications.length} total, {unreadCount} unread</p>
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      Mark all read
+                    </button>
+                  </div>
+                  
+                  {/* New badge */}
+                  {unreadCount > 0 && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {unreadCount} new
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Notification List */}
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      <p>No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.slice(0, 10).map((notification) => (
+                      <div
+                        key={notification._id || notification.id}
+                        className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Notification Icon */}
+                          {getNotificationIcon(notification)}
+                          
+                          {/* Notification Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                {/* Unread indicator */}
+                                {!notification.isRead && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mb-1"></div>
+                                )}
+                                
+                                <h4 className="text-sm font-medium text-gray-900 truncate">
+                                  {notification.title || 'Notification'}
+                                </h4>
+                                
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-xs text-gray-500">
+                                    {formatNotificationDate(notification.createdAt)}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* Delete button for read notifications */}
+                              {notification.isRead && canDeleteNotification(notification) && (
+                                <button
+                                  onClick={() => handleDeleteNotification(notification._id || notification.id)}
+                                  className="text-gray-400 hover:text-red-600 transition-colors p-1 cursor-pointer"
+                                  title="Delete notification"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                {/* Footer */}
+                {notifications.length > 0 && (
+                  <div className="p-3 border-t border-gray-200 text-center">
+                    <button
+                      onClick={() => {
+                        setShowNotifications(false);
+                        // Navigate to full notifications page
+                        window.location.href = '/human-resource-manager/messages';
+                      }}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors cursor-pointer"
+                    >
+                      View all notifications
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           
           {/* User Avatar with Initials */}
-          <Avatar className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer">
+          <Avatar 
+            key={user?.profileImagePublicId || user?.profileImage || user?.avatar || 'default'}
+            className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
+          >
             <AvatarImage 
-              src={getUserAvatarUrl(user)} 
+              src={getStableAvatarUrl(user)} 
               alt={user ? `${user.firstName} ${user.lastName}` : "User"}
               className="object-cover w-full h-full"
             />

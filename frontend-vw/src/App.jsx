@@ -52,6 +52,9 @@ import { ThemeProvider } from "next-themes";
 // Custom authentication hook and context provider
 import { AuthProvider } from "@/hooks/useAuth";
 
+// Notification context provider for real-time notifications
+import { NotificationProvider } from "@/contexts/NotificationProvider";
+
 // Route protection component for authenticated users
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -195,8 +198,10 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       {/* Authentication context and user state management */}
       <AuthProvider>
-        {/* Tooltip functionality provider */}
-        <TooltipProvider>
+        {/* Notification context for real-time notifications */}
+        <NotificationProvider>
+          {/* Tooltip functionality provider */}
+          <TooltipProvider>
           {/* Toast notification system for user feedback */}
           <Toaster />
 
@@ -492,6 +497,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -626,7 +626,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <Input
                   id="work_id"
                   type="text"
-                  placeholder="Enter your ID"
+                  placeholder="Enter your Work ID"
                   className="glass border-white/20 text-white placeholder-muted-foreground"
                   value={formData.workId}
                   onChange={(e) => updateFormData({ workId: e.target.value })}
