@@ -216,10 +216,7 @@ export const NavUser = React.memo(function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               
               {/* User avatar with fallback */}
-              <Avatar 
-                key={user?.profileImagePublicId || user?.profileImage || user?.avatar || 'default'}
-                className="h-8 w-8 rounded-lg grayscale"
-              >
+              <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage 
                   src={getStableAvatarUrl(user)} 
                   alt={user?.name || 'User'} 

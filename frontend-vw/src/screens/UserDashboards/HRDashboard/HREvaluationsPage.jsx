@@ -28,16 +28,37 @@ import {
 } from "lucide-react"
 import EvaluationCreator from "./EvaluationCreator"
 
+// Loading State Component
+const LoadingState = () => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+      <p className="text-gray-600">Preparing Evaluation...</p>
+    </div>
+  </div>
+)
+
 export default function HREvaluationsPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [showEvaluationCreator, setShowEvaluationCreator] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleNewEvaluation = () => {
-    setShowEvaluationCreator(true)
+    setIsLoading(true)
+    // Simulate a brief loading state to show the loading UI
+    setTimeout(() => {
+      setShowEvaluationCreator(true)
+      setIsLoading(false)
+    }, 1000) // 1 second loading state
   }
 
   const handleBackToEvaluations = () => {
     setShowEvaluationCreator(false)
+  }
+
+  // If loading, show loading state
+  if (isLoading) {
+    return <LoadingState />
   }
 
   // If evaluation creator is active, show it instead of the evaluations overview
@@ -70,11 +91,21 @@ export default function HREvaluationsPage() {
                 Export
               </Button>
               <Button 
-                className="flex items-center gap-2 bg-green-500 hover:bg-green-600"
+                className="flex items-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleNewEvaluation}
+                disabled={isLoading}
               >
-                <Plus className="h-4 w-4" />
-                New Evaluation
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Preparing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    <span>New Evaluation</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>

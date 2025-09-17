@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, GripVertical, Settings, FileText, Star, Target } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Settings, FileText, Star, Target, Edit2, X, Check } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 const defaultSections = [
   {
@@ -67,6 +69,7 @@ export default function FormCustomizationStep({ data, onUpdate }) {
   );
   const [formName, setFormName] = useState(data.formName || '');
   const [editingSection, setEditingSection] = useState(null);
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
   const handleFormNameChange = (name) => {
     setFormName(name);
@@ -110,6 +113,40 @@ export default function FormCustomizationStep({ data, onUpdate }) {
     handleSectionsUpdate(newSections);
   };
 
+  const addQuestion = (sectionId) => {
+    const newQuestion = {
+      id: Date.now().toString(),
+      text: 'New question',
+      type: 'rating',
+      required: false
+    };
+    updateSection(sectionId, {
+      questions: [...sections.find(s => s.id === sectionId).questions, newQuestion]
+    });
+  };
+
+  const updateQuestion = (sectionId, questionId, updates) => {
+    const section = sections.find(s => s.id === sectionId);
+    const updatedQuestions = section.questions.map(q =>
+      q.id === questionId ? { ...q, ...updates } : q
+    );
+    updateSection(sectionId, { questions: updatedQuestions });
+  };
+
+  const removeQuestion = (sectionId, questionId) => {
+    const section = sections.find(s => s.id === sectionId);
+    const updatedQuestions = section.questions.filter(q => q.id !== questionId);
+    updateSection(sectionId, { questions: updatedQuestions });
+  };
+
+  const moveQuestion = (sectionId, fromIndex, toIndex) => {
+    const section = sections.find(s => s.id === sectionId);
+    const newQuestions = [...section.questions];
+    const [movedQuestion] = newQuestions.splice(fromIndex, 1);
+    newQuestions.splice(toIndex, 0, movedQuestion);
+    updateSection(sectionId, { questions: newQuestions });
+  };
+
   const getSectionIcon = (type) => {
     switch (type) {
       case 'rating':
@@ -120,6 +157,17 @@ export default function FormCustomizationStep({ data, onUpdate }) {
         return <GripVertical className="w-5 h-5 text-green-500" />;
       default:
         return <FileText className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  const getQuestionTypeIcon = (type) => {
+    switch (type) {
+      case 'rating':
+        return <Star className="w-4 h-4 text-yellow-500" />;
+      case 'text':
+        return <FileText className="w-4 h-4 text-blue-500" />;
+      default:
+        return <FileText className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -223,6 +271,33 @@ export default function FormCustomizationStep({ data, onUpdate }) {
                         </div>
                         
                         <div className="flex items-center space-x-2">
+                          {editingSection === section.id ? (
+                            <div className="flex items-center space-x-2">
+                              <Select
+                                value={section.type}
+                                onValueChange={(value) => updateSection(section.id, { type: value })}
+                              >
+                                <SelectTrigger className="w-24 h-6 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="rating">Rating</SelectItem>
+                                  <SelectItem value="goals">Goals</SelectItem>
+                                  <SelectItem value="skills">Skills</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              
+                              <div className="flex items-center space-x-1">
+                                <Switch
+                                  checked={section.required}
+                                  onCheckedChange={(checked) => updateSection(section.id, { required: checked })}
+                                  className="scale-75"
+                                />
+                                <span className="text-xs text-gray-600">Required</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
                           <Badge
                             variant={section.type === 'rating' ? 'default' : 'secondary'}
                             className="text-xs"
@@ -233,6 +308,8 @@ export default function FormCustomizationStep({ data, onUpdate }) {
                             <Badge variant="destructive" className="text-xs">
                               Required
                             </Badge>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -269,38 +346,158 @@ export default function FormCustomizationStep({ data, onUpdate }) {
                         rows={2}
                       />
                       
-                      <div className="space-y-2">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
                         <h5 className="text-sm font-medium text-gray-700">
                           Questions ({section.questions.length})
                         </h5>
-                        <div className="space-y-1">
+                          <Button
+                            size="sm"
+                            className="text-xs bg-white border border-gray-300 text-gray-700 cursor-pointer hover:bg-green-500 hover:text-white hover:border-green-500 transition-colors duration-200"
+                            onClick={() => addQuestion(section.id)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Question
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
                           {section.questions.map((question, qIndex) => (
                             <div
                               key={question.id}
-                              className="text-sm text-gray-600 bg-gray-50 p-2 rounded border"
+                              className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
                             >
-                              {qIndex + 1}. {question.text}
+                              {/* Question Number and Move Buttons */}
+                              <div className="flex flex-col items-center space-y-1">
+                                <span className="text-xs text-gray-500 font-medium">
+                                  {qIndex + 1}
+                                </span>
+                                <div className="flex flex-col space-y-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => qIndex > 0 && moveQuestion(section.id, qIndex, qIndex - 1)}
+                                    disabled={qIndex === 0}
+                                    className="h-3 w-3 p-0 text-gray-400 hover:text-gray-600"
+                                  >
+                                    ▲
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => qIndex < section.questions.length - 1 && moveQuestion(section.id, qIndex, qIndex + 1)}
+                                    disabled={qIndex === section.questions.length - 1}
+                                    className="h-3 w-3 p-0 text-gray-400 hover:text-gray-600"
+                                  >
+                                    ▼
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Question Type Icon */}
+                              <div className="flex-shrink-0">
+                                {getQuestionTypeIcon(question.type)}
+                              </div>
+
+                              {/* Question Content */}
+                              <div className="flex-1 min-w-0">
+                                {editingQuestion === question.id ? (
+                                  <div className="space-y-2">
+                                    <Input
+                                      value={question.text}
+                                      onChange={(e) => updateQuestion(section.id, question.id, { text: e.target.value })}
+                                      placeholder="Enter question text"
+                                      className="text-sm"
+                                      autoFocus
+                                    />
+                                    <div className="flex items-center space-x-3">
+                                      <Select
+                                        value={question.type}
+                                        onValueChange={(value) => updateQuestion(section.id, question.id, { type: value })}
+                                      >
+                                        <SelectTrigger className="w-32 h-8 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="rating">Rating</SelectItem>
+                                          <SelectItem value="text">Text</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      
+                                      <div className="flex items-center space-x-2">
+                                        <Switch
+                                          checked={question.required}
+                                          onCheckedChange={(checked) => updateQuestion(section.id, question.id, { required: checked })}
+                                          className="scale-75"
+                                        />
+                                        <span className="text-xs text-gray-600">Required</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <p className="text-sm text-gray-900 font-medium">
+                                      {question.text}
+                                    </p>
+                                    <div className="flex items-center space-x-2">
+                                      <Badge variant="outline" className="text-xs">
+                                        {question.type}
+                                      </Badge>
+                                      {question.required && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          Required
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Question Actions */}
+                              <div className="flex items-center space-x-1">
+                                {editingQuestion === question.id ? (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setEditingQuestion(null)}
+                                      className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setEditingQuestion(null)}
+                                      className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setEditingQuestion(question.id)}
+                                      className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeQuestion(section.id, question.id)}
+                                      className="h-6 w-6 p-0 text-red-400 hover:text-red-600"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
-                        <Button
-                          size="sm"
-                          className="text-xs bg-white border border-gray-300 text-gray-700 cursor-pointer hover:bg-green-500 hover:text-white hover:border-green-500 transition-colors duration-200"
-                          onClick={() => {
-                            const newQuestion = {
-                              id: Date.now().toString(),
-                              text: 'New question',
-                              type: 'rating',
-                              required: false
-                            };
-                            updateSection(section.id, {
-                              questions: [...section.questions, newQuestion]
-                            });
-                          }}
-                        >
-                          <Plus className="w-3 h-3 mr-1" />
-                          Add Question
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
