@@ -216,15 +216,6 @@ export function SiteHeader() {
     }
   };
 
-  /**
-   * Handle mark all as read
-   */
-  const handleMarkAllAsRead = async () => {
-    const unreadNotifications = notifications.filter(n => !n.isRead);
-    for (const notification of unreadNotifications) {
-      await markAsRead(notification._id || notification.id);
-    }
-  };
 
   // ============================================================================
   // SEARCH FUNCTIONALITY
@@ -475,13 +466,6 @@ export function SiteHeader() {
                   
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-500">{notifications.length} total, {unreadCount} unread</p>
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      <Check className="w-4 h-4" />
-                      Mark all read
-                    </button>
                   </div>
                   
                   {/* New badge */}
@@ -531,16 +515,30 @@ export function SiteHeader() {
                                 </div>
                               </div>
                               
-                              {/* Delete button for read notifications */}
-                              {notification.isRead && canDeleteNotification(notification) && (
-                                <button
-                                  onClick={() => handleDeleteNotification(notification._id || notification.id)}
-                                  className="text-gray-400 hover:text-red-600 transition-colors p-1 cursor-pointer"
-                                  title="Delete notification"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              {/* Action buttons */}
+                              <div className="flex items-center gap-1">
+                                {/* Mark as read button for unread notifications */}
+                                {!notification.isRead && (
+                                  <button
+                                    onClick={() => handleMarkAsRead(notification._id || notification.id)}
+                                    className="text-gray-400 hover:text-blue-600 transition-colors p-1 cursor-pointer"
+                                    title="Mark as read"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                )}
+                                
+                                {/* Delete button for all notifications */}
+                                {canDeleteNotification(notification) && (
+                                  <button
+                                    onClick={() => handleDeleteNotification(notification._id || notification.id)}
+                                    className="text-gray-400 hover:text-red-600 transition-colors p-1 cursor-pointer"
+                                    title="Delete notification"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
