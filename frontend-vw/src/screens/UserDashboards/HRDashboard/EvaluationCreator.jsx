@@ -67,13 +67,19 @@ export default function EvaluationCreator({ onBack }) {
         description: evaluationData.description || `Evaluation for ${evaluationData.period}`,
         reviewPeriod: evaluationData.period,
         reviewDeadline: evaluationData.reviewDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 1 week from now
+        dueDate: evaluationData.reviewDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Backend expects both reviewDeadline and dueDate
+        status: 'draft', // Default status for new evaluations
         sections: evaluationData.sections,
         employees: evaluationData.selectedEmployees
       };
 
       console.log('Submitting evaluation with data:', requestBody);
+      console.log('Sections data:', evaluationData.sections);
+      console.log('Sections length:', evaluationData.sections.length);
 
       const result = await createEvaluationReview(requestBody, accessToken);
+
+      console.log('Evaluation creation result:', result);
 
       if (result.success) {
         toast.success('Evaluation created successfully!');
@@ -100,6 +106,7 @@ export default function EvaluationCreator({ onBack }) {
           onBack();
         }
       } else {
+        console.error('Evaluation creation failed:', result.error);
         toast.error(result.error || 'Failed to create evaluation. Please try again.');
       }
     } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,13 @@ export default function FormCustomizationStep({ data, onUpdate }) {
   const [formName, setFormName] = useState(data.formName || '');
   const [editingSection, setEditingSection] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
+
+  // Initialize with default sections if none exist
+  React.useEffect(() => {
+    if (data.sections.length === 0) {
+      onUpdate({ sections: defaultSections });
+    }
+  }, [data.sections.length, onUpdate]);
 
   const handleFormNameChange = (name) => {
     setFormName(name);

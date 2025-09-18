@@ -52,6 +52,14 @@ export const createEvaluationReview = async (evaluationData, accessToken) => {
       return { success: false, error: 'Sections must be a non-empty array' };
     }
 
+    // Validate each section has questions
+    for (let i = 0; i < evaluationData.sections.length; i++) {
+      const section = evaluationData.sections[i];
+      if (!section.questions || !Array.isArray(section.questions) || section.questions.length === 0) {
+        return { success: false, error: `Section ${i + 1} must have a non-empty questions array` };
+      }
+    }
+
     // Validate employees array
     if (!Array.isArray(evaluationData.employees) || evaluationData.employees.length === 0) {
       return { success: false, error: 'Employees must be a non-empty array' };
@@ -60,21 +68,47 @@ export const createEvaluationReview = async (evaluationData, accessToken) => {
     console.log('Creating evaluation review with data:', evaluationData);
     console.log('API URL:', `${EVALUATIONS_API_BASE}/reviews/create`);
     console.log('Headers:', getAuthHeaders(accessToken));
+    console.log('Access token length:', accessToken ? accessToken.length : 'No token');
+    console.log('Sections being sent:', evaluationData.sections);
+    console.log('Sections count:', evaluationData.sections?.length || 0);
+    console.log('First section:', evaluationData.sections?.[0]);
+    console.log('First section questions:', evaluationData.sections?.[0]?.questions);
+    console.log('Questions count in first section:', evaluationData.sections?.[0]?.questions?.length || 0);
+    console.log('Employees being sent:', evaluationData.employees);
+    console.log('Employees count:', evaluationData.employees?.length || 0);
+    console.log('Full request payload:', JSON.stringify(evaluationData, null, 2));
 
     const response = await axios.post(`${EVALUATIONS_API_BASE}/reviews/create`, evaluationData, {
       headers: getAuthHeaders(accessToken)
     });
     
-    console.log('Evaluation creation response:', response.data);
+    console.log('Evaluation creation response status:', response.status);
+    console.log('Evaluation creation response data:', response.data);
     return { success: true, data: response.data };
   } catch (error) {
     console.error('Error creating evaluation review:', error);
     console.error('Error response:', error.response);
     console.error('Error response data:', error.response?.data);
     console.error('Error response status:', error.response?.status);
+    console.error('Full error details:', JSON.stringify(error.response?.data, null, 2));
+    
+    // Log the specific error object
+    if (error.response?.data?.error) {
+      console.error('Backend error object:', error.response.data.error);
+      console.error('Backend error type:', typeof error.response.data.error);
+      console.error('Backend error keys:', Object.keys(error.response.data.error || {}));
+    }
+    
+    // Extract more detailed error information
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to create evaluation review';
+    const errorDetails = error.response?.data?.error ? JSON.stringify(error.response.data.error, null, 2) : 'No additional error details';
+    
+    console.error('Error message:', errorMessage);
+    console.error('Error details:', errorDetails);
+    
     return { 
       success: false, 
-      error: error.response?.data?.message || error.message || 'Failed to create evaluation review'
+      error: `${errorMessage}${errorDetails !== 'No additional error details' ? `\n\nDetails: ${errorDetails}` : ''}`
     };
   }
 };
