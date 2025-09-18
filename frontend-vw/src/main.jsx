@@ -7,26 +7,32 @@
  */
 
 // Import React 19's StrictMode for development-time checks and warnings
-import { StrictMode } from 'react'
+import { StrictMode } from "react";
 
 // Import React 19's createRoot API for concurrent rendering features
-import { createRoot } from 'react-dom/client'
+import { createRoot } from "react-dom/client";
 
 // Import global CSS styles for the application
-import './index.css'
+import "./index.css";
 
 // Import the main App component that contains the entire application
-import App from './App.jsx'
+import App from "./App.jsx";
+
+// Import NotificationProvider for real-time notifications
+import { NotificationProvider } from "./contexts/NotificationProvider.jsx";
 
 /**
  * Bootstrap the React application by creating a root and rendering the App component
  * @description This is the entry point that mounts the React application to the DOM
  * @type {void}
  */
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   // StrictMode enables additional development-time checks and warnings
   <StrictMode>
-    {/* Main application component that contains all routes and components */}
-    <App />
-  </StrictMode>,
-)
+    {/* NotificationProvider wraps the entire app for real-time notifications */}
+    <NotificationProvider>
+      {/* Main application component that contains all routes and components */}
+      <App />
+    </NotificationProvider>
+  </StrictMode>
+);

@@ -1,184 +1,221 @@
-/**
- * @fileoverview Notification Provider Context
- * @description Handles real-time notifications via Socket.IO and REST API integration
- * @author Vire Development Team
- * @version 1.0.0
- * @since 2024
- */
-
 import React, {
   createContext,
   useContext,
   useState,
   useEffect,
   useCallback,
-  useRef,
 } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
-import { getApiUrl } from "@/config/apiConfig";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+import { getApiUrl } from "@/config/apiConfig";
 
-// ============================================================================
-// CONTEXT CREATION
-// ============================================================================
-
+// Create the notification context
 const NotificationContext = createContext();
 
-// ============================================================================
-// NOTIFICATION PROVIDER COMPONENT
-// ============================================================================
+// Custom hook to use the notification context
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider"
+    );
+  }
+  return context;
+};
 
+// Notification Provider Component
 export const NotificationProvider = ({ children }) => {
-  // ============================================================================
-  // STATE MANAGEMENT
-  // ============================================================================
-
-  // Get auth context
-  const { accessToken } = useAuth();
-
+  // State management
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Ref to track if we're already connecting to prevent multiple connections
-  const isConnectingRef = useRef(false);
+  // Get user data from localStorage
+  const getUserData = useCallback(() => {
+    try {
+      const userData = localStorage.getItem("user");
+      const accessToken = localStorage.getItem("accessToken");
+      return userData ? { ...JSON.parse(userData), accessToken } : null;
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return null;
+    }
+  }, []);
 
-  // ============================================================================
-  // UTILITY FUNCTIONS
-  // ============================================================================
+  // Initialize socket connection
+  const initializeSocket = useCallback(() => {
+    const userData = getUserData();
+    if (!userData || !userData.accessToken) {
+      console.warn(
+        "No user data or access token found, skipping socket connection"
+      );
+      return;
+    }
 
-  /**
-   * Get authentication headers for API requests
-   * @returns {Object} Headers object with authorization
-   */
-  const getAuthHeaders = () => {
-    return {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    };
-  };
+    // Get socket URL from environment or use default
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || "ws://localhost:5000";
 
-  /**
-   * Get user role and ID from localStorage
-   * @returns {Object} User role and ID
-   */
-  const getUserInfo = () => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const accessToken = localStorage.getItem("access_token");
+    // Skip socket connection if using localhost in production
+    if (socketUrl.includes("localhost") && import.meta.env.PROD) {
+      console.warn(
+        "Skipping socket connection in production with localhost URL"
+      );
+      return;
+    }
 
-    return {
-      role: user?.role || "Staff",
-      userId: user?._id || user?.id,
-      accessToken,
-    };
-  };
+    try {
+      const newSocket = io(socketUrl, {
+        auth: {
+          token: userData.accessToken,
+        },
+        transports: ["websocket", "polling"],
+      });
 
-  /**
-   * Calculate latency for notification
-   * @param {Object} notification - Notification object
-   * @returns {number} Latency in milliseconds
-   */
-  const calculateLatency = (notification) => {
-    if (!notification.createdAt) return 0;
-    return Date.now() - new Date(notification.createdAt).getTime();
-  };
+      // Connection event handlers
+      newSocket.on("connect", () => {
+        console.log("Socket connected:", newSocket.id);
+        setIsConnected(true);
 
-  // ============================================================================
-  // REST API METHODS
-  // ============================================================================
-
-  /**
-   * Fetch notifications with filter
-   * @param {string} filter - Filter type (all, today, last3days, last7days)
-   * @returns {Promise<Object>} API response
-   */
-  const fetchNotifications = useCallback(
-    async (filter = "all") => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        if (!accessToken) {
-          throw new Error("No access token available");
+        // Join role and user rooms
+        if (userData.role) {
+          newSocket.emit("joinRole", userData.role);
+          console.log("Joined role room:", userData.role);
         }
 
-        console.log("Fetching notifications with filter:", filter);
+        if (userData._id || userData.id) {
+          newSocket.emit("joinUser", userData._id || userData.id);
+          console.log("Joined user room:", userData._id || userData.id);
+        }
+      });
 
+      newSocket.on("disconnect", () => {
+        console.log("Socket disconnected");
+        setIsConnected(false);
+      });
+
+      newSocket.on("connect_error", (error) => {
+        console.warn("Socket connection error:", error.message);
+        setIsConnected(false);
+        // Don't show toast for connection errors as they might be expected
+      });
+
+      // Listen for notification events
+      newSocket.on("notification", (payload) => {
+        console.log("Received notification:", payload);
+
+        // Calculate latency
+        const latency = Date.now() - new Date(payload.createdAt).getTime();
+        console.log(`Notification latency: ${latency}ms`);
+
+        // Add notification to state
+        setNotifications((prev) => [payload, ...prev]);
+
+        // Update unread count
+        setUnreadCount((prev) => prev + 1);
+
+        // Show toast notification
+        toast.success(payload.title, {
+          description: payload.message,
+          duration: 5000,
+        });
+      });
+
+      setSocket(newSocket);
+    } catch (error) {
+      console.error("Socket initialization error:", error);
+      setError("Failed to connect to real-time notifications");
+    }
+  }, [getUserData]);
+
+  // Cleanup socket connection
+  const cleanupSocket = useCallback(() => {
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
+    }
+  }, [socket]);
+
+  // Initialize socket on mount and when user data changes
+  useEffect(() => {
+    initializeSocket();
+
+    return () => {
+      cleanupSocket();
+    };
+  }, [initializeSocket, cleanupSocket]);
+
+  // Fetch notifications from REST API
+  const fetchNotifications = useCallback(
+    async (filter = "all") => {
+      const userData = getUserData();
+      if (!userData || !userData.accessToken) {
+        setError("No authentication token found");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
         const response = await axios.get(`${getApiUrl()}/notifications`, {
           params: { filter },
-          headers: getAuthHeaders(),
+          headers: {
+            Authorization: `Bearer ${userData.accessToken}`,
+            "Content-Type": "application/json",
+          },
         });
 
-        if (response.data.success) {
-          const fetchedNotifications =
-            response.data.data || response.data.notifications || [];
-
-          // Add latency calculation to each notification
-          const notificationsWithLatency = fetchedNotifications.map(
-            (notification) => ({
-              ...notification,
-              latency: calculateLatency(notification),
-            })
-          );
-
-          setNotifications(notificationsWithLatency);
+        if (response.data && response.data.success) {
+          setNotifications(response.data.notifications || []);
 
           // Calculate unread count
-          const unread = notificationsWithLatency.filter(
+          const unread = (response.data.notifications || []).filter(
             (n) => !n.isRead
           ).length;
           setUnreadCount(unread);
-
-          console.log(
-            `Fetched ${fetchedNotifications.length} notifications, ${unread} unread`
-          );
-          return { success: true, data: notificationsWithLatency };
         } else {
-          throw new Error(
-            response.data.message || "Failed to fetch notifications"
-          );
+          setError("Failed to fetch notifications");
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
-        setError(error.message);
-        toast.error("Failed to fetch notifications");
-        return { success: false, error: error.message };
+        setError(
+          error.response?.data?.message || "Failed to fetch notifications"
+        );
       } finally {
         setLoading(false);
       }
     },
-    [accessToken]
+    [getUserData]
   );
 
-  /**
-   * Mark notification as read
-   * @param {string} id - Notification ID
-   * @returns {Promise<Object>} API response
-   */
+  // Mark notification as read
   const markAsRead = useCallback(
     async (id) => {
+      const userData = getUserData();
+      if (!userData || !userData.accessToken) {
+        setError("No authentication token found");
+        return;
+      }
+
       try {
-        if (!accessToken) {
-          throw new Error("No access token available");
-        }
-
-        console.log("Marking notification as read:", id);
-
         const response = await axios.patch(
           `${getApiUrl()}/notifications/${id}/read`,
           {},
           {
-            headers: getAuthHeaders(),
+            headers: {
+              Authorization: `Bearer ${userData.accessToken}`,
+              "Content-Type": "application/json",
+            },
           }
         );
 
-        if (response.data.success) {
-          // Update local state
+        if (response.data && response.data.success) {
+          // Update local state optimistically
           setNotifications((prev) =>
             prev.map((notification) =>
               notification._id === id || notification.id === id
@@ -190,45 +227,42 @@ export const NotificationProvider = ({ children }) => {
           // Update unread count
           setUnreadCount((prev) => Math.max(0, prev - 1));
 
-          console.log("Notification marked as read");
-          return { success: true };
+          toast.success("Notification marked as read");
         } else {
-          throw new Error(
-            response.data.message || "Failed to mark notification as read"
-          );
+          setError("Failed to mark notification as read");
         }
       } catch (error) {
         console.error("Error marking notification as read:", error);
-        toast.error("Failed to mark notification as read");
-        return { success: false, error: error.message };
+        setError(
+          error.response?.data?.message || "Failed to mark notification as read"
+        );
       }
     },
-    [accessToken]
+    [getUserData]
   );
 
-  /**
-   * Delete notification
-   * @param {string} id - Notification ID
-   * @returns {Promise<Object>} API response
-   */
+  // Delete notification
   const deleteNotification = useCallback(
     async (id) => {
+      const userData = getUserData();
+      if (!userData || !userData.accessToken) {
+        setError("No authentication token found");
+        return;
+      }
+
       try {
-        if (!accessToken) {
-          throw new Error("No access token available");
-        }
-
-        console.log("Deleting notification:", id);
-
         const response = await axios.delete(
           `${getApiUrl()}/notifications/${id}`,
           {
-            headers: getAuthHeaders(),
+            headers: {
+              Authorization: `Bearer ${userData.accessToken}`,
+              "Content-Type": "application/json",
+            },
           }
         );
 
-        if (response.data.success) {
-          // Update local state
+        if (response.data && response.data.success) {
+          // Update local state optimistically
           const deletedNotification = notifications.find(
             (n) => n._id === id || n.id === id
           );
@@ -244,197 +278,62 @@ export const NotificationProvider = ({ children }) => {
             setUnreadCount((prev) => Math.max(0, prev - 1));
           }
 
-          console.log("Notification deleted");
           toast.success("Notification deleted");
-          return { success: true };
         } else {
-          throw new Error(
-            response.data.message || "Failed to delete notification"
-          );
+          setError("Failed to delete notification");
         }
       } catch (error) {
         console.error("Error deleting notification:", error);
-        toast.error("Failed to delete notification");
-        return { success: false, error: error.message };
+        setError(
+          error.response?.data?.message || "Failed to delete notification"
+        );
       }
     },
-    [notifications, accessToken]
+    [getUserData, notifications]
   );
 
-  // ============================================================================
-  // SOCKET.IO INTEGRATION
-  // ============================================================================
+  // Check if notification can be deleted (personal notifications only)
+  const canDeleteNotification = useCallback(
+    (notification) => {
+      const userData = getUserData();
+      if (!userData) return false;
 
-  /**
-   * Initialize socket connection
-   */
-  const initializeSocket = useCallback(() => {
-    // Prevent multiple simultaneous connections
-    if (isConnectingRef.current) {
-      console.log("Socket connection already in progress, skipping...");
-      return;
-    }
+      const userId = userData._id || userData.id;
 
-    try {
-      const { role, userId } = getUserInfo();
+      // Can delete if it's a personal notification (recipients contains current user)
+      return (
+        notification.recipients &&
+        Array.isArray(notification.recipients) &&
+        notification.recipients.includes(userId)
+      );
+    },
+    [getUserData]
+  );
 
-      if (!accessToken) {
-        console.log("No access token available for socket connection");
-        return;
-      }
-
-      isConnectingRef.current = true;
-
-      const socketUrl =
-        import.meta.env?.VITE_SOCKET_URL || "ws://localhost:5000";
-      console.log("Connecting to socket:", socketUrl);
-      console.log("Environment variables:", import.meta.env);
-
-      // Skip WebSocket connection if no production socket URL is configured
-      if (
-        !import.meta.env?.VITE_SOCKET_URL &&
-        socketUrl === "ws://localhost:5000"
-      ) {
-        console.log(
-          "Skipping WebSocket connection - no production socket URL configured"
-        );
-        isConnectingRef.current = false;
-        return;
-      }
-
-      const newSocket = io(socketUrl, {
-        auth: {
-          token: accessToken,
-        },
-        transports: ["websocket", "polling"],
-        timeout: 10000,
-        forceNew: true,
-      });
-
-      // Connection event handlers
-      newSocket.on("connect", () => {
-        console.log("Socket connected:", newSocket.id);
-        setIsConnected(true);
-        isConnectingRef.current = false;
-
-        // Join role and user rooms
-        newSocket.emit("joinRole", { role });
-        newSocket.emit("joinUser", { userId });
-
-        console.log("Joined rooms:", { role, userId });
-      });
-
-      newSocket.on("disconnect", () => {
-        console.log("Socket disconnected");
-        setIsConnected(false);
-        isConnectingRef.current = false;
-      });
-
-      newSocket.on("connect_error", (error) => {
-        console.warn(
-          "Socket connection error (this is expected if backend doesn't support WebSocket):",
-          error.message
-        );
-        setIsConnected(false);
-        isConnectingRef.current = false;
-        // Don't show error toast for WebSocket connection issues
-      });
-
-      // Notification event handler
-      newSocket.on("notification", (notification) => {
-        console.log("Received notification:", notification);
-
-        // Calculate latency
-        const latency = calculateLatency(notification);
-        const notificationWithLatency = {
-          ...notification,
-          latency,
-        };
-
-        // Add to notifications list
-        setNotifications((prev) => [notificationWithLatency, ...prev]);
-
-        // Update unread count if not read
-        if (!notification.isRead) {
-          setUnreadCount((prev) => prev + 1);
-        }
-
-        // Show toast notification
-        toast.info(notification.title || "New notification", {
-          description: notification.message,
-        });
-
-        console.log(`Notification latency: ${latency}ms`);
-      });
-
-      setSocket(newSocket);
-    } catch (error) {
-      console.error("Error initializing socket connection:", error);
-      setIsConnected(false);
-      isConnectingRef.current = false;
-    }
-  }, [accessToken]);
-
-  /**
-   * Cleanup socket connection
-   */
-  const cleanupSocket = useCallback(() => {
-    console.log("Disconnecting socket");
-    isConnectingRef.current = false;
-    setSocket((prevSocket) => {
-      if (prevSocket) {
-        prevSocket.disconnect();
-        setIsConnected(false);
-      }
-      return null;
-    });
+  // Clear all notifications
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
+    setUnreadCount(0);
   }, []);
 
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
-
-  // Initialize socket when access token becomes available
-  useEffect(() => {
-    if (accessToken) {
-      initializeSocket();
-    }
-
-    return () => {
-      cleanupSocket();
-    };
-  }, [accessToken, initializeSocket, cleanupSocket]); // Depend on accessToken and socket functions
-
-  // Fetch initial notifications when access token becomes available
-  useEffect(() => {
-    if (accessToken) {
-      console.log("Access token available, fetching notifications...");
-      fetchNotifications("all");
-    } else {
-      console.log("No access token available for notifications");
-    }
-  }, [accessToken, fetchNotifications]); // Depend on accessToken and fetchNotifications
-
-  // ============================================================================
-  // CONTEXT VALUE
-  // ============================================================================
-
+  // Context value
   const contextValue = {
     // State
     notifications,
     unreadCount,
-    isConnected,
     loading,
     error,
+    isConnected,
 
-    // Methods
+    // Actions
     fetchNotifications,
     markAsRead,
     deleteNotification,
+    canDeleteNotification,
+    clearAllNotifications,
 
-    // Utility
-    getUserInfo,
-    calculateLatency,
+    // Socket info
+    socket,
   };
 
   return (
@@ -442,24 +341,6 @@ export const NotificationProvider = ({ children }) => {
       {children}
     </NotificationContext.Provider>
   );
-};
-
-// ============================================================================
-// CUSTOM HOOK
-// ============================================================================
-
-/**
- * useNotifications hook
- * @returns {Object} Notification context value
- */
-export const useNotifications = () => {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error(
-      "useNotifications must be used within a NotificationProvider"
-    );
-  }
-  return context;
 };
 
 export default NotificationProvider;
