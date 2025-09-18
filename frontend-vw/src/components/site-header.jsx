@@ -120,13 +120,16 @@ export function SiteHeader() {
   // Navigation hook
   const navigate = useNavigate();
 
-  // Get notification context (HR flow only)
+  // Get notification context
   const {
     notifications,
     unreadCount,
     markAsRead,
     deleteNotification,
-    canDeleteNotification: canDelete,
+    markAllAsRead,
+    isConnected,
+    isLoading: notificationsLoading,
+    error: notificationsError,
   } = useNotifications();
 
   // ============================================================================
@@ -203,11 +206,8 @@ export function SiteHeader() {
     await deleteNotification(id);
   };
 
-  // Check if user is in HR flow
-  const isHRFlow =
-    user?.role === "HR" ||
-    user?.role === "Admin" ||
-    window.location.pathname.includes("/human-resource-manager");
+  // Check if user is authenticated (notifications available for all authenticated users)
+  const isAuthenticated = !!user && !!accessToken;
 
   /**
    * Format notification date
@@ -262,10 +262,7 @@ export function SiteHeader() {
    * Handle mark all as read
    */
   const handleMarkAllAsRead = async () => {
-    const unreadNotifications = notifications.filter((n) => !n.isRead);
-    for (const notification of unreadNotifications) {
-      await markAsRead(notification._id || notification.id);
-    }
+    await markAllAsRead();
   };
 
   // ============================================================================
@@ -482,8 +479,8 @@ export function SiteHeader() {
 
         {/* Right-aligned container for notifications and user avatar */}
         <div className="ml-auto flex items-center gap-4">
-          {/* Notification Bell Button - HR Flow Only */}
-          {isHRFlow && (
+          {/* Notification Bell Button - All Authenticated Users */}
+          {isAuthenticated && (
             <div className="relative" ref={notificationRef}>
               <Button
                 variant="ghost"
@@ -494,6 +491,11 @@ export function SiteHeader() {
               >
                 {/* Bell icon for notifications */}
                 <Bell className="h-5 w-5" />
+
+                {/* Connection status indicator */}
+                {!isConnected && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full" title="Disconnected - using fallback polling" />
+                )}
 
                 {/* Unread count badge */}
                 {unreadCount > 0 && (
@@ -602,19 +604,17 @@ export function SiteHeader() {
                                     </button>
                                   )}
 
-                                  {canDelete(notification) && (
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteNotification(
-                                          notification._id || notification.id
-                                        )
-                                      }
-                                      className="text-gray-400 hover:text-red-600 transition-colors p-1 cursor-pointer"
-                                      title="Delete notification"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteNotification(
+                                        notification._id || notification.id
+                                      )
+                                    }
+                                    className="text-gray-400 hover:text-red-600 transition-colors p-1 cursor-pointer"
+                                    title="Delete notification"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -630,9 +630,17 @@ export function SiteHeader() {
                       <button
                         onClick={() => {
                           setShowNotifications(false);
-                          // Navigate to full notifications page
-                          window.location.href =
-                            "/human-resource-manager/messages";
+                          // Navigate to full notifications page based on user role
+                          const role = user?.role?.toLowerCase();
+                          if (role === "staff") {
+                            navigate("/staff/messages");
+                          } else if (role === "hr" || role === "human resource manager") {
+                            navigate("/human-resource-manager/messages");
+                          } else if (role === "admin") {
+                            navigate("/admin/messages");
+                          } else {
+                            navigate("/staff/messages");
+                          }
                         }}
                         className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors cursor-pointer"
                       >

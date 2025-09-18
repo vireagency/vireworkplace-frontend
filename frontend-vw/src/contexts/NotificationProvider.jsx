@@ -1,25 +1,27 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
-import { io } from "socket.io-client";
-import axios from "axios";
-import { toast } from "sonner";
-import { getApiUrl } from "@/config/apiConfig";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { io } from 'socket.io-client';
+import axios from 'axios';
+import { toast } from 'sonner';
 
-// Create the notification context
+// Notification System Configuration
+const NOTIFICATION_CONFIG = {
+  API_BASE: __NOTIFICATION_API_BASE__,
+  SOCKET_URL: __SOCKET_IO_URL__,
+  ENDPOINTS: __NOTIFICATION_ENDPOINTS__,
+  RECONNECTION_ATTEMPTS: 5,
+  RECONNECTION_DELAY: 1000,
+  POLLING_INTERVAL: 30000, // 30 seconds fallback polling
+  MAX_NOTIFICATIONS: 100
+};
+
+// Create Notification Context
 const NotificationContext = createContext();
 
-// Custom hook to use the notification context
+// Custom hook to use notification context
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error(
-      "useNotifications must be used within a NotificationProvider"
-    );
+    throw new Error('useNotifications must be used within a NotificationProvider');
   }
   return context;
 };
@@ -29,312 +31,347 @@ export const NotificationProvider = ({ children }) => {
   // State management
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState(null);
+  const [user, setUser] = useState(null);
 
-  // Get user data from localStorage
-  const getUserData = useCallback(() => {
-    try {
-      const userData = localStorage.getItem("user");
-      const accessToken = localStorage.getItem("accessToken");
-      return userData ? { ...JSON.parse(userData), accessToken } : null;
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      return null;
-    }
+  // Get access token from localStorage
+  const getAccessToken = useCallback(() => {
+    return localStorage.getItem('accessToken');
   }, []);
 
-  // Initialize socket connection
+  // Get current user info
+  const getCurrentUser = useCallback(() => {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  }, []);
+
+  // Initialize user data
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+  }, [getCurrentUser]);
+
+  // Socket.IO connection management
   const initializeSocket = useCallback(() => {
-    const userData = getUserData();
-    if (!userData || !userData.accessToken) {
-      console.warn(
-        "No user data or access token found, skipping socket connection"
-      );
-      return;
+    const token = getAccessToken();
+    if (!token || !user) return null;
+
+    const socketInstance = io(NOTIFICATION_CONFIG.SOCKET_URL, {
+      auth: {
+        token: token,
+        userId: user.id,
+        role: user.role
+      },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: NOTIFICATION_CONFIG.RECONNECTION_ATTEMPTS,
+      reconnectionDelay: NOTIFICATION_CONFIG.RECONNECTION_DELAY,
+      timeout: 20000
+    });
+
+    // Connection event handlers
+    socketInstance.on(NOTIFICATION_CONFIG.ENDPOINTS.SOCKET_EVENTS.CONNECT, () => {
+      console.log('🔌 Socket connected');
+      setIsConnected(true);
+      setError(null);
+      
+      // Join user-specific and role-specific rooms
+      socketInstance.emit('join-rooms', {
+        userId: user.id,
+        role: user.role
+      });
+    });
+
+    socketInstance.on(NOTIFICATION_CONFIG.ENDPOINTS.SOCKET_EVENTS.DISCONNECT, () => {
+      console.log('🔌 Socket disconnected');
+      setIsConnected(false);
+    });
+
+    // Notification event handlers
+    socketInstance.on(NOTIFICATION_CONFIG.ENDPOINTS.SOCKET_EVENTS.NOTIFICATION_NEW, (notification) => {
+      console.log('🔔 New notification received:', notification);
+      handleNewNotification(notification);
+    });
+
+    socketInstance.on(NOTIFICATION_CONFIG.ENDPOINTS.SOCKET_EVENTS.NOTIFICATION_UPDATE, (notification) => {
+      console.log('🔄 Notification updated:', notification);
+      handleNotificationUpdate(notification);
+    });
+
+    // Error handling
+    socketInstance.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
+      setError('Connection failed. Using fallback polling.');
+      setIsConnected(false);
+      startPolling();
+    });
+
+    return socketInstance;
+  }, [getAccessToken, user]);
+
+  // Handle new notification
+  const handleNewNotification = useCallback((notification) => {
+    setNotifications(prev => {
+      const newNotifications = [notification, ...prev].slice(0, NOTIFICATION_CONFIG.MAX_NOTIFICATIONS);
+      return newNotifications;
+    });
+    
+    setUnreadCount(prev => prev + 1);
+    
+    // Show toast notification
+    toast.success(notification.title, {
+      description: notification.message,
+      duration: 5000,
+      action: {
+        label: 'View',
+        onClick: () => {
+          // Handle view action
+          console.log('View notification:', notification.id);
+        }
+      }
+    });
+  }, []);
+
+  // Handle notification update
+  const handleNotificationUpdate = useCallback((updatedNotification) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === updatedNotification.id ? updatedNotification : notification
+      )
+    );
+  }, []);
+
+  // Fallback polling mechanism
+  const startPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
     }
 
-    // Get socket URL from environment or use default
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || "ws://localhost:5000";
+    const interval = setInterval(() => {
+      if (!isConnected) {
+        fetchNotifications();
+      }
+    }, NOTIFICATION_CONFIG.POLLING_INTERVAL);
 
-    // Skip socket connection if using localhost in production
-    if (socketUrl.includes("localhost") && import.meta.env.PROD) {
-      console.warn(
-        "Skipping socket connection in production with localhost URL"
-      );
-      return;
+    setPollingInterval(interval);
+  }, [isConnected, pollingInterval]);
+
+  // Stop polling
+  const stopPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
     }
+  }, [pollingInterval]);
+
+  // Fetch notifications from API
+  const fetchNotifications = useCallback(async (filter = 'all') => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const newSocket = io(socketUrl, {
-        auth: {
-          token: userData.accessToken,
-        },
-        transports: ["websocket", "polling"],
-      });
-
-      // Connection event handlers
-      newSocket.on("connect", () => {
-        console.log("Socket connected:", newSocket.id);
-        setIsConnected(true);
-
-        // Join role and user rooms
-        if (userData.role) {
-          newSocket.emit("joinRole", userData.role);
-          console.log("Joined role room:", userData.role);
-        }
-
-        if (userData._id || userData.id) {
-          newSocket.emit("joinUser", userData._id || userData.id);
-          console.log("Joined user room:", userData._id || userData.id);
-        }
-      });
-
-      newSocket.on("disconnect", () => {
-        console.log("Socket disconnected");
-        setIsConnected(false);
-      });
-
-      newSocket.on("connect_error", (error) => {
-        console.warn("Socket connection error:", error.message);
-        setIsConnected(false);
-        // Don't show toast for connection errors as they might be expected
-      });
-
-      // Listen for notification events
-      newSocket.on("notification", (payload) => {
-        console.log("Received notification:", payload);
-
-        // Calculate latency
-        const latency = Date.now() - new Date(payload.createdAt).getTime();
-        console.log(`Notification latency: ${latency}ms`);
-
-        // Add notification to state
-        setNotifications((prev) => [payload, ...prev]);
-
-        // Update unread count
-        setUnreadCount((prev) => prev + 1);
-
-        // Show toast notification
-        toast.success(payload.title, {
-          description: payload.message,
-          duration: 5000,
-        });
-      });
-
-      setSocket(newSocket);
-    } catch (error) {
-      console.error("Socket initialization error:", error);
-      setError("Failed to connect to real-time notifications");
-    }
-  }, [getUserData]);
-
-  // Cleanup socket connection
-  const cleanupSocket = useCallback(() => {
-    if (socket) {
-      socket.disconnect();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
-
-  // Initialize socket on mount and when user data changes
-  useEffect(() => {
-    initializeSocket();
-
-    return () => {
-      cleanupSocket();
-    };
-  }, [initializeSocket, cleanupSocket]);
-
-  // Fetch notifications from REST API
-  const fetchNotifications = useCallback(
-    async (filter = "all") => {
-      const userData = getUserData();
-      if (!userData || !userData.accessToken) {
-        setError("No authentication token found");
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await axios.get(`${getApiUrl()}/notifications`, {
-          params: { filter },
+      const response = await axios.get(
+        `${NOTIFICATION_CONFIG.API_BASE}${NOTIFICATION_CONFIG.ENDPOINTS.FETCH_NOTIFICATIONS}`,
+        {
           headers: {
-            Authorization: `Bearer ${userData.accessToken}`,
-            "Content-Type": "application/json",
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           },
-        });
-
-        if (response.data && response.data.success) {
-          setNotifications(response.data.notifications || []);
-
-          // Calculate unread count
-          const unread = (response.data.notifications || []).filter(
-            (n) => !n.isRead
-          ).length;
-          setUnreadCount(unread);
-        } else {
-          setError("Failed to fetch notifications");
+          params: { filter }
         }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-        setError(
-          error.response?.data?.message || "Failed to fetch notifications"
-        );
-      } finally {
-        setLoading(false);
+      );
+
+      if (response.status === 200) {
+        const { notifications: fetchedNotifications, unreadCount: fetchedUnreadCount } = response.data;
+        setNotifications(fetchedNotifications || []);
+        setUnreadCount(fetchedUnreadCount || 0);
       }
-    },
-    [getUserData]
-  );
+    } catch (error) {
+      console.error('❌ Error fetching notifications:', error);
+      setError('Failed to fetch notifications');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getAccessToken]);
 
   // Mark notification as read
-  const markAsRead = useCallback(
-    async (id) => {
-      const userData = getUserData();
-      if (!userData || !userData.accessToken) {
-        setError("No authentication token found");
-        return;
-      }
+  const markAsRead = useCallback(async (notificationId) => {
+    const token = getAccessToken();
+    if (!token) return { success: false, error: 'No access token' };
 
-      try {
-        const response = await axios.patch(
-          `${getApiUrl()}/notifications/${id}/read`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${userData.accessToken}`,
-              "Content-Type": "application/json",
-            },
+    try {
+      const response = await axios.patch(
+        `${NOTIFICATION_CONFIG.API_BASE}${NOTIFICATION_CONFIG.ENDPOINTS.MARK_AS_READ}/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-        );
-
-        if (response.data && response.data.success) {
-          // Update local state optimistically
-          setNotifications((prev) =>
-            prev.map((notification) =>
-              notification._id === id || notification.id === id
-                ? { ...notification, isRead: true }
-                : notification
-            )
-          );
-
-          // Update unread count
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-
-          toast.success("Notification marked as read");
-        } else {
-          setError("Failed to mark notification as read");
         }
-      } catch (error) {
-        console.error("Error marking notification as read:", error);
-        setError(
-          error.response?.data?.message || "Failed to mark notification as read"
+      );
+
+      if (response.status === 200) {
+        // Optimistic update
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === notificationId 
+              ? { ...notification, isRead: true, readAt: new Date().toISOString() }
+              : notification
+          )
         );
+        
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        return { success: true, data: response.data };
       }
-    },
-    [getUserData]
-  );
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }, [getAccessToken]);
 
   // Delete notification
-  const deleteNotification = useCallback(
-    async (id) => {
-      const userData = getUserData();
-      if (!userData || !userData.accessToken) {
-        setError("No authentication token found");
-        return;
-      }
+  const deleteNotification = useCallback(async (notificationId) => {
+    const token = getAccessToken();
+    if (!token) return { success: false, error: 'No access token' };
 
-      try {
-        const response = await axios.delete(
-          `${getApiUrl()}/notifications/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${userData.accessToken}`,
-              "Content-Type": "application/json",
-            },
+    try {
+      const response = await axios.delete(
+        `${NOTIFICATION_CONFIG.API_BASE}${NOTIFICATION_CONFIG.ENDPOINTS.DELETE_NOTIFICATION}/${notificationId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-        );
-
-        if (response.data && response.data.success) {
-          // Update local state optimistically
-          const deletedNotification = notifications.find(
-            (n) => n._id === id || n.id === id
-          );
-          setNotifications((prev) =>
-            prev.filter(
-              (notification) =>
-                notification._id !== id && notification.id !== id
-            )
-          );
-
-          // Update unread count if the deleted notification was unread
-          if (deletedNotification && !deletedNotification.isRead) {
-            setUnreadCount((prev) => Math.max(0, prev - 1));
-          }
-
-          toast.success("Notification deleted");
-        } else {
-          setError("Failed to delete notification");
         }
-      } catch (error) {
-        console.error("Error deleting notification:", error);
-        setError(
-          error.response?.data?.message || "Failed to delete notification"
-        );
-      }
-    },
-    [getUserData, notifications]
-  );
-
-  // Check if notification can be deleted (personal notifications only)
-  const canDeleteNotification = useCallback(
-    (notification) => {
-      const userData = getUserData();
-      if (!userData) return false;
-
-      const userId = userData._id || userData.id;
-
-      // Can delete if it's a personal notification (recipients contains current user)
-      return (
-        notification.recipients &&
-        Array.isArray(notification.recipients) &&
-        notification.recipients.includes(userId)
       );
-    },
-    [getUserData]
-  );
 
-  // Clear all notifications
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([]);
-    setUnreadCount(0);
-  }, []);
+      if (response.status === 200) {
+        // Optimistic update
+        const deletedNotification = notifications.find(n => n.id === notificationId);
+        setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
+        
+        if (deletedNotification && !deletedNotification.isRead) {
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+        
+        return { success: true, data: response.data };
+      }
+    } catch (error) {
+      console.error('❌ Error deleting notification:', error);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }, [getAccessToken, notifications]);
 
-  // Context value
-  const contextValue = {
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return { success: false, error: 'No access token' };
+
+    try {
+      const response = await axios.patch(
+        `${NOTIFICATION_CONFIG.API_BASE}${NOTIFICATION_CONFIG.ENDPOINTS.MARK_AS_READ}/mark-all-read`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        // Optimistic update
+        setNotifications(prev => 
+          prev.map(notification => ({ 
+            ...notification, 
+            isRead: true, 
+            readAt: new Date().toISOString() 
+          }))
+        );
+        setUnreadCount(0);
+        
+        return { success: true, data: response.data };
+      }
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }, [getAccessToken]);
+
+  // Initialize socket connection
+  useEffect(() => {
+    if (user && getAccessToken()) {
+      const socketInstance = initializeSocket();
+      setSocket(socketInstance);
+      
+      // Initial fetch
+      fetchNotifications();
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+      stopPolling();
+    };
+  }, [user, initializeSocket, fetchNotifications, stopPolling]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+      stopPolling();
+    };
+  }, [socket, stopPolling]);
+
+  // Memoized context value
+  const contextValue = useMemo(() => ({
     // State
     notifications,
     unreadCount,
-    loading,
-    error,
     isConnected,
-
+    isLoading,
+    error,
+    
     // Actions
     fetchNotifications,
     markAsRead,
     deleteNotification,
-    canDeleteNotification,
-    clearAllNotifications,
-
-    // Socket info
-    socket,
-  };
+    markAllAsRead,
+    
+    // Connection status
+    isConnected,
+    reconnect: () => {
+      if (socket) {
+        socket.disconnect();
+      }
+      const newSocket = initializeSocket();
+      setSocket(newSocket);
+    }
+  }), [
+    notifications,
+    unreadCount,
+    isConnected,
+    isLoading,
+    error,
+    fetchNotifications,
+    markAsRead,
+    deleteNotification,
+    markAllAsRead,
+    initializeSocket,
+    socket
+  ]);
 
   return (
     <NotificationContext.Provider value={contextValue}>

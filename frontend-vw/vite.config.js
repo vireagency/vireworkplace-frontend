@@ -120,7 +120,21 @@ export default defineConfig(({ command, mode }) => {
       // Polyfill process for browser environment
       'process.env': 'import.meta.env',
       'process.env.NODE_ENV': JSON.stringify(mode),
-      'process': '{}'
+      'process': '{}',
+      // Notification System API Configuration
+      __NOTIFICATION_API_BASE__: JSON.stringify('https://vireworkplace-backend-hpca.onrender.com/api'),
+      __SOCKET_IO_URL__: JSON.stringify('https://vireworkplace-backend-hpca.onrender.com'),
+      __NOTIFICATION_ENDPOINTS__: JSON.stringify({
+        FETCH_NOTIFICATIONS: '/notifications',
+        MARK_AS_READ: '/notifications',
+        DELETE_NOTIFICATION: '/notifications',
+        SOCKET_EVENTS: {
+          CONNECT: 'connect',
+          DISCONNECT: 'disconnect',
+          NOTIFICATION_NEW: 'notification:new',
+          NOTIFICATION_UPDATE: 'notification:update'
+        }
+      })
     }
   }
 })
