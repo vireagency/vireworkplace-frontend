@@ -20,7 +20,7 @@ export const useSidebarCounts = () => {
 
   // Use ref to prevent unnecessary re-renders
   const lastFetchTime = useRef(0);
-  const FETCH_INTERVAL = 30000; // 30 seconds
+  const FETCH_INTERVAL = 60000; // 60 seconds - longer cache to prevent disappearing
 
   // Create API client
   const createApiClient = useCallback(() => {
@@ -144,6 +144,7 @@ export const useSidebarCounts = () => {
         });
       } catch (error) {
         console.error("Error fetching sidebar counts:", error);
+        // Keep existing counts if there's an error to prevent disappearing
         setCounts((prev) => ({
           ...prev,
           loading: false,

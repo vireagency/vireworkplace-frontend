@@ -3,6 +3,7 @@ import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,8 +12,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Filter, Clock, Settings, Trash2, Check, Loader2 } from "lucide-react";
+import {
+  Filter,
+  Clock,
+  Settings,
+  Trash2,
+  Check,
+  Loader2,
+  Search,
+  Bell,
+  CheckCheck,
+  AlertCircle,
+  Info,
+  MessageSquare,
+} from "lucide-react";
 import { useNotifications } from "@/contexts/NotificationProvider";
+import { useNotificationFilters } from "@/hooks/useNotificationFilters";
+import { useNotificationActions } from "@/hooks/useNotificationActions";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { toast } from "sonner";
 
@@ -21,202 +37,205 @@ export default function StaffMessagesPage() {
   const {
     notifications,
     unreadCount,
-    loading,
-    error,
+    isLoading: notificationsLoading,
+    error: notificationsError,
     fetchNotifications,
-    markAsRead,
-    deleteNotification,
-    getUserInfo,
+    isConnected,
   } = useNotifications();
+
+  // Get notification filters hook
+  const {
+    searchQuery,
+    statusFilter,
+    typeFilter,
+    priorityFilter,
+    dateFilter,
+    sortBy,
+    setSearchQuery,
+    setStatusFilter,
+    setTypeFilter,
+    setPriorityFilter,
+    setDateFilter,
+    setSortBy,
+    filterOptions,
+    filterNotifications,
+    getFilterSummary,
+    clearAllFilters,
+  } = useNotificationFilters();
+
+  // Get notification actions hook
+  const {
+    handleMarkAsRead,
+    handleDeleteNotification,
+    handleMarkAllAsRead,
+    handleBulkDelete,
+    handleBulkMarkAsRead,
+    getNotificationStats,
+    canDeleteNotification,
+    canMarkAsRead,
+    isLoading: actionsLoading,
+  } = useNotificationActions();
 
   // Get sidebar counts
   const sidebarCounts = useSidebarCounts();
 
   // Local state
-  const [activeTimeFilter, setActiveTimeFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [actionLoading, setActionLoading] = useState({});
+  const [selectedNotifications, setSelectedNotifications] = useState([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
-  // Filter mapping for API
-  const filterMapping = {
-    all: "all",
-    today: "today",
-    last3days: "last3days",
-    last7days: "last7days",
-  };
-
-  const timeFilters = [
-    { id: "all", label: "All" },
-    { id: "today", label: "Today" },
-    { id: "last3days", label: "Last 3 Days" },
-    { id: "last7days", label: "Last 7 Days" },
-  ];
-
-  const priorityOptions = [
-    { value: "all", label: "All Priorities" },
-    { value: "urgent", label: "Urgent" },
-    { value: "high", label: "High" },
-    { value: "medium", label: "Medium" },
-    { value: "low", label: "Low" },
-  ];
+  // Get filtered notifications using the hook
+  const filterSummary = getFilterSummary(notifications);
+  const notificationStats = getNotificationStats();
 
   // ============================================================================
-  // NOTIFICATION HANDLING FUNCTIONS
+  // BULK ACTIONS HANDLERS
   // ============================================================================
 
   /**
-   * Handle filter change
-   * @param {string} filter - Filter type
+   * Handle notification selection
+   * @param {string} notificationId - Notification ID
+   * @param {boolean} selected - Whether notification is selected
    */
-  const handleFilterChange = async (filter) => {
-    setActiveTimeFilter(filter);
-    const apiFilter = filterMapping[filter] || "all";
-    await fetchNotifications(apiFilter);
-  };
-
-  /**
-   * Handle priority filter change
-   * @param {string} priority - Priority level
-   */
-  const handlePriorityFilterChange = (priority) => {
-    setPriorityFilter(priority);
-  };
-
-  /**
-   * Filter notifications based on selected priority
-   * @param {Array} notifications - Array of notifications
-   * @returns {Array} Filtered notifications
-   */
-  const getFilteredNotifications = (notifications) => {
-    if (priorityFilter === "all") {
-      return notifications;
-    }
-
-    return notifications.filter((notification) => {
-      const notificationPriority = notification.priority || "medium";
-      return notificationPriority === priorityFilter;
-    });
-  };
-
-  /**
-   * Handle mark as read
-   * @param {string} id - Notification ID
-   */
-  const handleMarkAsRead = async (id) => {
-    setActionLoading((prev) => ({ ...prev, [id]: "read" }));
-    try {
-      await markAsRead(id);
-      toast.success("Notification marked as read");
-    } catch (error) {
-      toast.error("Failed to mark notification as read");
-    } finally {
-      setActionLoading((prev) => ({ ...prev, [id]: null }));
-    }
-  };
-
-  /**
-   * Handle delete notification
-   * @param {string} id - Notification ID
-   */
-  const handleDeleteNotification = async (id) => {
-    setActionLoading((prev) => ({ ...prev, [id]: "delete" }));
-    try {
-      await deleteNotification(id);
-      toast.success("Notification deleted");
-    } catch (error) {
-      toast.error("Failed to delete notification");
-    } finally {
-      setActionLoading((prev) => ({ ...prev, [id]: null }));
-    }
-  };
-
-  /**
-   * Check if notification can be deleted
-   * @param {Object} notification - Notification object
-   * @returns {boolean} Whether notification can be deleted
-   */
-  const canDeleteNotification = (notification) => {
-    const { userId, role } = getUserInfo();
-
-    // Staff users can delete their own notifications
-    if (role === "Staff") {
-      return true;
-    }
-
-    // For other users, check if it's a personal notification
-    if (notification.recipients && notification.recipients.includes(userId)) {
-      return true;
-    }
-
-    // If no recipients field, allow deletion for personal notifications
-    if (!notification.recipients && notification.userId === userId) {
-      return true;
-    }
-
-    // Default to allowing deletion (can be made more restrictive if needed)
-    return true;
-  };
-
-  /**
-   * Get priority badge color
-   * @param {string} priority - Priority level
-   * @returns {string} Badge color class
-   */
-  const getPriorityBadgeColor = (priority) => {
-    switch (priority) {
-      case "urgent":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "high":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  /**
-   * Format notification timestamp
-   * @param {string} timestamp - ISO timestamp
-   * @returns {string} Formatted time
-   */
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return "Unknown time";
-
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now - date) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-      return `${diffInMinutes}m ago`;
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h ago`;
-    } else if (diffInHours < 168) {
-      // 7 days
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${diffInDays}d ago`;
+  const handleNotificationSelection = (notificationId, selected) => {
+    if (selected) {
+      setSelectedNotifications((prev) => [...prev, notificationId]);
     } else {
-      return date.toLocaleDateString();
+      setSelectedNotifications((prev) =>
+        prev.filter((id) => id !== notificationId)
+      );
     }
+  };
+
+  /**
+   * Handle select all notifications
+   * @param {boolean} selectAll - Whether to select all or none
+   */
+  const handleSelectAll = (selectAll) => {
+    if (selectAll) {
+      setSelectedNotifications(filteredNotifications.map((n) => n._id || n.id));
+    } else {
+      setSelectedNotifications([]);
+    }
+  };
+
+  /**
+   * Handle bulk mark as read
+   */
+  const handleBulkMarkAsReadAction = async () => {
+    if (selectedNotifications.length === 0) {
+      toast.error("No notifications selected");
+      return;
+    }
+
+    const result = await handleBulkMarkAsRead(selectedNotifications);
+    if (result.success) {
+      setSelectedNotifications([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  /**
+   * Handle bulk delete
+   */
+  const handleBulkDeleteAction = async () => {
+    if (selectedNotifications.length === 0) {
+      toast.error("No notifications selected");
+      return;
+    }
+
+    const result = await handleBulkDelete(selectedNotifications);
+    if (result.success) {
+      setSelectedNotifications([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  /**
+   * Get priority styling for notification
+   * @param {string} priority - Priority level
+   * @returns {Object} Styling object
+   */
+  const getPriorityStyle = (priority) => {
+    const styles = {
+      urgent: { color: "bg-red-500", text: "Urgent" },
+      high: { color: "bg-orange-500", text: "High" },
+      medium: { color: "bg-yellow-500", text: "Medium" },
+      low: { color: "bg-green-500", text: "Low" },
+    };
+    return styles[priority] || styles.medium;
+  };
+
+  /**
+   * Get notification type icon
+   * @param {string} type - Notification type
+   * @returns {JSX.Element} Icon component
+   */
+  const getNotificationTypeIcon = (type) => {
+    const iconMap = {
+      evaluation: <Check className="w-4 h-4" />,
+      performance: <AlertCircle className="w-4 h-4" />,
+      task: <MessageSquare className="w-4 h-4" />,
+      system: <Settings className="w-4 h-4" />,
+      attendance: <Clock className="w-4 h-4" />,
+      message: <Bell className="w-4 h-4" />,
+    };
+    return iconMap[type] || <Info className="w-4 h-4" />;
+  };
+
+  /**
+   * Get notification type color
+   * @param {string} type - Notification type
+   * @returns {string} Color class
+   */
+  const getNotificationTypeColor = (type) => {
+    const colorMap = {
+      evaluation: "bg-green-100 text-green-600",
+      performance: "bg-orange-100 text-orange-600",
+      task: "bg-blue-100 text-blue-600",
+      system: "bg-gray-100 text-gray-600",
+      attendance: "bg-purple-100 text-purple-600",
+      message: "bg-indigo-100 text-indigo-600",
+    };
+    return colorMap[type] || "bg-gray-100 text-gray-600";
+  };
+
+  /**
+   * Format notification date
+   * @param {string} dateString - Date string
+   * @returns {string} Formatted date
+   */
+  const formatNotificationDate = (dateString) => {
+    if (!dateString) return "Unknown time";
+
+    const date = new Date(dateString);
+    const now = new Date();
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return "Invalid date";
+
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    if (diffInMinutes < 10080)
+      return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    return date.toLocaleDateString();
   };
 
   // ============================================================================
   // EFFECTS
   // ============================================================================
 
-  // Initial load
+  // Fetch notifications when component mounts
   useEffect(() => {
     fetchNotifications("all");
   }, [fetchNotifications]);
 
-  // ============================================================================
-  // RENDER
-  // ============================================================================
-
-  const filteredNotifications = getFilteredNotifications(notifications);
+  // Update bulk actions visibility based on selection
+  useEffect(() => {
+    setShowBulkActions(selectedNotifications.length > 0);
+  }, [selectedNotifications]);
 
   // Dynamically update the badges for sidebar items
   const dynamicSidebarConfig = {
@@ -280,213 +299,405 @@ export default function StaffMessagesPage() {
       showChart={false}
       showDataTable={false}
     >
-      <div className="min-h-screen bg-gray-50">
-        {/* Page Header */}
-        <div className="mb-8 ml-6">
-          <h1 className="text-2xl font-bold text-zinc-900 mb-2">
-            Messages & Notifications
-          </h1>
-          <p className="text-zinc-500">
-            Stay updated with important messages and system notifications.
-          </p>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+              {!isConnected && (
+                <Badge
+                  variant="outline"
+                  className="text-yellow-600 border-yellow-300"
+                >
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
+                  Offline Mode
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              {filterSummary.total} total notifications, {filterSummary.unread}{" "}
+              unread
+              {filterSummary.hasActiveFilters && " (filtered)"}
+            </p>
+          </div>
+          {notificationsError && (
+            <div className="text-red-500 text-sm">
+              Error: {notificationsError}
+            </div>
+          )}
         </div>
 
-        <div className="ml-6 mr-6 space-y-6">
-          {/* Filters Section */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-sm">
-                  {filteredNotifications.length} notifications
-                </Badge>
-                {unreadCount > 0 && (
-                  <Badge className="bg-blue-500 text-white">
-                    {unreadCount} unread
-                  </Badge>
-                )}
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {notificationStats.total}
+                </p>
               </div>
+              <Bell className="w-8 h-8 text-gray-400" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Unread</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {notificationStats.unread}
+                </p>
+              </div>
+              <AlertCircle className="w-8 h-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Read</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {notificationStats.read}
+                </p>
+              </div>
+              <CheckCheck className="w-8 h-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Unread %</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {notificationStats.unreadPercentage}%
+                </p>
+              </div>
+              <Info className="w-8 h-8 text-orange-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search notifications..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Status
+              </label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.status.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Time Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Time Period
-                </label>
-                <Select
-                  value={activeTimeFilter}
-                  onValueChange={handleFilterChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select time period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeFilters.map((filter) => (
-                      <SelectItem key={filter.id} value={filter.id}>
-                        {filter.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Type Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Type</label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.type.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Priority Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Priority
-                </label>
-                <Select
-                  value={priorityFilter}
-                  onValueChange={handlePriorityFilterChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {priorityOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Priority
+              </label>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.priority.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Date Range
+              </label>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.date.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Notifications List */}
-          <div className="bg-white border border-gray-200 rounded-lg">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Notifications
-              </h2>
+          {/* Filter Actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllFilters}
+                disabled={!filterSummary.hasActiveFilters}
+              >
+                Clear Filters
+              </Button>
+              {filterSummary.hasActiveFilters && (
+                <span className="text-sm text-gray-500">
+                  {filteredNotifications.length} of {filterSummary.total}{" "}
+                  notifications
+                </span>
+              )}
             </div>
 
-            {loading ? (
-              <div className="p-8 text-center">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">Loading notifications...</p>
-              </div>
-            ) : error ? (
-              <div className="p-8 text-center">
-                <p className="text-red-500 mb-4">
-                  Error loading notifications: {error}
-                </p>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                disabled={filterSummary.unread === 0}
+              >
+                <CheckCheck className="w-4 h-4 mr-2" />
+                Mark All Read
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Bulk Actions */}
+        {showBulkActions && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedNotifications.length} notification
+                  {selectedNotifications.length > 1 ? "s" : ""} selected
+                </span>
                 <Button
-                  onClick={() => fetchNotifications("all")}
                   variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedNotifications([])}
                 >
-                  Retry
+                  Clear Selection
                 </Button>
               </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Settings className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No notifications found
-                </h3>
-                <p className="text-gray-500">
-                  {priorityFilter !== "all" || activeTimeFilter !== "all"
-                    ? "Try adjusting your filters to see more notifications."
-                    : "You're all caught up! New notifications will appear here."}
-                </p>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkMarkAsReadAction}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCheck className="w-4 h-4 mr-2" />
+                  )}
+                  Mark as Read
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDeleteAction}
+                  disabled={actionsLoading}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {actionsLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Delete
+                </Button>
               </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {filteredNotifications.map((notification) => (
-                  <div
-                    key={notification._id || notification.id}
-                    className={`p-6 hover:bg-gray-50 transition-colors ${
-                      !notification.isRead
-                        ? "bg-blue-50 border-l-4 border-l-blue-500"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                              {notification.senderName
-                                ? notification.senderName[0]
-                                : "S"}
-                            </AvatarFallback>
-                          </Avatar>
+            </div>
+          </div>
+        )}
 
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-medium text-gray-900">
-                                {notification.title || "Notification"}
-                              </h3>
-                              {!notification.isRead && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              )}
-                            </div>
+        {/* Messages List */}
+        <div className="space-y-4">
+          {notificationsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              <span className="text-gray-500">Loading notifications...</span>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="text-center py-8">
+              <Bell className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No notifications
+              </h3>
+              <p className="text-gray-500">
+                {filterSummary.hasActiveFilters
+                  ? "No notifications match your current filters."
+                  : "You don't have any notifications yet."}
+              </p>
+              {filterSummary.hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="mt-4"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            filteredNotifications.map((notification) => {
+              const priorityStyle = getPriorityStyle(
+                notification.priority || "medium"
+              );
+              const notificationId = notification._id || notification.id;
+              const isSelected = selectedNotifications.includes(notificationId);
+              const notificationType = notification.type || "message";
 
-                            <p className="text-gray-600 text-sm mb-2">
-                              {notification.message ||
-                                notification.description ||
-                                "No message content"}
-                            </p>
+              return (
+                <div
+                  key={notificationId}
+                  className={`bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                    !notification.isRead ? "bg-blue-50 border-blue-200" : ""
+                  } ${isSelected ? "ring-2 ring-blue-500 bg-blue-50" : ""}`}
+                  onClick={() =>
+                    handleNotificationSelection(notificationId, !isSelected)
+                  }
+                >
+                  <div className="flex items-start space-x-4">
+                    {/* Selection Checkbox */}
+                    <div className="flex-shrink-0 pt-1">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleNotificationSelection(
+                            notificationId,
+                            e.target.checked
+                          );
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                    </div>
 
-                            <div className="flex items-center gap-3 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatTimestamp(
-                                  notification.createdAt ||
-                                    notification.timestamp
-                                )}
-                              </div>
+                    {/* Type Icon */}
+                    <div className="flex-shrink-0">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${getNotificationTypeColor(
+                          notificationType
+                        )}`}
+                      >
+                        {getNotificationTypeIcon(notificationType)}
+                      </div>
+                    </div>
 
-                              {notification.priority && (
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs ${getPriorityBadgeColor(
-                                    notification.priority
-                                  )}`}
-                                >
-                                  {notification.priority}
-                                </Badge>
-                              )}
-
-                              {notification.category && (
-                                <Badge variant="outline" className="text-xs">
-                                  {notification.category}
-                                </Badge>
-                              )}
-                            </div>
+                    {/* Message Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h3 className="text-sm font-semibold text-gray-900 truncate">
+                              {notification.title || "Notification"}
+                            </h3>
+                            <Badge
+                              className={`${priorityStyle.color} text-white text-xs px-2 py-1 rounded-full`}
+                            >
+                              {priorityStyle.text}
+                            </Badge>
+                            <Badge
+                              className={`${getNotificationTypeColor(
+                                notificationType
+                              )} text-xs px-2 py-1 rounded-full`}
+                            >
+                              {notificationType}
+                            </Badge>
+                            {!notification.isRead && (
+                              <Badge className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                                New
+                              </Badge>
+                            )}
                           </div>
+                          <p className="text-sm text-gray-600 mb-1">
+                            {notification.sender || "System"}
+                          </p>
+                          <p className="text-sm text-gray-500 line-clamp-2">
+                            {notification.message ||
+                              notification.description ||
+                              "No message content"}
+                          </p>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="flex items-center gap-2 ml-4">
-                        {!notification.isRead && (
+                    {/* Actions and Timestamp */}
+                    <div className="flex flex-col items-end space-y-2 flex-shrink-0">
+                      {/* Timestamp */}
+                      <div className="flex items-center space-x-1 text-xs text-gray-600 font-medium">
+                        <Clock className="w-3 h-3" />
+                        <span>
+                          {formatNotificationDate(
+                            notification.createdAt ||
+                              notification.timestamp ||
+                              notification.date
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex space-x-2">
+                        {canMarkAsRead(notification) && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() =>
-                              handleMarkAsRead(
-                                notification._id || notification.id
-                              )
-                            }
-                            disabled={
-                              actionLoading[
-                                notification._id || notification.id
-                              ] === "read"
-                            }
-                            className="text-xs"
+                            className="text-xs px-2 py-1 h-6 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(notificationId);
+                            }}
+                            disabled={actionsLoading}
                           >
-                            {actionLoading[
-                              notification._id || notification.id
-                            ] === "read" ? (
+                            {actionsLoading ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <Check className="w-3 h-3" />
+                              <>
+                                <Check className="w-3 h-3 mr-1" />
+                                Mark Read
+                              </>
                             )}
-                            Mark Read
                           </Button>
                         )}
 
@@ -494,34 +705,30 @@ export default function StaffMessagesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() =>
-                              handleDeleteNotification(
-                                notification._id || notification.id
-                              )
-                            }
-                            disabled={
-                              actionLoading[
-                                notification._id || notification.id
-                              ] === "delete"
-                            }
-                            className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-xs px-2 py-1 h-6 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteNotification(notificationId);
+                            }}
+                            disabled={actionsLoading}
                           >
-                            {actionLoading[
-                              notification._id || notification.id
-                            ] === "delete" ? (
+                            {actionsLoading ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <Trash2 className="w-3 h-3" />
+                              <>
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete
+                              </>
                             )}
                           </Button>
                         )}
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </StaffDashboardLayout>

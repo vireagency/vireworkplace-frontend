@@ -494,7 +494,10 @@ export function SiteHeader() {
 
                 {/* Connection status indicator */}
                 {!isConnected && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full" title="Disconnected - using fallback polling" />
+                  <div
+                    className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full"
+                    title="Disconnected - using fallback polling"
+                  />
                 )}
 
                 {/* Unread count badge */}
@@ -634,7 +637,10 @@ export function SiteHeader() {
                           const role = user?.role?.toLowerCase();
                           if (role === "staff") {
                             navigate("/staff/messages");
-                          } else if (role === "hr" || role === "human resource manager") {
+                          } else if (
+                            role === "hr" ||
+                            role === "human resource manager"
+                          ) {
                             navigate("/human-resource-manager/messages");
                           } else if (role === "admin") {
                             navigate("/admin/messages");

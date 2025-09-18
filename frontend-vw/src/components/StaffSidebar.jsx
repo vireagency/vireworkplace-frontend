@@ -90,9 +90,23 @@ export function StaffSidebar({
   // Get item count for badges
   const getItemCount = useCallback(
     (itemTitle, sectionKey) => {
-      return (
-        itemCounts[`${sectionKey}_${itemTitle}`] || itemCounts[itemTitle] || 0
-      );
+      // Map item titles to count keys
+      const titleMapping = {
+        Evaluations: "evaluations",
+        Tasks: "tasks",
+        Attendance: "attendance",
+        Messages: "messages",
+        Reports: "reports",
+      };
+
+      const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
+      const count =
+        itemCounts[`${sectionKey}_${countKey}`] ||
+        itemCounts[countKey] ||
+        itemCounts[itemTitle] ||
+        0;
+
+      return count;
     },
     [itemCounts]
   );
@@ -122,10 +136,10 @@ export function StaffSidebar({
               <Badge
                 variant="secondary"
                 className={cn(
-                  "ml-auto h-5 px-1.5 text-xs",
+                  "ml-auto h-6 px-2 text-sm font-bold",
                   isActive
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-600"
+                    ? "bg-green-100 text-green-800 border-green-200"
+                    : "bg-blue-100 text-blue-800 border-blue-200"
                 )}
               >
                 {itemCount}

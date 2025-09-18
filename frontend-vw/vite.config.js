@@ -7,16 +7,16 @@
  */
 
 // Node.js path module for resolving file paths
-import path from "path"
+import path from "path";
 
 // Tailwind CSS Vite plugin for CSS processing
-import tailwindcss from "@tailwindcss/vite"
+import tailwindcss from "@tailwindcss/vite";
 
 // React Vite plugin for JSX transformation and HMR
-import react from "@vitejs/plugin-react"
+import react from "@vitejs/plugin-react";
 
 // Vite configuration function
-import { defineConfig } from "vite"
+import { defineConfig } from "vite";
 
 /**
  * Vite Configuration
@@ -25,116 +25,121 @@ import { defineConfig } from "vite"
  * @param {string} options.command - Current command (serve/build)
  * @param {string} options.mode - Current mode (development/production)
  * @returns {Object} Vite configuration object
- * 
+ *
  * @see {@link https://vite.dev/config/ Vite Configuration Documentation}
  */
 export default defineConfig(({ command, mode }) => {
   // Determine if we're in production mode for conditional configuration
-  const isProduction = mode === 'production'
-  
+  const isProduction = mode === "production";
+
   return {
     // ============================================================================
     // PLUGINS CONFIGURATION
     // ============================================================================
-    
+
     // Array of Vite plugins to use during build and development
     plugins: [
-      react(),        // React JSX transformation and HMR support
-      tailwindcss()   // Tailwind CSS processing and optimization
+      react(), // React JSX transformation and HMR support
+      tailwindcss(), // Tailwind CSS processing and optimization
     ],
-    
+
     // ============================================================================
     // PATH RESOLUTION
     // ============================================================================
-    
+
     resolve: {
       alias: {
         // Create @ alias pointing to src directory for cleaner imports
         "@": path.resolve(__dirname, "./src"),
       },
     },
-    
+
     // ============================================================================
     // DEVELOPMENT SERVER CONFIGURATION
     // ============================================================================
-    
+
     server: {
       // Hot Module Replacement (HMR) configuration
       hmr: {
-        overlay: false  // Disable error overlay for cleaner development experience
+        overlay: false, // Disable error overlay for cleaner development experience
       },
-      
+
       // Proxy configuration - only active during development (serve command)
-      ...(command === 'serve' && {
+      ...(command === "serve" && {
         proxy: {
           // API proxy configuration for backend communication
-          '/api': {
-            target: 'https://vireworkplace-backend-hpca.onrender.com',  // Backend API endpoint
-            changeOrigin: true,    // Change origin header for CORS
-            secure: true,          // Use HTTPS for secure communication
-            rewrite: (path) => path.replace(/^\/api/, '/api')  // Path rewriting for API calls
-          }
-        }
-      })
+          "/api": {
+            target: "https://vireworkplace-backend-hpca.onrender.com", // Backend API endpoint
+            changeOrigin: true, // Change origin header for CORS
+            secure: true, // Use HTTPS for secure communication
+            rewrite: (path) => path.replace(/^\/api/, "/api"), // Path rewriting for API calls
+          },
+        },
+      }),
     },
-    
+
     // ============================================================================
     // BUILD CONFIGURATION
     // ============================================================================
-    
+
     build: {
-      outDir: 'dist',           // Output directory for built files
-      sourcemap: false,         // Disable source maps in production for security
-      minify: 'esbuild',        // Use esbuild for fast minification
-      
+      outDir: "dist", // Output directory for built files
+      sourcemap: false, // Disable source maps in production for security
+      minify: "esbuild", // Use esbuild for fast minification
+
       // Rollup-specific build options
       rollupOptions: {
         output: {
           // Manual chunk splitting for better caching and loading performance
           manualChunks: {
-            vendor: ['react', 'react-dom'],                    // Core React libraries
-            ui: [                                             // UI component libraries
-              '@radix-ui/react-dialog', 
-              '@radix-ui/react-select', 
-              '@radix-ui/react-dropdown-menu'
+            vendor: ["react", "react-dom"], // Core React libraries
+            ui: [
+              // UI component libraries
+              "@radix-ui/react-dialog",
+              "@radix-ui/react-select",
+              "@radix-ui/react-dropdown-menu",
             ],
-            icons: ['@tabler/icons-react', 'lucide-react']    // Icon libraries
-          }
-        }
+            icons: ["@tabler/icons-react", "lucide-react"], // Icon libraries
+          },
+        },
       },
-      
+
       // esbuild-specific options
       esbuild: {
         // Remove console.log and debugger statements in production
-        drop: isProduction ? ['console', 'debugger'] : []
-      }
+        drop: isProduction ? ["console", "debugger"] : [],
+      },
     },
-    
+
     // ============================================================================
     // GLOBAL VARIABLES
     // ============================================================================
-    
+
     define: {
       // Define global constant for current environment mode
       __APP_ENV__: JSON.stringify(mode),
       // Polyfill process for browser environment
-      'process.env': 'import.meta.env',
-      'process.env.NODE_ENV': JSON.stringify(mode),
-      'process': '{}',
+      "process.env": "import.meta.env",
+      "process.env.NODE_ENV": JSON.stringify(mode),
+      process: "{}",
       // Notification System API Configuration
-      __NOTIFICATION_API_BASE__: JSON.stringify('https://vireworkplace-backend-hpca.onrender.com/api'),
-      __SOCKET_IO_URL__: JSON.stringify('https://vireworkplace-backend-hpca.onrender.com'),
+      __NOTIFICATION_API_BASE__: JSON.stringify(
+        "https://vireworkplace-backend-hpca.onrender.com/api"
+      ),
+      __SOCKET_IO_URL__: JSON.stringify(
+        "https://vireworkplace-backend-hpca.onrender.com"
+      ),
       __NOTIFICATION_ENDPOINTS__: JSON.stringify({
-        FETCH_NOTIFICATIONS: '/notifications',
-        MARK_AS_READ: '/notifications',
-        DELETE_NOTIFICATION: '/notifications',
+        FETCH_NOTIFICATIONS: "/notifications",
+        MARK_AS_READ: "/notifications",
+        DELETE_NOTIFICATION: "/notifications",
         SOCKET_EVENTS: {
-          CONNECT: 'connect',
-          DISCONNECT: 'disconnect',
-          NOTIFICATION_NEW: 'notification:new',
-          NOTIFICATION_UPDATE: 'notification:update'
-        }
-      })
-    }
-  }
-})
+          CONNECT: "connect",
+          DISCONNECT: "disconnect",
+          NOTIFICATION_NEW: "notification:new",
+          NOTIFICATION_UPDATE: "notification:update",
+        },
+      }),
+    },
+  };
+});
