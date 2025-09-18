@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getApiUrl } from "@/config/apiConfig";
@@ -76,6 +77,7 @@ export default function StaffDashboardMainPage() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
   const greeting = getGreeting();
+  const sidebarCounts = useSidebarCounts();
 
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User";
@@ -241,12 +243,33 @@ export default function StaffDashboardMainPage() {
     navigate("/staff/employees");
   };
 
-  // Dynamically update the badge for the Tasks sidebar item
+  // Dynamically update the sidebar config with counts
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
-    productivity: staffDashboardConfig.productivity.map((item) =>
-      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
-    ),
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
   };
 
   return (

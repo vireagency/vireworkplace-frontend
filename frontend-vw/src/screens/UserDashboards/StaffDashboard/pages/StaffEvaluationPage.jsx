@@ -40,6 +40,7 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 
 // API Configuration
 import { getApiUrl } from "@/config/apiConfig";
@@ -397,6 +398,7 @@ const ErrorState = ({ error, onRetry }) => (
 export default function Evaluation() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
+  const sidebarCounts = useSidebarCounts();
 
   // State management
   const [evaluations, setEvaluations] = useState([]);
@@ -721,15 +723,29 @@ export default function Evaluation() {
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
     analytics:
-      staffDashboardConfig.analytics?.map((item) =>
-        item.title === "Evaluations"
-          ? { ...item, badge: evaluations.length }
-          : item
-      ) || [],
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
     productivity:
-      staffDashboardConfig.productivity?.map((item) =>
-        item.title === "Tasks" ? { ...item, badge: tasks.length } : item
-      ) || [],
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
   };
 
   return (

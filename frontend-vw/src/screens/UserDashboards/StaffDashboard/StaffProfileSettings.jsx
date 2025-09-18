@@ -30,6 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
+import ProfileImageUpload from "@/components/ProfileImageUpload";
 import {
   IconPlus,
   IconUser,
@@ -261,11 +262,14 @@ export default function StaffProfileSettings() {
           <div className="flex items-start space-x-6">
             {/* Profile Picture */}
             <div className="relative">
-              <Avatar className="w-24 h-24" key={user?.avatarUpdatedAt || user?.avatar}>
-                <AvatarImage 
-                  src={user?.avatar} 
+              <Avatar
+                className="w-24 h-24"
+                key={user?.avatarUpdatedAt || user?.avatar}
+              >
+                <AvatarImage
+                  src={user?.avatar}
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.style.display = "none";
                   }}
                 />
                 <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
@@ -274,7 +278,7 @@ export default function StaffProfileSettings() {
                     : "U"}
                 </AvatarFallback>
               </Avatar>
-              {/* Green plus icon overlay */}
+              {/* Blue plus icon overlay */}
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                 <IconPlus className="w-3 h-3 text-white" />
               </div>
@@ -304,6 +308,11 @@ export default function StaffProfileSettings() {
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
                     Employee ID: {user?.workId || "N/A"}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-700 text-sm">
+                    Arrival: {user?.isLate ? "Late" : "On Time"}
                   </span>
                 </div>
               </div>

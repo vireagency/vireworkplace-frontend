@@ -13,78 +13,97 @@ import {
 } from "lucide-react";
 import StaffDashboardMainPage from "@/screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { toast } from "sonner";
 
-// Office coordinates for location validation
-const OFFICE_COORDINATES = {
-  latitude: 5.767477,
-  longitude: -0.180019,
+// Office location configuration
+const OFFICE = {
+  lat: 5.767477,
+  lng: -0.180019,
+  radius: 100, // meters
 };
 
-// Maximum distance from office in meters (100m = ~328 feet)
-const MAX_OFFICE_DISTANCE = 100;
-
-// Calculate distance between two coordinates using Haversine formula
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
+// Calculate distance between two points using Haversine formula
+const getDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000; // Earth radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // Distance in meters
+  return R * c;
 };
 
 export default function CheckIn() {
   const navigate = useNavigate();
   const { user, accessToken } = useAuth();
+  const sidebarCounts = useSidebarCounts();
 
-  // State management
-  const [selectedLocation, setSelectedLocation] = useState("office");
-  const [showMainDialog, setShowMainDialog] = useState(true);
-  const [showErrorDialog, setShowErrorDialog] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [currentTime, setCurrentTime] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // UI state
+  const [workLocation, setWorkLocation] = useState("office");
+  const [showDialog, setShowDialog] = useState(true);
+  const [showError, setShowError] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [time, setTime] = useState("");
+
+  // Loading states
+  const [loading, setLoading] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  // Error states
   const [error, setError] = useState("");
-  const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [userData, setUserData] = useState(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [locationError, setLocationError] = useState(null);
-  const [hasValidLocation, setHasValidLocation] = useState(false);
-  const [locationPermissionStatus, setLocationPermissionStatus] =
-    useState("prompt");
-  const [isLocationValidForOffice, setIsLocationValidForOffice] =
-    useState(false);
 
-  // Fetch user data
+  // Location state
+  const [location, setLocation] = useState({ lat: null, lng: null });
+  const [locationValid, setLocationValid] = useState(false);
+  const [atOffice, setAtOffice] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState("prompt");
+
+  // User data
+  const [userData, setUserData] = useState(null);
+
+  // Get authentication token from various sources
+  const getAuthToken = () => {
+    return (
+      accessToken ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("authToken") ||
+      sessionStorage.getItem("token") ||
+      sessionStorage.getItem("access_token")
+    );
+  };
+
+  // Clear all stored tokens
+  const clearTokens = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("token");
+    localStorage.removeItem("access_token");
+    sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("access_token");
+  };
+
+  // Fetch user profile data
   const fetchUserData = async () => {
     try {
-      setIsLoadingUser(true);
-
-      let token =
-        accessToken ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("access_token") ||
-        sessionStorage.getItem("authToken") ||
-        sessionStorage.getItem("token") ||
-        sessionStorage.getItem("access_token");
+      setLoadingUser(true);
+      const token = getAuthToken();
 
       if (!token) {
-        throw new Error("Authentication token not found. Please log in again.");
+        throw new Error("Please log in again");
       }
 
       const response = await fetch(
         "https://www.api.vire.agency/api/v1/user/me",
         {
-          method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -94,126 +113,97 @@ export default function CheckIn() {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("token");
-          localStorage.removeItem("access_token");
-          sessionStorage.removeItem("authToken");
-          sessionStorage.removeItem("token");
-          sessionStorage.removeItem("access_token");
+          clearTokens();
           throw new Error("Session expired. Please log in again.");
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Request failed: ${response.status}`);
       }
 
       const result = await response.json();
       if (result.success && result.data) {
         setUserData(result.data);
       } else {
-        throw new Error("Invalid response format");
+        throw new Error("Invalid response");
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      const lsFirst =
-        localStorage.getItem("signup_firstName") ||
-        localStorage.getItem("firstName") ||
-        "";
-      const lsLast =
-        localStorage.getItem("signup_lastName") ||
-        localStorage.getItem("lastName") ||
-        "";
-      const lsEmail =
-        localStorage.getItem("signup_email") ||
-        localStorage.getItem("email") ||
-        "";
-      const lsImage = localStorage.getItem("profileImage") || null;
+      console.error("Failed to fetch user data:", error);
+      // Fallback to localStorage data
       setUserData({
-        firstName: lsFirst,
-        lastName: lsLast,
-        email: lsEmail,
-        profileImage: lsImage,
+        firstName:
+          localStorage.getItem("signup_firstName") ||
+          localStorage.getItem("firstName") ||
+          "",
+        lastName:
+          localStorage.getItem("signup_lastName") ||
+          localStorage.getItem("lastName") ||
+          "",
+        email:
+          localStorage.getItem("signup_email") ||
+          localStorage.getItem("email") ||
+          "",
+        profileImage: localStorage.getItem("profileImage") || null,
       });
     } finally {
-      setIsLoadingUser(false);
+      setLoadingUser(false);
     }
   };
 
-  // Get user initials for avatar fallback
+  // Generate user initials for avatar
   const getUserInitials = () => {
-    const safe = (s) => (typeof s === "string" ? s : "");
-    const email = safe(userData?.email);
+    const { firstName, lastName, email } = userData || {};
 
-    const initialsFromEmail = () => {
-      if (!email) return "U";
+    // Try first and last name first
+    if (firstName || lastName) {
+      const first = firstName?.charAt(0)?.toUpperCase() || "";
+      const last = lastName?.charAt(0)?.toUpperCase() || "";
+      return first + last || first || "U";
+    }
+
+    // Fallback to email
+    if (email) {
       const local = email.split("@")[0];
       const parts = local.split(/[._-]+/).filter(Boolean);
-      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
       return local.slice(0, 2).toUpperCase() || "U";
-    };
-
-    const firstName = safe(userData?.firstName);
-    const lastName = safe(userData?.lastName);
-    if (firstName || lastName) {
-      const fi = firstName ? firstName.trim().charAt(0).toUpperCase() : "";
-      const li = lastName ? lastName.trim().charAt(0).toUpperCase() : "";
-      return fi + li || fi || initialsFromEmail();
     }
 
-    const name = safe(userData?.name || userData?.fullName);
-    if (name) {
-      const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2)
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      if (parts[0]?.length >= 2) return parts[0].slice(0, 2).toUpperCase();
-    }
-
-    const lsFirst =
-      localStorage.getItem("signup_firstName") ||
-      localStorage.getItem("firstName") ||
-      "";
-    const lsLast =
-      localStorage.getItem("signup_lastName") ||
-      localStorage.getItem("lastName") ||
-      "";
-    if (lsFirst || lsLast) {
-      const fi = lsFirst ? lsFirst.trim().charAt(0).toUpperCase() : "";
-      const li = lsLast ? lsLast.trim().charAt(0).toUpperCase() : "";
-      return fi + li || fi;
-    }
-
-    return initialsFromEmail();
+    return "U";
   };
 
-  // Get profile image URL with proper fallback
+  // Get profile image URL
   const getProfileImageUrl = () => {
     const url =
-      userData?.profileImage ||
-      userData?.profilePicture ||
-      userData?.avatar ||
-      userData?.avatarUrl ||
-      userData?.photoUrl ||
-      userData?.image ||
-      userData?.picture ||
-      null;
-
+      userData?.profileImage || userData?.profilePicture || userData?.avatar;
     if (!url) return null;
-
-    if (url.startsWith("http")) {
-      return url;
-    }
-
-    return `https://www.api.vire.agency${url}`;
+    return url.startsWith("http") ? url : `https://www.api.vire.agency${url}`;
   };
 
+  // Preload profile image to prevent loading delay
+  useEffect(() => {
+    const imageUrl = getProfileImageUrl();
+    if (imageUrl) {
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        console.log("Profile image preloaded successfully");
+      };
+      img.onerror = () => {
+        console.log("Profile image failed to preload");
+      };
+    }
+  }, [userData?.profileImage, userData?.profilePicture, userData?.avatar]);
+
   const handleImageError = (e) => {
-    console.log("Profile image failed to load, using fallback");
     e.target.style.display = "none";
   };
 
-  // Update time every second
+  // Update time display
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(
+      setTime(
         now.toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",
@@ -227,7 +217,7 @@ export default function CheckIn() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch user data on component mount
+  // Initialize user data
   useEffect(() => {
     if (user) {
       setUserData({
@@ -235,21 +225,15 @@ export default function CheckIn() {
         lastName:
           user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
         email: user.email || "",
-        profileImage:
-          user.profileImage ||
-          user.avatar ||
-          user.photoUrl ||
-          user.image ||
-          user.picture ||
-          null,
+        profileImage: user.profileImage || user.avatar || user.photoUrl || null,
       });
-      setIsLoadingUser(false);
-      return;
+      setLoadingUser(false);
+    } else {
+      fetchUserData();
     }
-    fetchUserData();
   }, [user]);
 
-  // Check location permissions
+  // Check location permission status
   const checkLocationPermission = async () => {
     if (!navigator.permissions) return "prompt";
 
@@ -257,87 +241,79 @@ export default function CheckIn() {
       const permission = await navigator.permissions.query({
         name: "geolocation",
       });
-      setLocationPermissionStatus(permission.state);
+      setPermissionStatus(permission.state);
       return permission.state;
     } catch (error) {
-      console.error("Error checking location permission:", error);
+      console.error("Permission check failed:", error);
       return "prompt";
     }
   };
 
-  // Get user's current location with enhanced accuracy and validation
+  // Get current location
   const getCurrentLocation = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        const error = new Error("Geolocation is not supported by this browser");
-        setLocationError(error.message);
-        reject(error);
+        const error = "Geolocation not supported";
+        setLocationError(error);
+        reject(new Error(error));
         return;
       }
 
-      setIsGettingLocation(true);
+      setGettingLocation(true);
       setLocationError(null);
-      setHasValidLocation(false);
-      setIsLocationValidForOffice(false);
-
-      // Clear previous location data for fresh reading
-      setLocation({ latitude: null, longitude: null });
+      setLocationValid(false);
+      setAtOffice(false);
+      setLocation({ lat: null, lng: null });
 
       const options = {
         enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout to 15 seconds
-        maximumAge: 0, // Force fresh location reading
+        timeout: 15000,
+        maximumAge: 0,
       };
 
-      // Show loading toast
       toast.info("Getting your location...", { duration: 2000 });
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
-
-          console.log("Location acquired:", {
+          const distance = getDistance(
             latitude,
             longitude,
-            accuracy,
-            timestamp: new Date(position.timestamp).toISOString(),
-          });
-
-          // Calculate distance from office
-          const distanceFromOffice = calculateDistance(
-            latitude,
-            longitude,
-            OFFICE_COORDINATES.latitude,
-            OFFICE_COORDINATES.longitude
+            OFFICE.lat,
+            OFFICE.lng
           );
 
-          console.log("Distance from office:", distanceFromOffice, "meters");
-
           const locationData = {
-            latitude,
-            longitude,
+            lat: latitude,
+            lng: longitude,
             accuracy,
-            distanceFromOffice,
-            timestamp: position.timestamp,
+            distance,
           };
 
           setLocation(locationData);
-          setIsGettingLocation(false);
-          setHasValidLocation(true);
+          setGettingLocation(false);
+          setLocationValid(true);
           setLocationError(null);
 
-          // Check if user is within office bounds
-          if (selectedLocation === "office") {
-            const isWithinOfficeBounds =
-              distanceFromOffice <= MAX_OFFICE_DISTANCE;
-            setIsLocationValidForOffice(isWithinOfficeBounds);
+          // Check if at office (with geofencing validation)
+          if (workLocation === "office") {
+            const withinRange = distance <= OFFICE.radius;
+            setAtOffice(withinRange);
 
-            if (!isWithinOfficeBounds) {
-              const errorMsg = `You are ${Math.round(
-                distanceFromOffice
-              )}m away from the office. You must be within ${MAX_OFFICE_DISTANCE}m to check in at the office.`;
+            // Debug logging
+            console.log("Geofencing check:", {
+              userLocation: { lat: latitude, lng: longitude },
+              officeLocation: { lat: OFFICE.lat, lng: OFFICE.lng },
+              distance: Math.round(distance),
+              officeRadius: OFFICE.radius,
+              withinRange,
+            });
+
+            if (!withinRange) {
+              const errorMsg =
+                "You must be at the office to check in. Please ensure you are within the office premises and try again.";
               setLocationError(errorMsg);
-              toast.error("Too far from office location");
+              toast.error("Please check in from the office");
               reject(new Error(errorMsg));
               return;
             } else {
@@ -348,35 +324,48 @@ export default function CheckIn() {
           resolve(locationData);
         },
         (error) => {
-          setIsGettingLocation(false);
-          setHasValidLocation(false);
-          setIsLocationValidForOffice(false);
-          console.error("Geolocation error:", error);
+          setGettingLocation(false);
+          setLocationValid(false);
+          setAtOffice(false);
 
           let errorMessage = "Unable to get your location.";
 
           switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage =
-                "Location access denied. Please enable location permissions in your browser settings and try again.";
-              setLocationPermissionStatus("denied");
+                "Location access denied. Please enable location permissions.";
+              setPermissionStatus("denied");
+              // Show browser alert for location permission
+              alert(
+                "Location access is required for check-in. Please enable location permissions in your browser settings and refresh the page."
+              );
               break;
             case error.POSITION_UNAVAILABLE:
               errorMessage =
-                "Location information is unavailable. Please ensure GPS is enabled and try again.";
+                "Location unavailable. Please ensure GPS is enabled.";
+              // Show browser alert for GPS
+              alert(
+                "GPS location is unavailable. Please ensure your device's location services are turned on and try again."
+              );
               break;
             case error.TIMEOUT:
-              errorMessage =
-                "Location request timed out. Please try again or check your GPS signal.";
+              errorMessage = "Location request timed out. Please try again.";
+              // Show browser alert for timeout
+              alert(
+                "Location request timed out. Please check your internet connection and try again."
+              );
               break;
             default:
-              errorMessage =
-                "An unknown error occurred while getting your location. Please try again.";
+              errorMessage = "Unknown location error occurred.";
+              // Show browser alert for unknown error
+              alert(
+                "Unable to get your location. Please check your device settings and try again."
+              );
               break;
           }
 
           setLocationError(errorMessage);
-          toast.error("Location error: " + errorMessage);
+          toast.error(errorMessage);
           reject(new Error(errorMessage));
         },
         options
@@ -384,189 +373,155 @@ export default function CheckIn() {
     });
   };
 
-  // Handle location selection change
-  const handleLocationSelection = async (locationType) => {
-    if (isLoading || isGettingLocation) return;
+  // Handle work location selection
+  const handleLocationSelection = (locationType) => {
+    if (loading || gettingLocation) return;
 
-    setSelectedLocation(locationType);
+    setWorkLocation(locationType);
     setLocationError(null);
-    setIsLocationValidForOffice(false);
+    setAtOffice(false);
 
-    // Reset location state when switching to remote
+    // Reset location when switching to remote
     if (locationType === "remote") {
-      setLocation({ latitude: null, longitude: null });
-      setHasValidLocation(false);
+      setLocation({ lat: null, lng: null });
+      setLocationValid(false);
       setLocationError(null);
     }
   };
 
-  // API call to check in with enhanced error handling
-  const checkInToAPI = async (
-    workingLocation,
-    latitude = null,
-    longitude = null
-  ) => {
-    try {
-      let token =
-        accessToken ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("access_token") ||
-        sessionStorage.getItem("authToken") ||
-        sessionStorage.getItem("token") ||
-        sessionStorage.getItem("access_token");
-
-      if (!token) {
-        throw new Error("Authentication token not found. Please log in again.");
-      }
-
-      const requestBody = {
-        workingLocation: workingLocation,
-      };
-
-      // Add coordinates for office check-in
-      if (
-        workingLocation === "office" &&
-        latitude !== null &&
-        longitude !== null
-      ) {
-        requestBody.latitude = latitude;
-        requestBody.longitude = longitude;
-      }
-
-      console.log("Check-in request body:", requestBody);
-
-      const response = await fetch(
-        "https://www.api.vire.agency/api/v1/attendance/checkin",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("token");
-          localStorage.removeItem("access_token");
-          sessionStorage.removeItem("authToken");
-          sessionStorage.removeItem("token");
-          sessionStorage.removeItem("access_token");
-          throw new Error("Session expired. Please log in again.");
-        }
-
-        if (response.status === 400) {
-          const errorData = await response.json();
-          console.error("Check-in 400 error:", errorData);
-
-          const errorMsg = errorData.message || "Invalid request";
-          if (
-            errorMsg.toLowerCase().includes("location") ||
-            errorMsg.toLowerCase().includes("office") ||
-            errorMsg.toLowerCase().includes("geofence") ||
-            errorMsg.toLowerCase().includes("coordinates") ||
-            errorMsg.toLowerCase().includes("gps") ||
-            errorMsg.toLowerCase().includes("presence")
-          ) {
-            throw new Error(
-              "Office check-in requires being at the office location. Please ensure you are within the office premises and try again."
-            );
-          }
-
-          throw new Error(errorMsg);
-        }
-
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-      console.log("Check-in successful response:", data);
-
-      if (data.success !== true) {
-        throw new Error("Unexpected response format from server");
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Check-in API error:", error);
-      throw error;
+  // Submit check-in to API
+  const submitCheckIn = async (workingLocation, lat = null, lng = null) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Please log in again");
     }
+
+    const requestBody = { workingLocation };
+
+    // Add coordinates for office check-in
+    if (workingLocation === "office" && lat !== null && lng !== null) {
+      requestBody.latitude = lat;
+      requestBody.longitude = lng;
+    }
+
+    // Log the request for debugging
+    console.log("Check-in request:", {
+      workingLocation,
+      latitude: lat,
+      longitude: lng,
+      requestBody,
+    });
+
+    const response = await fetch(
+      "https://www.api.vire.agency/api/v1/attendance/checkin",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        clearTokens();
+        throw new Error("Session expired. Please log in again.");
+      }
+
+      if (response.status === 400) {
+        const errorData = await response.json();
+        const errorMsg = errorData.message || "Invalid request";
+
+        // Check for location-related errors
+        if (
+          errorMsg.toLowerCase().includes("location") ||
+          errorMsg.toLowerCase().includes("office") ||
+          errorMsg.toLowerCase().includes("geofence")
+        ) {
+          throw new Error(
+            "Office check-in requires being at the office location. Please ensure you are within the office premises and try again."
+          );
+        }
+
+        throw new Error(errorMsg);
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Request failed: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    // Log the response for debugging
+    console.log("Check-in response:", data);
+
+    if (data.success !== true) {
+      throw new Error("Unexpected response format");
+    }
+
+    return data;
   };
 
-  // Handle check-in with comprehensive validation
+  // Handle check-in process
   const handleCheckIn = async () => {
-    setIsLoading(true);
+    setLoading(true);
     setError("");
 
     try {
-      let checkInResult;
-
-      if (selectedLocation === "office") {
-        // Fetch and validate location for office check-in
-        console.log("Getting fresh location for office check-in...");
+      if (workLocation === "office") {
+        // Get and validate location for office check-in
         const userLocation = await getCurrentLocation();
-
-        // Since getCurrentLocation already rejects if invalid, proceed to API
-        checkInResult = await checkInToAPI(
-          "office",
-          userLocation.latitude,
-          userLocation.longitude
-        );
+        await submitCheckIn("office", userLocation.lat, userLocation.lng);
       } else {
-        // For remote check-in, no location needed
-        checkInResult = await checkInToAPI("remote");
+        // Remote check-in
+        await submitCheckIn("remote");
       }
 
-      console.log("Check-in completed successfully:", checkInResult);
-
-      // Success - show success toast
-      setShowMainDialog(false);
-      setShowSuccessToast(true);
+      // Success
+      setShowDialog(false);
+      setShowSuccess(true);
       toast.success("Successfully checked in!");
 
-      // Navigate after showing success message
+      // Navigate after delay
       setTimeout(() => {
-        setShowSuccessToast(false);
+        setShowSuccess(false);
         navigate("/staff/dashboard");
       }, 2000);
     } catch (error) {
-      console.error("Check-in error:", error);
+      console.error("Check-in failed:", error);
       setError(error.message);
-      setShowMainDialog(false);
-      setShowErrorDialog(true);
+      setShowDialog(false);
+      setShowError(true);
       toast.error(error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    setShowMainDialog(false);
+    setShowDialog(false);
     navigate("/staff");
   };
 
   const handleTryAgain = () => {
-    setShowErrorDialog(false);
-    setShowMainDialog(true);
+    setShowError(false);
+    setShowDialog(true);
     setError("");
     setLocationError(null);
-    setHasValidLocation(false);
-    setIsLocationValidForOffice(false);
+    setLocationValid(false);
+    setAtOffice(false);
   };
 
   const handleDiscard = () => {
-    setShowErrorDialog(false);
+    setShowError(false);
     navigate("/staff");
   };
 
-  if (isLoadingUser) {
+  if (loadingUser) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -588,7 +543,7 @@ export default function CheckIn() {
       <div className="absolute inset-0 bg-black/20" />
 
       {/* Main Check-In Dialog */}
-      {showMainDialog && (
+      {showDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 space-y-6">
@@ -610,9 +565,7 @@ export default function CheckIn() {
                   <div className="text-sm font-medium text-slate-600">
                     Reporting Time:
                   </div>
-                  <div className="text-lg font-bold text-slate-900">
-                    {currentTime}
-                  </div>
+                  <div className="text-lg font-bold text-slate-900">{time}</div>
                 </div>
               </div>
 
@@ -625,7 +578,7 @@ export default function CheckIn() {
                   <div
                     onClick={() => handleLocationSelection("office")}
                     className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer ${
-                      selectedLocation === "office"
+                      workLocation === "office"
                         ? "border-blue-500 bg-blue-50"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
@@ -635,21 +588,21 @@ export default function CheckIn() {
                       <div>
                         <Label
                           className={`cursor-pointer font-medium ${
-                            selectedLocation === "office"
+                            workLocation === "office"
                               ? "text-slate-900"
                               : "text-slate-700"
                           }`}
                         >
                           Office (In-person)
                         </Label>
-                        {selectedLocation === "office" && (
+                        {workLocation === "office" && (
                           <div className="text-xs text-slate-500 mt-1">
                             Location will be verified on check-in
                           </div>
                         )}
                       </div>
                     </div>
-                    {selectedLocation === "office" && (
+                    {workLocation === "office" && (
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                       </div>
@@ -659,7 +612,7 @@ export default function CheckIn() {
                   <div
                     onClick={() => handleLocationSelection("remote")}
                     className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer ${
-                      selectedLocation === "remote"
+                      workLocation === "remote"
                         ? "border-blue-500 bg-blue-50"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
@@ -668,21 +621,21 @@ export default function CheckIn() {
                       <div>
                         <Label
                           className={`cursor-pointer font-medium ${
-                            selectedLocation === "remote"
+                            workLocation === "remote"
                               ? "text-slate-900"
                               : "text-slate-700"
                           }`}
                         >
                           Home (Remote)
                         </Label>
-                        {selectedLocation === "remote" && (
+                        {workLocation === "remote" && (
                           <div className="text-xs text-slate-500 mt-1">
                             No location verification needed
                           </div>
                         )}
                       </div>
                     </div>
-                    {selectedLocation === "remote" && (
+                    {workLocation === "remote" && (
                       <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                     )}
                   </div>
@@ -690,7 +643,7 @@ export default function CheckIn() {
               </div>
 
               {/* Location Status */}
-              {isGettingLocation && (
+              {gettingLocation && (
                 <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Verifying your location...
@@ -698,7 +651,7 @@ export default function CheckIn() {
               )}
 
               {/* Location Success */}
-              {selectedLocation === "office" && isLocationValidForOffice && (
+              {workLocation === "office" && atOffice && (
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                   <CheckCircle className="w-4 h-4" />
                   Location verified - you're at the office!
@@ -706,13 +659,13 @@ export default function CheckIn() {
               )}
 
               {/* Location Error */}
-              {selectedLocation === "office" && locationError && (
+              {workLocation === "office" && locationError && (
                 <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                   <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-medium mb-1">Location Required</div>
                     <div>{locationError}</div>
-                    {locationPermissionStatus === "denied" && (
+                    {permissionStatus === "denied" && (
                       <div className="mt-2 text-xs text-red-500">
                         Please enable location permissions in your browser
                         settings
@@ -723,13 +676,12 @@ export default function CheckIn() {
               )}
 
               {/* Office Distance Info */}
-              {selectedLocation === "office" &&
-                hasValidLocation &&
-                location.distanceFromOffice && (
+              {workLocation === "office" &&
+                locationValid &&
+                location.distance && (
                   <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
                     <Info className="w-3 h-3" />
-                    Distance from office:{" "}
-                    {Math.round(location.distanceFromOffice)}m
+                    Distance from office: {Math.round(location.distance)}m
                     {location.accuracy &&
                       ` (±${Math.round(location.accuracy)}m accuracy)`}
                   </div>
@@ -741,16 +693,16 @@ export default function CheckIn() {
                   variant="outline"
                   onClick={handleCancel}
                   className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
-                  disabled={isLoading || isGettingLocation}
+                  disabled={loading || gettingLocation}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCheckIn}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium"
-                  disabled={isLoading || isGettingLocation}
+                  disabled={loading || gettingLocation}
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <div className="flex items-center justify-center">
                       <div className="flex items-center gap-2">
                         <div className="relative">
@@ -770,7 +722,7 @@ export default function CheckIn() {
       )}
 
       {/* Error Dialog */}
-      {showErrorDialog && (
+      {showError && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
             <div className="p-6 space-y-4 text-center">
@@ -808,7 +760,7 @@ export default function CheckIn() {
       )}
 
       {/* Success Toast */}
-      {showSuccessToast && (
+      {showSuccess && (
         <div className="fixed top-4 right-4 bg-white border border-slate-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 transform transition-all duration-300 ease-in-out">
           <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
             <CheckCircle className="w-3 h-3 text-white" />
@@ -817,7 +769,7 @@ export default function CheckIn() {
             You've successfully checked in!
           </span>
           <button
-            onClick={() => setShowSuccessToast(false)}
+            onClick={() => setShowSuccess(false)}
             className="ml-2 hover:bg-slate-100 rounded p-1 transition-colors"
           >
             <X className="w-4 h-4 text-slate-500" />

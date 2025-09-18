@@ -239,8 +239,8 @@ export default function StaffNotificationSettings() {
 
   // Notification categories configuration
   const notificationCategories = [
-    { key: "taskManagement", name: "Task Management" },
     { key: "performanceManagement", name: "Performance Management" },
+    { key: "taskManagement", name: "Task Management" },
     { key: "attendanceTracking", name: "Attendance Tracking" },
     { key: "teamCommunication", name: "Team Communication" },
     { key: "systemAlerts", name: "System Alerts" },
@@ -270,11 +270,14 @@ export default function StaffNotificationSettings() {
           <div className="flex items-start space-x-6">
             {/* Profile Picture */}
             <div className="relative">
-              <Avatar className="w-24 h-24" key={user?.avatarUpdatedAt || user?.avatar}>
-                <AvatarImage 
-                  src={user?.avatar} 
+              <Avatar
+                className="w-24 h-24"
+                key={user?.avatarUpdatedAt || user?.avatar}
+              >
+                <AvatarImage
+                  src={user?.avatar}
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.style.display = "none";
                   }}
                 />
                 <AvatarFallback className="text-lg bg-gray-200 text-gray-600">

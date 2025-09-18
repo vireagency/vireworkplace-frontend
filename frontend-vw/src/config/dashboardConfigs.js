@@ -167,11 +167,11 @@ export const staffDashboardConfig = {
 
   // Analytics section
   analytics: [
-    {
-      title: "Performance",
-      url: "/staff/performance",
-      icon: IconChartBar,
-    },
+    // {
+    //   title: "Performance",
+    //   url: "/staff/performance",
+    //   icon: IconChartBar,
+    // },
     {
       title: "Evaluations",
       url: "/staff/evaluation",
