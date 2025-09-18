@@ -1,19 +1,18 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
-import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Lock, Shield, Key } from "lucide-react";
 import { IconPlus } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
+import ProfileImageUpload from "@/components/ProfileImageUpload";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
-// StatusBadge component
-const StatusBadge = ({ status }) => {
+// StatusBadge component moved outside to prevent recreation on every render
+const StatusBadge = React.memo(({ status }) => {
   const statusConfig = {
     Active: {
       bgColor: "bg-green-50",
@@ -50,7 +49,7 @@ const StatusBadge = ({ status }) => {
       </span>
     </div>
   );
-};
+});
 
 export default function StaffPasswordSettings() {
   const { user } = useAuth();
@@ -145,41 +144,9 @@ export default function StaffPasswordSettings() {
     }));
   }, []);
 
-  // Get sidebar counts
-  const sidebarCounts = useSidebarCounts();
-
-  // Dynamically update the badges for sidebar items
-  const dynamicSidebarConfig = {
-    ...staffDashboardConfig,
-    analytics:
-      staffDashboardConfig.analytics?.map((item) => {
-        if (item.title === "Evaluations") {
-          return { ...item, badge: sidebarCounts.evaluations };
-        }
-        return item;
-      }) || [],
-    productivity:
-      staffDashboardConfig.productivity?.map((item) => {
-        if (item.title === "Tasks") {
-          return { ...item, badge: sidebarCounts.tasks };
-        }
-        if (item.title === "Attendance") {
-          return { ...item, badge: sidebarCounts.attendance };
-        }
-        return item;
-      }) || [],
-    company:
-      staffDashboardConfig.company?.map((item) => {
-        if (item.title === "Messages") {
-          return { ...item, badge: sidebarCounts.messages };
-        }
-        return item;
-      }) || [],
-  };
-
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
+      sidebarConfig={staffDashboardConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -197,43 +164,17 @@ export default function StaffPasswordSettings() {
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
           <div className="flex items-start space-x-6">
-            {/* Profile Picture */}
-            <div className="relative">
-              <Avatar
-                className="w-24 h-24"
-                key={user?.avatarUpdatedAt || user?.avatar}
-              >
-                <AvatarImage
-                  src={user?.avatar}
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-                <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
-                  {user
-                    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`
-                    : "U"}
-                </AvatarFallback>
-              </Avatar>
-              {/* Blue plus icon overlay */}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <IconPlus className="w-3 h-3 text-white" />
-              </div>
-            </div>
+            {/* Profile Picture Upload */}
+            <ProfileImageUpload
+              size="w-24 h-24"
+              currentImageUrl={user?.avatar}
+              userName={user ? `${user.firstName} ${user.lastName}` : ""}
+              showActions={true}
+              showSizeHint={true}
+            />
 
             {/* Profile Details */}
             <div className="flex-1">
-              <div className="flex items-center space-x-4 mb-2">
-                <button className="text-red-500 text-sm hover:underline cursor-pointer">
-                  Remove
-                </button>
-                <button className="text-blue-500 text-sm hover:underline cursor-pointer">
-                  Update
-                </button>
-              </div>
-              <p className="text-sm text-gray-400 mb-2">
-                Recommended size: 400X400px
-              </p>
               <h3 className="text-lg font-bold text-gray-800 mb-1">
                 {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
               </h3>
@@ -244,7 +185,7 @@ export default function StaffPasswordSettings() {
                 <StatusBadge status={user?.attendanceStatus || "Active"} />
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
-                    Employee ID: {user?.workId || "N/A"}
+                    Work ID: {user?.workId || "N/A"}
                   </span>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -301,6 +242,31 @@ export default function StaffPasswordSettings() {
                     )}
                   </button>
                 </div>
+
+                {/* Password Match Indicator */}
+                {state.formData.newPassword &&
+                  state.formData.confirmPassword && (
+                    <div className="mt-2">
+                      <div className="flex items-center space-x-2">
+                        {state.formData.newPassword ===
+                        state.formData.confirmPassword ? (
+                          <>
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-green-600">
+                              Passwords match
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="text-xs text-red-600">
+                              Passwords do not match
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {/* New Password */}
@@ -360,7 +326,7 @@ export default function StaffPasswordSettings() {
                                   )
                                 )
                               )
-                                ? "bg-blue-500"
+                                ? "bg-green-500"
                                 : "bg-gray-200"
                             }`}
                           />
@@ -462,7 +428,7 @@ export default function StaffPasswordSettings() {
                 <Button
                   type="submit"
                   disabled={state.isLoading}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {state.isLoading ? "Changing..." : "Change"}
                 </Button>

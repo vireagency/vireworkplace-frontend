@@ -1,10 +1,8 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
-import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { Label } from "@/components/ui/label";
 import {
   IconPlus,
@@ -12,10 +10,11 @@ import {
   IconChevronDown,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
+import ProfileImageUpload from "@/components/ProfileImageUpload";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
-// StatusBadge component
-const StatusBadge = ({ status }) => {
+// StatusBadge component moved outside to prevent recreation on every render
+const StatusBadge = React.memo(({ status }) => {
   const statusConfig = {
     Active: {
       bgColor: "bg-green-50",
@@ -52,7 +51,7 @@ const StatusBadge = ({ status }) => {
       </span>
     </div>
   );
-};
+});
 
 export default function StaffNotificationSettings() {
   const { user } = useAuth();
@@ -66,16 +65,6 @@ export default function StaffNotificationSettings() {
 
     // Notification settings state
     notificationSettings: {
-      taskManagement: {
-        toggles: {
-          taskAssignments: false,
-          taskUpdates: false,
-          taskDeadlines: false,
-          taskCompletions: false,
-        },
-        enabled: 0,
-        total: 4,
-      },
       performanceManagement: {
         toggles: {
           reviewReminders: false,
@@ -86,25 +75,24 @@ export default function StaffNotificationSettings() {
         enabled: 0,
         total: 4,
       },
-      attendanceTracking: {
+      taskManagement: {
         toggles: {
-          checkInReminders: false,
-          checkOutReminders: false,
-          attendanceAlerts: false,
-          overtimeNotifications: false,
+          taskAssignments: false,
+          taskUpdates: false,
+          taskDeadlines: false,
+          taskCompletions: false,
         },
         enabled: 0,
         total: 4,
       },
-      teamCommunication: {
+      employeeInformation: {
         toggles: {
-          teamMessages: false,
-          teamUpdates: false,
-          meetingReminders: false,
-          announcementNotifications: false,
+          profileUpdates: false,
+          newEmployeeOnboarding: false,
+          employeeStatusChanges: false,
         },
         enabled: 0,
-        total: 4,
+        total: 3,
       },
       systemAlerts: {
         toggles: {
@@ -239,52 +227,22 @@ export default function StaffNotificationSettings() {
     }
   }, [state.notificationSettings]);
 
-  // Notification categories configuration
-  const notificationCategories = [
-    { key: "performanceManagement", name: "Performance Management" },
-    { key: "taskManagement", name: "Task Management" },
-    { key: "attendanceTracking", name: "Attendance Tracking" },
-    { key: "teamCommunication", name: "Team Communication" },
-    { key: "systemAlerts", name: "System Alerts" },
-    { key: "deliveryMethods", name: "Delivery Methods" },
-    { key: "globalSettings", name: "Global Settings" },
-  ];
-
-  // Get sidebar counts
-  const sidebarCounts = useSidebarCounts();
-
-  // Dynamically update the badges for sidebar items
-  const dynamicSidebarConfig = {
-    ...staffDashboardConfig,
-    analytics:
-      staffDashboardConfig.analytics?.map((item) => {
-        if (item.title === "Evaluations") {
-          return { ...item, badge: sidebarCounts.evaluations };
-        }
-        return item;
-      }) || [],
-    productivity:
-      staffDashboardConfig.productivity?.map((item) => {
-        if (item.title === "Tasks") {
-          return { ...item, badge: sidebarCounts.tasks };
-        }
-        if (item.title === "Attendance") {
-          return { ...item, badge: sidebarCounts.attendance };
-        }
-        return item;
-      }) || [],
-    company:
-      staffDashboardConfig.company?.map((item) => {
-        if (item.title === "Messages") {
-          return { ...item, badge: sidebarCounts.messages };
-        }
-        return item;
-      }) || [],
-  };
+  // Memoized notification categories to prevent recreation
+  const notificationCategories = useMemo(
+    () => [
+      { key: "performanceManagement", name: "Performance Management" },
+      { key: "taskManagement", name: "Task Management" },
+      { key: "employeeInformation", name: "Employee Information" },
+      { key: "systemAlerts", name: "System Alerts" },
+      { key: "deliveryMethods", name: "Delivery Methods" },
+      { key: "globalSettings", name: "Global Settings" },
+    ],
+    []
+  );
 
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
+      sidebarConfig={staffDashboardConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -302,43 +260,17 @@ export default function StaffNotificationSettings() {
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
           <div className="flex items-start space-x-6">
-            {/* Profile Picture */}
-            <div className="relative">
-              <Avatar
-                className="w-24 h-24"
-                key={user?.avatarUpdatedAt || user?.avatar}
-              >
-                <AvatarImage
-                  src={user?.avatar}
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-                <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
-                  {user
-                    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`
-                    : "U"}
-                </AvatarFallback>
-              </Avatar>
-              {/* Blue plus icon overlay */}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <IconPlus className="w-3 h-3 text-white" />
-              </div>
-            </div>
+            {/* Profile Picture Upload */}
+            <ProfileImageUpload
+              size="w-24 h-24"
+              currentImageUrl={user?.avatar}
+              userName={user ? `${user.firstName} ${user.lastName}` : ""}
+              showActions={true}
+              showSizeHint={true}
+            />
 
             {/* Profile Details */}
             <div className="flex-1">
-              <div className="flex items-center space-x-4 mb-2">
-                <button className="text-red-500 text-sm hover:underline cursor-pointer">
-                  Remove
-                </button>
-                <button className="text-blue-500 text-sm hover:underline cursor-pointer">
-                  Update
-                </button>
-              </div>
-              <p className="text-sm text-gray-400 mb-2">
-                Recommended size: 400X400px
-              </p>
               <h3 className="text-lg font-bold text-gray-800 mb-1">
                 {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
               </h3>
@@ -349,7 +281,7 @@ export default function StaffNotificationSettings() {
                 <StatusBadge status={user?.attendanceStatus || "Active"} />
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
-                    Employee ID: {user?.workId || "N/A"}
+                    Work ID: {user?.workId || "N/A"}
                   </span>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -412,7 +344,7 @@ export default function StaffNotificationSettings() {
                         <Button
                           onClick={() => enableAll(category.key)}
                           size="sm"
-                          className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
+                          className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
                         >
                           Enable All
                         </Button>
@@ -431,130 +363,17 @@ export default function StaffNotificationSettings() {
                     {isExpanded && (
                       <div className="px-4 pb-4 border-t border-gray-100">
                         <div className="pt-4">
-                          {/* Task Management specific notifications */}
-                          {category.key === "taskManagement" && (
-                            <div className="space-y-3">
-                              <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800 mb-1">
-                                    New Task Assignments
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    Receive notifications when new tasks are
-                                    assigned to you.
-                                  </p>
-                                </div>
-                                <div className="ml-4">
-                                  <Switch
-                                    checked={
-                                      state.notificationSettings.taskManagement
-                                        .toggles.taskAssignments
-                                    }
-                                    onCheckedChange={() =>
-                                      toggleIndividualSetting(
-                                        "taskManagement",
-                                        "taskAssignments"
-                                      )
-                                    }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800 mb-1">
-                                    Task Updates
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    Get notified when there are updates to your
-                                    tasks.
-                                  </p>
-                                </div>
-                                <div className="ml-4">
-                                  <Switch
-                                    checked={
-                                      state.notificationSettings.taskManagement
-                                        .toggles.taskUpdates
-                                    }
-                                    onCheckedChange={() =>
-                                      toggleIndividualSetting(
-                                        "taskManagement",
-                                        "taskUpdates"
-                                      )
-                                    }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800 mb-1">
-                                    Task Deadlines
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    Receive reminders about approaching task
-                                    deadlines.
-                                  </p>
-                                </div>
-                                <div className="ml-4">
-                                  <Switch
-                                    checked={
-                                      state.notificationSettings.taskManagement
-                                        .toggles.taskDeadlines
-                                    }
-                                    onCheckedChange={() =>
-                                      toggleIndividualSetting(
-                                        "taskManagement",
-                                        "taskDeadlines"
-                                      )
-                                    }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800 mb-1">
-                                    Task Completions
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    Get notified when tasks are completed
-                                    successfully.
-                                  </p>
-                                </div>
-                                <div className="ml-4">
-                                  <Switch
-                                    checked={
-                                      state.notificationSettings.taskManagement
-                                        .toggles.taskCompletions
-                                    }
-                                    onCheckedChange={() =>
-                                      toggleIndividualSetting(
-                                        "taskManagement",
-                                        "taskCompletions"
-                                      )
-                                    }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
                           {/* Performance Management specific notifications */}
                           {category.key === "performanceManagement" && (
                             <div className="space-y-3">
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Review Reminders
+                                    New Review Assigned
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Receive reminders about upcoming performance
-                                    reviews.
+                                    Receive notifications when a new performance
+                                    review is assigned to you.
                                   </p>
                                 </div>
                                 <div className="ml-4">
@@ -570,7 +389,7 @@ export default function StaffNotificationSettings() {
                                         "reviewReminders"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -578,11 +397,11 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Review Due Dates
+                                    Review Due Date Approaching
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Get alerts when review deadlines are
-                                    approaching.
+                                    Get reminders as the due date for a
+                                    performance review approaches.
                                   </p>
                                 </div>
                                 <div className="ml-4">
@@ -598,7 +417,7 @@ export default function StaffNotificationSettings() {
                                         "reviewDueDate"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -609,7 +428,7 @@ export default function StaffNotificationSettings() {
                                     Feedback Received
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Be notified when you receive feedback on
+                                    Be notified when feedback is received on
                                     your performance.
                                   </p>
                                 </div>
@@ -626,7 +445,7 @@ export default function StaffNotificationSettings() {
                                         "feedbackReceived"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -634,11 +453,11 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Goal Updates
+                                    Performance Deadlines
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Receive notifications about updates to your
-                                    performance goals.
+                                    Receive alerts for upcoming
+                                    performance-related deadlines.
                                   </p>
                                 </div>
                                 <div className="ml-4">
@@ -654,40 +473,39 @@ export default function StaffNotificationSettings() {
                                         "goalUpdates"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
                             </div>
                           )}
 
-                          {/* Attendance Tracking specific notifications */}
-                          {category.key === "attendanceTracking" && (
+                          {/* Task Management specific notifications */}
+                          {category.key === "taskManagement" && (
                             <div className="space-y-3">
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Check-In Reminders
+                                    Task Assignments
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Get reminders to check in at the start of
-                                    your work day.
+                                    Get notified when a new task is assigned to
+                                    you.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
-                                      state.notificationSettings
-                                        .attendanceTracking.toggles
-                                        .checkInReminders
+                                      state.notificationSettings.taskManagement
+                                        .toggles.taskAssignments
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "attendanceTracking",
-                                        "checkInReminders"
+                                        "taskManagement",
+                                        "taskAssignments"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -695,27 +513,26 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Check-Out Reminders
+                                    Task Updates
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Receive reminders to check out at the end of
-                                    your work day.
+                                    Receive updates on the progress of tasks
+                                    you're involved in.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
-                                      state.notificationSettings
-                                        .attendanceTracking.toggles
-                                        .checkOutReminders
+                                      state.notificationSettings.taskManagement
+                                        .toggles.taskUpdates
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "attendanceTracking",
-                                        "checkOutReminders"
+                                        "taskManagement",
+                                        "taskUpdates"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -723,27 +540,26 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Attendance Alerts
+                                    Task Deadlines
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Get notified about attendance-related issues
-                                    or alerts.
+                                    Get reminders for approaching task
+                                    deadlines.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
-                                      state.notificationSettings
-                                        .attendanceTracking.toggles
-                                        .attendanceAlerts
+                                      state.notificationSettings.taskManagement
+                                        .toggles.taskDeadlines
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "attendanceTracking",
-                                        "attendanceAlerts"
+                                        "taskManagement",
+                                        "taskDeadlines"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -751,59 +567,59 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Overtime Notifications
+                                    Task Completions
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Be notified about overtime hours and related
-                                    information.
+                                    Be notified when a task you're involved in
+                                    is completed.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
-                                      state.notificationSettings
-                                        .attendanceTracking.toggles
-                                        .overtimeNotifications
+                                      state.notificationSettings.taskManagement
+                                        .toggles.taskCompletions
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "attendanceTracking",
-                                        "overtimeNotifications"
+                                        "taskManagement",
+                                        "taskCompletions"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
                             </div>
                           )}
 
-                          {/* Team Communication specific notifications */}
-                          {category.key === "teamCommunication" && (
+                          {/* Employee Information specific notifications */}
+                          {category.key === "employeeInformation" && (
                             <div className="space-y-3">
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Team Messages
+                                    Profile Updates
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Receive notifications for new team messages
-                                    and communications.
+                                    Receive notifications for updates to
+                                    employee profiles.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
                                       state.notificationSettings
-                                        .teamCommunication.toggles.teamMessages
+                                        .employeeInformation.toggles
+                                        .profileUpdates
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "teamCommunication",
-                                        "teamMessages"
+                                        "employeeInformation",
+                                        "profileUpdates"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -811,26 +627,27 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Team Updates
+                                    New Employee Onboarding
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Get notified about important team updates
-                                    and announcements.
+                                    Get notified when a new employee is
+                                    onboarded into the system.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
                                       state.notificationSettings
-                                        .teamCommunication.toggles.teamUpdates
+                                        .employeeInformation.toggles
+                                        .newEmployeeOnboarding
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "teamCommunication",
-                                        "teamUpdates"
+                                        "employeeInformation",
+                                        "newEmployeeOnboarding"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -838,55 +655,27 @@ export default function StaffNotificationSettings() {
                               <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 mb-1">
-                                    Meeting Reminders
+                                    Employee Status Changes
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Receive reminders about upcoming meetings
-                                    and appointments.
+                                    Receive alerts for changes in employee
+                                    status.
                                   </p>
                                 </div>
                                 <div className="ml-4">
                                   <Switch
                                     checked={
                                       state.notificationSettings
-                                        .teamCommunication.toggles
-                                        .meetingReminders
+                                        .employeeInformation.toggles
+                                        .employeeStatusChanges
                                     }
                                     onCheckedChange={() =>
                                       toggleIndividualSetting(
-                                        "teamCommunication",
-                                        "meetingReminders"
+                                        "employeeInformation",
+                                        "employeeStatusChanges"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800 mb-1">
-                                    Company Announcements
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    Get notified about company-wide
-                                    announcements and news.
-                                  </p>
-                                </div>
-                                <div className="ml-4">
-                                  <Switch
-                                    checked={
-                                      state.notificationSettings
-                                        .teamCommunication.toggles
-                                        .announcementNotifications
-                                    }
-                                    onCheckedChange={() =>
-                                      toggleIndividualSetting(
-                                        "teamCommunication",
-                                        "announcementNotifications"
-                                      )
-                                    }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -902,8 +691,8 @@ export default function StaffNotificationSettings() {
                                     System Maintenance
                                   </h4>
                                   <p className="text-sm text-gray-600">
-                                    Receive notifications for scheduled system
-                                    maintenance.
+                                    Receive notifications for system maintenance
+                                    activities.
                                   </p>
                                 </div>
                                 <div className="ml-4">
@@ -918,7 +707,7 @@ export default function StaffNotificationSettings() {
                                         "systemMaintenance"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -945,7 +734,7 @@ export default function StaffNotificationSettings() {
                                         "systemUpdates"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -972,7 +761,7 @@ export default function StaffNotificationSettings() {
                                         "applicationAnnouncements"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -1004,7 +793,7 @@ export default function StaffNotificationSettings() {
                                         "inAppNotifications"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -1030,7 +819,7 @@ export default function StaffNotificationSettings() {
                                         "emailNotifications"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -1056,7 +845,7 @@ export default function StaffNotificationSettings() {
                                         "desktopNotifications"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -1083,7 +872,7 @@ export default function StaffNotificationSettings() {
                                         "platformIntegrations"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
@@ -1115,12 +904,45 @@ export default function StaffNotificationSettings() {
                                         "masterNotificationToggle"
                                       )
                                     }
-                                    className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+                                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
                                   />
                                 </div>
                               </div>
                             </div>
                           )}
+
+                          {/* Other categories can be added here with similar structure */}
+                          {category.key !== "performanceManagement" &&
+                            category.key !== "taskManagement" &&
+                            category.key !== "employeeInformation" &&
+                            category.key !== "systemAlerts" &&
+                            category.key !== "deliveryMethods" &&
+                            category.key !== "globalSettings" && (
+                              <div className="space-y-3">
+                                <p className="text-sm text-gray-600 mb-4">
+                                  Configure specific notification settings for{" "}
+                                  {category.name.toLowerCase()}.
+                                </p>
+                                {Array.from(
+                                  { length: settings.total },
+                                  (_, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center justify-between"
+                                    >
+                                      <span className="text-sm text-gray-700">
+                                        Notification {index + 1} for{" "}
+                                        {category.name}
+                                      </span>
+                                      <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                                      />
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
                         </div>
                       </div>
                     )}
@@ -1141,7 +963,7 @@ export default function StaffNotificationSettings() {
               <Button
                 onClick={handleSavePreferences}
                 disabled={state.isLoading}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-medium text-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-medium text-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {state.isLoading ? "Saving..." : "Save Preferences"}
               </Button>

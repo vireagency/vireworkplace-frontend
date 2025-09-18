@@ -32,6 +32,9 @@ import { Input } from "@/components/ui/input";
 // Search and notification icons from Lucide React
 import { Search, Bell, X, Check, Trash2, Eye } from "lucide-react";
 
+// Tabler icons for dropdown menu
+import { IconUser, IconSettings, IconLogout } from "@tabler/icons-react";
+
 // ============================================================================
 // HOOK IMPORTS
 // ============================================================================
@@ -43,6 +46,9 @@ import {
   getStableAvatarUrl,
   getUserInitials as getInitials,
 } from "@/utils/avatarUtils";
+
+// React Router for navigation
+import { useNavigate } from "react-router-dom";
 
 // Notification context
 import { useNotifications } from "@/contexts/NotificationProvider";
@@ -63,6 +69,29 @@ import { globalSearchApi } from "@/services/globalSearchApi";
 
 // Search results component
 import { SearchResults } from "@/components/search/SearchResults";
+
+// Dropdown menu components
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+// Alert dialog components
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // ============================================================================
 // UTILITY IMPORTS
@@ -86,7 +115,10 @@ import { toast } from "sonner";
  */
 export function SiteHeader() {
   // Get current authenticated user from auth context
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, signOut } = useAuth();
+
+  // Navigation hook
+  const navigate = useNavigate();
 
   // Get notification context (HR flow only)
   const {
@@ -125,6 +157,24 @@ export function SiteHeader() {
 
   // Notification dropdown ref
   const notificationRef = useRef(null);
+
+  // ============================================================================
+  // USER PROFILE FUNCTIONALITY
+  // ============================================================================
+
+  /**
+   * Handle user logout
+   */
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to log out. Please try again.");
+    }
+  };
 
   // ============================================================================
   // NOTIFICATION FUNCTIONALITY
@@ -595,26 +645,148 @@ export function SiteHeader() {
             </div>
           )}
 
-          {/* User Avatar with Initials */}
-          <Avatar
-            key={
-              user?.profileImagePublicId ||
-              user?.profileImage ||
-              user?.avatar ||
-              "default"
-            }
-            className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
-          >
-            <AvatarImage
-              src={getStableAvatarUrl(user)}
-              alt={user ? `${user.firstName} ${user.lastName}` : "User"}
-              className="object-cover w-full h-full"
-            />
-            <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm hover:bg-green-500/10 rounded-full">
-              {/* Display user initials or fallback */}
-              {getUserInitials()}
-            </AvatarFallback>
-          </Avatar>
+          {/* User Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar
+                key={
+                  user?.profileImagePublicId ||
+                  user?.profileImage ||
+                  user?.avatar ||
+                  "default"
+                }
+                className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
+              >
+                <AvatarImage
+                  src={getStableAvatarUrl(user)}
+                  alt={user ? `${user.firstName} ${user.lastName}` : "User"}
+                  className="object-cover w-full h-full"
+                />
+                <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm hover:bg-green-500/10 rounded-full">
+                  {/* Display user initials or fallback */}
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="w-56">
+              {/* User Profile Header */}
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <Avatar className="h-8 w-8 rounded-full">
+                    <AvatarImage
+                      src={getStableAvatarUrl(user)}
+                      alt={user ? `${user.firstName} ${user.lastName}` : "User"}
+                    />
+                    <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm rounded-full">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">
+                      {user ? `${user.firstName} ${user.lastName}` : "User"}
+                    </span>
+                    <span className="text-muted-foreground truncate text-xs">
+                      {user?.email || "user@example.com"}
+                    </span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              {/* Menu Items */}
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => {
+                  // Navigate to profile based on user role
+                  const role = user?.role?.toLowerCase();
+                  console.log("User role:", role); // Debug log
+                  if (role === "staff") {
+                    navigate("/staff/settings/profile");
+                  } else if (
+                    role === "hr" ||
+                    role === "human resource manager"
+                  ) {
+                    navigate("/human-resource-manager/settings/profile");
+                  } else if (role === "admin") {
+                    navigate("/admin/settings/profile");
+                  } else {
+                    // Default fallback for staff
+                    navigate("/staff/settings/profile");
+                  }
+                }}
+              >
+                <IconUser className="mr-2 h-4 w-4" />
+                View profile
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => {
+                  // Navigate to settings based on user role
+                  const role = user?.role?.toLowerCase();
+                  console.log("User role for settings:", role); // Debug log
+                  if (role === "staff") {
+                    navigate("/staff/settings");
+                  } else if (
+                    role === "hr" ||
+                    role === "human resource manager"
+                  ) {
+                    navigate("/human-resource-manager/settings");
+                  } else if (role === "admin") {
+                    navigate("/admin/settings");
+                  } else {
+                    // Default fallback for staff
+                    navigate("/staff/settings");
+                  }
+                }}
+              >
+                <IconSettings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {/* Logout with Confirmation */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <IconLogout className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you sure you want to log out?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You will be signed out of your account and redirected to
+                      the login page. Any unsaved work may be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="cursor-pointer">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleLogout}
+                      className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
+                    >
+                      Log out
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

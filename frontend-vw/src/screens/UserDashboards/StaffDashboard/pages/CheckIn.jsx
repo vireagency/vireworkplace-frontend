@@ -102,7 +102,7 @@ export default function CheckIn() {
       }
 
       const response = await fetch(
-        "https://www.api.vire.agency/api/v1/user/me",
+        "https://vireworkplace-backend-hpca.onrender.com/api/v1/user/me",
         {
           headers: {
             "Content-Type": "application/json",
@@ -177,7 +177,9 @@ export default function CheckIn() {
     const url =
       userData?.profileImage || userData?.profilePicture || userData?.avatar;
     if (!url) return null;
-    return url.startsWith("http") ? url : `https://www.api.vire.agency${url}`;
+    return url.startsWith("http")
+      ? url
+      : `https://vireworkplace-backend-hpca.onrender.com${url}`;
   };
 
   // Preload profile image to prevent loading delay
@@ -389,6 +391,39 @@ export default function CheckIn() {
     }
   };
 
+  // Check current attendance status
+  const checkAttendanceStatus = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Please log in again");
+    }
+
+    try {
+      const response = await fetch(
+        "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/status",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Attendance status:", data);
+        return data;
+      } else {
+        console.warn("Could not fetch attendance status:", response.status);
+        return null;
+      }
+    } catch (error) {
+      console.warn("Error checking attendance status:", error);
+      return null;
+    }
+  };
+
   // Submit check-in to API
   const submitCheckIn = async (workingLocation, lat = null, lng = null) => {
     const token = getAuthToken();
@@ -413,7 +448,7 @@ export default function CheckIn() {
     });
 
     const response = await fetch(
-      "https://www.api.vire.agency/api/v1/attendance/checkin",
+      "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/checkin",
       {
         method: "POST",
         headers: {
@@ -458,6 +493,30 @@ export default function CheckIn() {
 
     // Log the response for debugging
     console.log("Check-in response:", data);
+    console.log(
+      "Check-in successful! Storing in localStorage for debugging..."
+    );
+
+    // Store check-in info in localStorage for debugging
+    const today = new Date().toDateString();
+    const now = new Date();
+    const checkinInfo = {
+      date: today,
+      timestamp: now.toISOString(),
+      timezoneOffset: now.getTimezoneOffset(),
+      workingLocation: workingLocation,
+      latitude: lat,
+      longitude: lng,
+      response: data,
+    };
+    localStorage.setItem(`checkin_${today}`, JSON.stringify(checkinInfo));
+
+    console.log("=== CHECKIN DEBUG INFO ===");
+    console.log("Check-in date (toDateString):", today);
+    console.log("Check-in date (ISO):", now.toISOString());
+    console.log("Check-in timezone offset:", now.getTimezoneOffset());
+    console.log("Check-in info stored:", checkinInfo);
+    console.log("=== END DEBUG INFO ===");
 
     if (data.success !== true) {
       throw new Error("Unexpected response format");
@@ -472,6 +531,22 @@ export default function CheckIn() {
     setError("");
 
     try {
+      // First, check current attendance status
+      console.log("Checking current attendance status...");
+      const statusData = await checkAttendanceStatus();
+
+      if (statusData && statusData.data && statusData.data.hasCheckedIn) {
+        // User is already checked in
+        console.log("User is already checked in, redirecting to dashboard");
+        toast.info("You are already checked in for today!");
+        setShowDialog(false);
+        setTimeout(() => {
+          navigate("/staff/dashboard");
+        }, 1000);
+        return;
+      }
+
+      // Proceed with check-in
       if (workLocation === "office") {
         // Get and validate location for office check-in
         const userLocation = await getCurrentLocation();
@@ -493,6 +568,20 @@ export default function CheckIn() {
       }, 2000);
     } catch (error) {
       console.error("Check-in failed:", error);
+
+      // Handle "already checked in" error specifically
+      if (
+        error.message &&
+        error.message.toLowerCase().includes("already checked in")
+      ) {
+        toast.info("You are already checked in for today!");
+        setShowDialog(false);
+        setTimeout(() => {
+          navigate("/staff/dashboard");
+        }, 1000);
+        return;
+      }
+
       setError(error.message);
       setShowDialog(false);
       setShowError(true);

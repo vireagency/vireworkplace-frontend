@@ -14,124 +14,138 @@ import { hrDashboardConfig } from "@/config/dashboardConfigs";
 // StatusBadge component moved outside to prevent recreation on every render
 const StatusBadge = React.memo(({ status }) => {
   const statusConfig = {
-    "Active": { 
-      bgColor: "bg-green-50", 
-      borderColor: "border-green-200", 
+    Active: {
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
       textColor: "text-green-700",
       dotColor: "bg-green-500",
-      text: "Active" 
+      text: "Active",
     },
-    "In-active": { 
-      bgColor: "bg-orange-50", 
-      borderColor: "border-orange-200", 
+    "In-active": {
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
       textColor: "text-orange-700",
       dotColor: "bg-orange-500",
-      text: "In-active" 
+      text: "In-active",
     },
-    "Closed": { 
-      bgColor: "bg-red-50", 
-      borderColor: "border-red-200", 
+    Closed: {
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
       textColor: "text-red-700",
       dotColor: "bg-red-500",
-      text: "Closed" 
-    }
-  }
-  
-  const config = statusConfig[status] || statusConfig["Active"]
-  
+      text: "Closed",
+    },
+  };
+
+  const config = statusConfig[status] || statusConfig["Active"];
+
   return (
-    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}>
+    <div
+      className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}
+    >
       <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
-      <span className={`text-sm font-medium ${config.textColor}`}>{config.text}</span>
+      <span className={`text-sm font-medium ${config.textColor}`}>
+        {config.text}
+      </span>
     </div>
-  )
+  );
 });
 
 export default function HRPasswordSettings() {
   const { user } = useAuth();
-  
+
   // Consolidated state object following React best practices
   const [state, setState] = useState({
     // UI state
     isLoading: false,
     error: null,
     success: false,
-    
+
     // Password visibility states
     passwordVisibility: {
       currentPassword: false,
       newPassword: false,
-      confirmPassword: false
+      confirmPassword: false,
     },
-    
+
     // Form data
     formData: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
 
   // Memoized event handlers to prevent unnecessary re-renders
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    setState(prev => ({ ...prev, isLoading: true, error: null, success: false }));
-    
-    try {
-      // Validate passwords match
-      if (state.formData.newPassword !== state.formData.confirmPassword) {
-        throw new Error('New password and confirm password do not match');
-      }
-      
-      // Validate password strength (basic validation)
-      if (state.formData.newPassword.length < 8) {
-        throw new Error('New password must be at least 8 characters long');
-      }
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Password change submitted:', state.formData);
-      
-      // Clear form and show success
-      setState(prev => ({
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setState((prev) => ({
         ...prev,
-        formData: { currentPassword: '', newPassword: '', confirmPassword: '' },
-        success: true,
-        isLoading: false
+        isLoading: true,
+        error: null,
+        success: false,
       }));
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        error: error.message, 
-        isLoading: false 
-      }));
-    }
-  }, [state.formData]);
+
+      try {
+        // Validate passwords match
+        if (state.formData.newPassword !== state.formData.confirmPassword) {
+          throw new Error("New password and confirm password do not match");
+        }
+
+        // Validate password strength (basic validation)
+        if (state.formData.newPassword.length < 8) {
+          throw new Error("New password must be at least 8 characters long");
+        }
+
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Password change submitted:", state.formData);
+
+        // Clear form and show success
+        setState((prev) => ({
+          ...prev,
+          formData: {
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          },
+          success: true,
+          isLoading: false,
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error.message,
+          isLoading: false,
+        }));
+      }
+    },
+    [state.formData]
+  );
 
   const handleInputChange = useCallback((field, value) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       formData: {
         ...prev.formData,
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   }, []);
 
   const togglePasswordVisibility = useCallback((field) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       passwordVisibility: {
         ...prev.passwordVisibility,
-        [field]: !prev.passwordVisibility[field]
-      }
+        [field]: !prev.passwordVisibility[field],
+      },
     }));
   }, []);
 
-
-
   return (
-    <HRDashboardLayout 
+    <HRDashboardLayout
       sidebarConfig={hrDashboardConfig}
       showSectionCards={false}
       showChart={false}
@@ -154,7 +168,7 @@ export default function HRPasswordSettings() {
             <ProfileImageUpload
               size="w-24 h-24"
               currentImageUrl={user?.avatar}
-              userName={user ? `${user.firstName} ${user.lastName}` : ''}
+              userName={user ? `${user.firstName} ${user.lastName}` : ""}
               showActions={true}
               showSizeHint={true}
             />
@@ -162,16 +176,22 @@ export default function HRPasswordSettings() {
             {/* Profile Details */}
             <div className="flex-1">
               <h3 className="text-lg font-bold text-gray-800 mb-1">
-                {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+                {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
               </h3>
-              <p className="text-gray-600 mb-3">{user?.jobRole || user?.role || 'Loading...'}</p>
+              <p className="text-gray-600 mb-3">
+                {user?.jobRole || user?.role || "Loading..."}
+              </p>
               <div className="flex items-center space-x-6">
                 <StatusBadge status={user?.attendanceStatus || "Active"} />
                 <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">Work ID: {user?.workId || 'N/A'}</span>
+                  <span className="text-gray-700 text-sm">
+                    Work ID: {user?.workId || "N/A"}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">Arrival: {user?.isLate ? 'Late' : 'On Time'}</span>
+                  <span className="text-gray-700 text-sm">
+                    Arrival: {user?.isLate ? "Late" : "On Time"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -181,173 +201,236 @@ export default function HRPasswordSettings() {
         {/* Main Content - Password Change Form */}
         <div className="px-6 py-8 bg-white">
           <div className="max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-800 mb-6">Change password</h2>
-            
+            <h2 className="text-lg font-semibold text-gray-800 mb-6">
+              Change password
+            </h2>
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Current Password */}
-                <div className="space-y-2">
-                <Label htmlFor="currentPassword" className="text-sm font-semibold text-gray-800">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="currentPassword"
+                  className="text-sm font-semibold text-gray-800"
+                >
                   Current Password
                 </Label>
                 <div className="relative">
-                  <Input 
+                  <Input
                     id="currentPassword"
-                    type={state.passwordVisibility.currentPassword ? "text" : "password"}
+                    type={
+                      state.passwordVisibility.currentPassword
+                        ? "text"
+                        : "password"
+                    }
                     value={state.formData.currentPassword}
-                    onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("currentPassword", e.target.value)
+                    }
                     className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
                     placeholder="Enter your current password"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => togglePasswordVisibility('currentPassword')}
+                    onClick={() => togglePasswordVisibility("currentPassword")}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    {state.passwordVisibility.currentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
+                    {state.passwordVisibility.currentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
-                
+
                 {/* Password Match Indicator */}
-                {state.formData.newPassword && state.formData.confirmPassword && (
-                  <div className="mt-2">
-                    <div className="flex items-center space-x-2">
-                      {state.formData.newPassword === state.formData.confirmPassword ? (
-                        <>
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-xs text-green-600">Passwords match</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span className="text-xs text-red-600">Passwords do not match</span>
-                        </>
-                      )}
+                {state.formData.newPassword &&
+                  state.formData.confirmPassword && (
+                    <div className="mt-2">
+                      <div className="flex items-center space-x-2">
+                        {state.formData.newPassword ===
+                        state.formData.confirmPassword ? (
+                          <>
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-green-600">
+                              Passwords match
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="text-xs text-red-600">
+                              Passwords do not match
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
-              
+
               {/* New Password */}
-                <div className="space-y-2">
-                <Label htmlFor="newPassword" className="text-sm font-semibold text-gray-800">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="newPassword"
+                  className="text-sm font-semibold text-gray-800"
+                >
                   New password
                 </Label>
                 <div className="relative">
                   <Input
                     id="newPassword"
-                    type={state.passwordVisibility.newPassword ? "text" : "password"}
+                    type={
+                      state.passwordVisibility.newPassword ? "text" : "password"
+                    }
                     value={state.formData.newPassword}
-                    onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("newPassword", e.target.value)
+                    }
                     className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
                     placeholder="Enter your new password"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => togglePasswordVisibility('newPassword')}
+                    onClick={() => togglePasswordVisibility("newPassword")}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    {state.passwordVisibility.newPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {state.passwordVisibility.newPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
-                
+
                 {/* Password Strength Indicator */}
                 {state.formData.newPassword && (
                   <div className="mt-2">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-xs text-gray-500">Password strength:</span>
+                      <span className="text-xs text-gray-500">
+                        Password strength:
+                      </span>
                       <div className="flex space-x-1">
                         {[1, 2, 3, 4].map((level) => (
                           <div
                             key={level}
                             className={`h-1 w-8 rounded ${
-                              level <= Math.min(4, Math.max(1, Math.floor(state.formData.newPassword.length / 2)))
-                                ? 'bg-green-500'
-                                : 'bg-gray-200'
+                              level <=
+                              Math.min(
+                                4,
+                                Math.max(
+                                  1,
+                                  Math.floor(
+                                    state.formData.newPassword.length / 2
+                                  )
+                                )
+                              )
+                                ? "bg-green-500"
+                                : "bg-gray-200"
                             }`}
                           />
                         ))}
                       </div>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {state.formData.newPassword.length < 8 
-                        ? 'Password must be at least 8 characters long'
+                      {state.formData.newPassword.length < 8
+                        ? "Password must be at least 8 characters long"
                         : state.formData.newPassword.length >= 12
-                        ? 'Strong password'
-                        : 'Good password'
-                      }
+                        ? "Strong password"
+                        : "Good password"}
                     </p>
                   </div>
                 )}
               </div>
-              
+
               {/* Confirm New Password */}
-                <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-800">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-sm font-semibold text-gray-800"
+                >
                   Confirm Password
                 </Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
-                    type={state.passwordVisibility.confirmPassword ? "text" : "password"}
+                    type={
+                      state.passwordVisibility.confirmPassword
+                        ? "text"
+                        : "password"
+                    }
                     value={state.formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
                     className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
                     placeholder="Confirm your new password"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => togglePasswordVisibility('confirmPassword')}
+                    onClick={() => togglePasswordVisibility("confirmPassword")}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    {state.passwordVisibility.confirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {state.passwordVisibility.confirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
-                
+
                 {/* Password Match Indicator */}
-                {state.formData.newPassword && state.formData.confirmPassword && (
-                  <div className="mt-2">
-                    <div className="flex items-center space-x-2">
-                      {state.formData.newPassword === state.formData.confirmPassword ? (
-                        <>
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-xs text-green-600">Passwords match</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span className="text-xs text-red-600">Passwords do not match</span>
-                        </>
-                      )}
+                {state.formData.newPassword &&
+                  state.formData.confirmPassword && (
+                    <div className="mt-2">
+                      <div className="flex items-center space-x-2">
+                        {state.formData.newPassword ===
+                        state.formData.confirmPassword ? (
+                          <>
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-green-600">
+                              Passwords match
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="text-xs text-red-600">
+                              Passwords do not match
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
 
-            {/* Error Display */}
-            {state.error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-700 text-sm">{state.error}</p>
-              </div>
-            )}
+              {/* Error Display */}
+              {state.error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{state.error}</p>
+                </div>
+              )}
 
-            {/* Success Display */}
-            {state.success && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-700 text-sm">Password changed successfully!</p>
-              </div>
-            )}
+              {/* Success Display */}
+              {state.success && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-700 text-sm">
+                    Password changed successfully!
+                  </p>
+                </div>
+              )}
 
-            {/* Save Button */}
+              {/* Save Button */}
               <div className="flex justify-end">
-                <Button 
+                <Button
                   type="submit"
                   disabled={state.isLoading}
                   className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {state.isLoading ? 'Changing...' : 'Change'}
+                  {state.isLoading ? "Changing..." : "Change"}
                 </Button>
               </div>
             </form>

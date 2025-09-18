@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
+// StaffProfileSettings - Profile settings for Staff Member
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,13 +17,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -48,6 +52,7 @@ import {
   IconChevronDown,
   IconEdit,
   IconTrash,
+  IconX,
   IconMapPin,
 } from "@tabler/icons-react";
 
@@ -192,7 +197,7 @@ export default function StaffProfileSettings() {
     }
   }, [user]);
 
-  // StatusBadge component
+  // StatusBadge component (same as in employee summary modal)
   const StatusBadge = ({ status }) => {
     const statusConfig = {
       Active: {
@@ -239,43 +244,12 @@ export default function StaffProfileSettings() {
     { id: "employment", label: "Employment Details", icon: IconId },
     { id: "qualifications", label: "Qualifications", icon: IconCertificate },
     { id: "documents", label: "Documents", icon: IconFileText },
+    { id: "health", label: "Health Info", icon: IconShield },
   ];
-
-  // Get sidebar counts
-  const sidebarCounts = useSidebarCounts();
-
-  // Dynamically update the badges for sidebar items
-  const dynamicSidebarConfig = {
-    ...staffDashboardConfig,
-    analytics:
-      staffDashboardConfig.analytics?.map((item) => {
-        if (item.title === "Evaluations") {
-          return { ...item, badge: sidebarCounts.evaluations };
-        }
-        return item;
-      }) || [],
-    productivity:
-      staffDashboardConfig.productivity?.map((item) => {
-        if (item.title === "Tasks") {
-          return { ...item, badge: sidebarCounts.tasks };
-        }
-        if (item.title === "Attendance") {
-          return { ...item, badge: sidebarCounts.attendance };
-        }
-        return item;
-      }) || [],
-    company:
-      staffDashboardConfig.company?.map((item) => {
-        if (item.title === "Messages") {
-          return { ...item, badge: sidebarCounts.messages };
-        }
-        return item;
-      }) || [],
-  };
 
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
+      sidebarConfig={staffDashboardConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -293,43 +267,17 @@ export default function StaffProfileSettings() {
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
           <div className="flex items-start space-x-6">
-            {/* Profile Picture */}
-            <div className="relative">
-              <Avatar
-                className="w-24 h-24"
-                key={user?.avatarUpdatedAt || user?.avatar}
-              >
-                <AvatarImage
-                  src={user?.avatar}
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-                <AvatarFallback className="text-lg bg-gray-200 text-gray-600">
-                  {user
-                    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`
-                    : "U"}
-                </AvatarFallback>
-              </Avatar>
-              {/* Blue plus icon overlay */}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <IconPlus className="w-3 h-3 text-white" />
-              </div>
-            </div>
+            {/* Profile Picture Upload */}
+            <ProfileImageUpload
+              size="w-24 h-24"
+              currentImageUrl={user?.avatar}
+              userName={user ? `${user.firstName} ${user.lastName}` : ""}
+              showActions={true}
+              showSizeHint={true}
+            />
 
             {/* Profile Details */}
             <div className="flex-1">
-              <div className="flex items-center space-x-4 mb-2">
-                <button className="text-red-500 text-sm hover:underline cursor-pointer">
-                  Remove
-                </button>
-                <button className="text-blue-500 text-sm hover:underline cursor-pointer">
-                  Update
-                </button>
-              </div>
-              <p className="text-sm text-gray-400 mb-2">
-                Recommended size: 400X400px
-              </p>
               <h3 className="text-lg font-bold text-gray-800 mb-1">
                 {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
               </h3>
@@ -340,12 +288,7 @@ export default function StaffProfileSettings() {
                 <StatusBadge status={user?.attendanceStatus || "Active"} />
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
-                    Employee ID: {user?.workId || "N/A"}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">
-                    Arrival: {user?.isLate ? "Late" : "On Time"}
+                    Work ID: {user?.workId || "N/A"}
                   </span>
                 </div>
               </div>
@@ -362,7 +305,7 @@ export default function StaffProfileSettings() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                   activeTab === tab.id
-                    ? "bg-blue-500 text-white shadow-sm"
+                    ? "bg-green-500 text-white shadow-sm"
                     : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
                 }`}
               >
@@ -616,8 +559,8 @@ export default function StaffProfileSettings() {
               </div>
 
               {/* Save Button */}
-              <div className="flex justify-end mt-6">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+              <div className="flex justify-end">
+                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                   Save
                 </Button>
               </div>
@@ -724,7 +667,7 @@ export default function StaffProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-6">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                   Save
                 </Button>
               </div>
@@ -845,7 +788,7 @@ export default function StaffProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-6">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                   Save
                 </Button>
               </div>
@@ -1020,7 +963,7 @@ export default function StaffProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-6">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
+                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
                   Save
                 </Button>
               </div>
@@ -1061,7 +1004,7 @@ export default function StaffProfileSettings() {
                           <IconChevronRight className="w-5 h-5 text-gray-400" />
                         )}
                         <button
-                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isEducationOpen) {
@@ -1270,7 +1213,7 @@ export default function StaffProfileSettings() {
                             duration: "",
                           });
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                        className="bg-green-500 hover:bg-green-600 text-white"
                       >
                         {isEditMode ? "Save Changes" : "Add Item"}
                       </Button>
@@ -1303,7 +1246,7 @@ export default function StaffProfileSettings() {
                           <IconChevronRight className="w-5 h-5 text-gray-400" />
                         )}
                         <button
-                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isExperienceOpen) {
@@ -1350,11 +1293,6 @@ export default function StaffProfileSettings() {
                                     <h4 className="font-bold text-gray-800 text-base mb-1">
                                       {entry.jobTitle}
                                     </h4>
-
-                                    {/* Organization */}
-                                    <p className="text-gray-600 text-sm mb-1">
-                                      {entry.organization}
-                                    </p>
 
                                     {/* Employment Type */}
                                     <p className="text-gray-600 text-sm mb-2">
@@ -1495,29 +1433,20 @@ export default function StaffProfileSettings() {
                           htmlFor="description"
                           className="text-sm font-medium text-gray-800"
                         >
-                          Employment Type
+                          Description
                         </Label>
-                        <Select
+                        <Input
+                          id="description"
                           value={experienceForm.description}
-                          onValueChange={(value) =>
+                          onChange={(e) =>
                             setExperienceForm({
                               ...experienceForm,
-                              description: value,
+                              description: e.target.value,
                             })
                           }
-                        >
-                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600">
-                            <SelectValue placeholder="Select employment type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Full-Time">Full-Time</SelectItem>
-                            <SelectItem value="Part-Time">Part-Time</SelectItem>
-                            <SelectItem value="Contract">Contract</SelectItem>
-                            <SelectItem value="Internship">
-                              Internship
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                          placeholder="Job type and responsibilities"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
                       </div>
 
                       {/* Location Field */}
@@ -1639,7 +1568,7 @@ export default function StaffProfileSettings() {
                             duration: "",
                           });
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                        className="bg-green-500 hover:bg-green-600 text-white"
                       >
                         {isExperienceEditMode ? "Save Changes" : "Add Item"}
                       </Button>
@@ -1672,7 +1601,7 @@ export default function StaffProfileSettings() {
                           <IconChevronRight className="w-5 h-5 text-gray-400" />
                         )}
                         <button
-                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isLicensesOpen) {
@@ -1837,6 +1766,28 @@ export default function StaffProfileSettings() {
                         />
                       </div>
 
+                      {/* Description Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="description"
+                          className="text-sm font-medium text-gray-800"
+                        >
+                          Description
+                        </Label>
+                        <Input
+                          id="description"
+                          value={licensesForm.description}
+                          onChange={(e) =>
+                            setLicensesForm({
+                              ...licensesForm,
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Certification details"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
                       {/* Issue Date Field */}
                       <div className="space-y-2">
                         <Label
@@ -1904,7 +1855,7 @@ export default function StaffProfileSettings() {
                             issueDate: "",
                           });
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                        className="bg-green-500 hover:bg-green-600 text-white"
                       >
                         {isLicensesEditMode ? "Save Changes" : "Add Item"}
                       </Button>
@@ -1934,7 +1885,7 @@ export default function StaffProfileSettings() {
                           <IconChevronRight className="w-5 h-5 text-gray-400" />
                         )}
                         <button
-                          className="text-blue-500 text-sm font-medium hover:text-blue-600 cursor-pointer"
+                          className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isSkillsOpen) {
@@ -1959,7 +1910,7 @@ export default function StaffProfileSettings() {
                         <div className="flex flex-wrap gap-2">
                           {skillsEntries.map((skill, index) => (
                             <div key={index} className="relative group">
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
                                 {skill}
                               </span>
                               <button
@@ -2036,7 +1987,7 @@ export default function StaffProfileSettings() {
                             setShowSkillsModal(false);
                           }
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                        className="bg-green-500 hover:bg-green-600 text-white"
                       >
                         Add Skill
                       </Button>
@@ -2047,7 +1998,7 @@ export default function StaffProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-8">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium">
+                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                   Save
                 </Button>
               </div>
@@ -2082,7 +2033,7 @@ export default function StaffProfileSettings() {
                     </svg>
                     Reset
                   </Button>
-                  <Button className="bg-blue-500 hover:bg-blue-600 text-white cursor-pointer">
+                  <Button className="bg-green-500 hover:bg-green-600 text-white cursor-pointer">
                     Save Changes
                   </Button>
                 </div>
@@ -2159,7 +2110,7 @@ export default function StaffProfileSettings() {
               {/* Certificate */}
               <div className="mb-2">
                 <p className="text-sm font-semibold text-gray-800 mb-2">
-                  Educational Certificates
+                  Certificate
                 </p>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
                   <svg

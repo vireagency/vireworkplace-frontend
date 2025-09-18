@@ -167,11 +167,6 @@ export const staffDashboardConfig = {
 
   // Analytics section
   analytics: [
-    // {
-    //   title: "Performance",
-    //   url: "/staff/performance",
-    //   icon: IconChartBar,
-    // },
     {
       title: "Evaluations",
       url: "/staff/evaluation",
@@ -185,7 +180,6 @@ export const staffDashboardConfig = {
       title: "Tasks",
       url: "/staff/tasks",
       icon: IconListDetails,
-      badge: "12",
     },
     {
       title: "Attendance",
@@ -220,11 +214,11 @@ export const staffDashboardConfig = {
     //   url: "#",
     //   icon: IconHelp,
     // },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
+    // {
+    //   title: "Search",
+    //   url: "#",
+    //   icon: IconSearch,
+    // },
   ],
 
   // Staff-specific action buttons

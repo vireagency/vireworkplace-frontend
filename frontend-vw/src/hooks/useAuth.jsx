@@ -1,10 +1,10 @@
 /**
  * Authentication Hook and Context
- * 
+ *
  * Provides authentication state management and API integration for the Vire Workplace HR Application.
  * This hook manages user authentication, profile data, and provides authentication methods
  * throughout the application.
- * 
+ *
  * Features:
  * - User authentication state management
  * - Access token management with localStorage persistence
@@ -13,36 +13,36 @@
  * - Profile update capabilities
  * - Automatic token validation and cleanup
  * - Loading state management
- * 
+ *
  * API Endpoints:
  * - POST /auth/login - User login
  * - POST /auth/signup - User registration
  * - GET /status/profile - Fetch user profile
  * - PUT /status/profile - Update user profile
- * 
+ *
  * State Management:
  * - user: Current user data
  * - accessToken: JWT access token
  * - loading: Loading state for authentication operations
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 // API base URL for authentication endpoints
-const API_URL = 'https://vireworkplace-backend-hpca.onrender.com/api/v1'; 
+const API_URL = "https://vireworkplace-backend-hpca.onrender.com/api/v1";
 
 // Create authentication context
 const AuthContext = createContext();
 
 /**
  * AuthProvider Component
- * 
+ *
  * Provides authentication context to the entire application.
  * Manages user state, access tokens, and authentication operations.
- * 
+ *
  * @param {Object} props - Component props
  * @param {React.ReactNode} props.children - Child components to wrap with auth context
  */
@@ -50,29 +50,31 @@ export const AuthProvider = ({ children }) => {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
-  
+
   // Initialize user state from localStorage if available
   const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
   });
-  
+
   // Initialize access token from localStorage
-  const [accessToken, setAccessToken] = useState(localStorage.getItem('access_token') || null);
-  
+  const [accessToken, setAccessToken] = useState(
+    localStorage.getItem("access_token") || null
+  );
+
   // Loading state for authentication operations
   const [loading, setLoading] = useState(true);
 
   // Check if token is expired
   const isTokenExpired = (token) => {
     if (!token) return true;
-    
+
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       const currentTime = Date.now() / 1000;
       return payload.exp < currentTime;
     } catch (error) {
-      console.error('Error parsing token:', error);
+      console.error("Error parsing token:", error);
       return true;
     }
   };
@@ -83,11 +85,11 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          console.log('Token expired or invalid, logging out user');
-          toast.error('Session expired. Please log in again.');
+          console.log("Token expired or invalid, logging out user");
+          toast.error("Session expired. Please log in again.");
           signOut();
           // Redirect to landing page
-          window.location.href = '/';
+          window.location.href = "/";
         }
         return Promise.reject(error);
       }
@@ -102,10 +104,10 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkTokenExpiration = () => {
       if (accessToken && isTokenExpired(accessToken)) {
-        console.log('Token expired, logging out user');
-        toast.error('Session expired. Please log in again.');
+        console.log("Token expired, logging out user");
+        toast.error("Session expired. Please log in again.");
         signOut();
-        window.location.href = '/';
+        window.location.href = "/";
       }
     };
 
@@ -126,7 +128,9 @@ export const AuthProvider = ({ children }) => {
   // Fetch fresh profile data on app mount to ensure we have latest data
   useEffect(() => {
     if (accessToken && user) {
-      console.log('App mounted with user data, fetching fresh profile to ensure latest data...');
+      console.log(
+        "App mounted with user data, fetching fresh profile to ensure latest data..."
+      );
       fetchUserProfile();
     }
   }, [accessToken]); // Only run when accessToken changes (on login)
@@ -134,30 +138,33 @@ export const AuthProvider = ({ children }) => {
   // Fix missing workId by fetching fresh profile data
   useEffect(() => {
     if (user && !user.workId && accessToken) {
-      console.log('User data missing workId, fetching fresh profile...');
+      console.log("User data missing workId, fetching fresh profile...");
       fetchUserProfile();
     }
   }, [user, accessToken]);
 
   /**
    * Sign in user with work ID and password
-   * 
+   *
    * @param {string} workId - User's work ID
    * @param {string} password - User's password
    * @returns {Object} Result object with success status and error message if applicable
    */
   const signIn = async (workId, password) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, { workId, password });
-      
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        workId,
+        password,
+      });
+
       if (response.status === 200) {
         const { accessToken: tokenFromLogin, data: userData } = response.data;
-        
+
         // Update state and localStorage
         setAccessToken(tokenFromLogin);
         setUser(userData);
-        localStorage.setItem('access_token', tokenFromLogin);
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem("access_token", tokenFromLogin);
+        localStorage.setItem("user", JSON.stringify(userData));
         // Immediately refresh with a definitive profile fetch after login
         try {
           await fetchUserProfile(tokenFromLogin);
@@ -167,14 +174,17 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       }
     } catch (err) {
-      console.error('Login error:', err.response?.data || err.message);
-      return { success: false, error: err.response?.data?.message || err.message };
+      console.error("Login error:", err.response?.data || err.message);
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      };
     }
   };
 
   /**
    * Sign up new user with form data
-   * 
+   *
    * @param {Object} formData - User registration data
    * @returns {Object} Result object with success status and error message if applicable
    */
@@ -183,14 +193,17 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post(`${API_URL}/auth/signup`, formData);
       return { success: true };
     } catch (err) {
-      console.error('Signup error:', err.response?.data || err.message);
-      return { success: false, error: err.response?.data?.message || err.message };
+      console.error("Signup error:", err.response?.data || err.message);
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      };
     }
   };
 
   /**
    * Sign out user and clear authentication data
-   * 
+   *
    * Clears the user state, access token, and removes stored data from localStorage.
    * Use this to explicitly end a user session (e.g., from a logout button).
    *
@@ -199,13 +212,13 @@ export const AuthProvider = ({ children }) => {
   const signOut = () => {
     setAccessToken(null);
     setUser(null);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
   };
 
   /**
    * Check if current token is valid and not expired
-   * 
+   *
    * @returns {boolean} True if token is valid and not expired
    */
   const isTokenValid = () => {
@@ -214,14 +227,14 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Get token expiration time (for debugging)
-   * 
+   *
    * @returns {Date | null} Expiration date or null if invalid token
    */
   const getTokenExpiration = () => {
     if (!accessToken) return null;
-    
+
     try {
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      const payload = JSON.parse(atob(accessToken.split(".")[1]));
       return new Date(payload.exp * 1000);
     } catch (error) {
       return null;
@@ -240,23 +253,26 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async (overrideToken) => {
     const tokenToUse = overrideToken ?? accessToken;
     if (!tokenToUse) {
-      return { success: false, error: 'No access token available' };
+      return { success: false, error: "No access token available" };
     }
 
     try {
       const response = await axios.get(`${API_URL}/status/profile`, {
-        headers: { 
-          'Authorization': `Bearer ${tokenToUse}` 
+        headers: {
+          Authorization: `Bearer ${tokenToUse}`,
         },
       });
-      
+
       if (response.status === 200) {
         setUser(response.data.data);
         return { success: true, data: response.data.data };
       }
     } catch (err) {
-      console.error('Error fetching user profile:', err);
-      return { success: false, error: err.response?.data?.message || err.message };
+      console.error("Error fetching user profile:", err);
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      };
     }
   };
 
@@ -272,41 +288,138 @@ export const AuthProvider = ({ children }) => {
    */
   const updateProfile = async (updates) => {
     if (!accessToken) {
-      return { success: false, error: 'No access token available' };
+      return { success: false, error: "No access token available" };
     }
 
     try {
       const response = await axios.put(`${API_URL}/status/profile`, updates, {
-        headers: { 
-          'Authorization': `Bearer ${accessToken}` 
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
         },
       });
-      
+
       if (response.status === 200) {
         setUser(response.data.data);
         return { success: true, data: response.data.data };
       }
     } catch (err) {
-      console.error('Update error:', err.response?.data || err.message);
-      return { success: false, error: err.response?.data?.message || err.message };
+      console.error("Update error:", err.response?.data || err.message);
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      };
+    }
+  };
+
+  /**
+   * Change the current user's password
+   *
+   * Sends a PUT request to `${API_URL}/auth/change-password` with the current
+   * and new password. Requires a valid access token.
+   *
+   * @param {Object} passwordData - Password change data
+   * @param {string} passwordData.currentPassword - Current password
+   * @param {string} passwordData.newPassword - New password
+   * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+   */
+  const changePassword = async (passwordData) => {
+    if (!accessToken) {
+      return { success: false, error: "No access token available" };
+    }
+
+    try {
+      const response = await axios.put(
+        `${API_URL}/auth/change-password`,
+        passwordData,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        return {
+          success: true,
+          data: response.data,
+          message: "Password changed successfully",
+        };
+      }
+    } catch (err) {
+      console.error(
+        "Password change error:",
+        err.response?.data || err.message
+      );
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      };
+    }
+  };
+
+  /**
+   * Update the current user's notification preferences
+   *
+   * Sends a PUT request to `${API_URL}/settings/notifications` with the notification
+   * preferences. Requires a valid access token.
+   *
+   * @param {Object} notificationSettings - Notification preferences data
+   * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+   */
+  const updateNotificationPreferences = async (notificationSettings) => {
+    if (!accessToken) {
+      return { success: false, error: "No access token available" };
+    }
+
+    try {
+      const response = await axios.put(
+        `${API_URL}/settings/notifications`,
+        notificationSettings,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        return {
+          success: true,
+          data: response.data,
+          message: "Notification preferences updated successfully",
+        };
+      }
+    } catch (err) {
+      console.error(
+        "Notification preferences update error:",
+        err.response?.data || err.message
+      );
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      };
     }
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user, 
-        accessToken, 
-        loading, 
-        signIn, 
-        signUp, 
-        signOut, 
+        user,
+        accessToken,
+        loading,
+        signIn,
+        signUp,
+        signOut,
         fetchUserProfile,
         updateProfile,
+        changePassword,
+        updateNotificationPreferences,
         setUser,
         isTokenValid,
         isTokenExpired,
-        getTokenExpiration
+        getTokenExpiration,
       }}
     >
       {children}
@@ -334,7 +447,7 @@ export const useAuth = () => {
    */
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider');
+    throw new Error("useAuth must be used inside AuthProvider");
   }
   return context;
 };

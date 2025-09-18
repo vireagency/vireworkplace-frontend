@@ -338,7 +338,7 @@ const AttendanceApp = () => {
         payload.dailySummary = dailySummary;
       }
 
-      const response = await apiClient.patch(
+      const response = await apiClient.post(
         "/api/v1/attendance/checkout",
         payload
       );
@@ -476,24 +476,43 @@ const AttendanceApp = () => {
     analytics:
       staffDashboardConfig.analytics?.map((item) => {
         if (item.title === "Evaluations") {
-          return { ...item, badge: sidebarCounts.evaluations };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.evaluations > 0
+                ? sidebarCounts.evaluations
+                : undefined,
+          };
         }
         return item;
       }) || [],
     productivity:
       staffDashboardConfig.productivity?.map((item) => {
         if (item.title === "Tasks") {
-          return { ...item, badge: sidebarCounts.tasks };
+          return {
+            ...item,
+            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
+          };
         }
         if (item.title === "Attendance") {
-          return { ...item, badge: sidebarCounts.attendance };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.attendance > 0
+                ? sidebarCounts.attendance
+                : undefined,
+          };
         }
         return item;
       }) || [],
     company:
       staffDashboardConfig.company?.map((item) => {
         if (item.title === "Messages") {
-          return { ...item, badge: sidebarCounts.messages };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
+          };
         }
         return item;
       }) || [],
@@ -511,11 +530,18 @@ const AttendanceApp = () => {
   return (
     <StaffDashboardLayout
       sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: sidebarCounts.tasks,
+        evaluations: sidebarCounts.evaluations,
+        attendance: sidebarCounts.attendance,
+        messages: sidebarCounts.messages,
+      }}
+      isLoading={sidebarCounts.loading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
     >
-      {/* Attendance Overview Section - Redesigned to match image */}
+      {/* Attendance Overview Section - Refined to match image */}
       <div className="px-4 lg:px-6 py-6">
         <Card className="shadow-sm">
           <CardHeader className="pb-4">
@@ -534,12 +560,12 @@ const AttendanceApp = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Summary Cards */}
+            {/* Summary Cards - Minimal design */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Work Time Card */}
-              <div className="bg-white border border-blue-200 rounded-lg p-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <Clock className="w-5 h-5 text-blue-600" />
+                  <Clock className="w-5 h-5 text-gray-600" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900 mb-1">
                   {attendanceData.workDuration || "3h 25m"}
@@ -556,9 +582,9 @@ const AttendanceApp = () => {
               </div>
 
               {/* Issues Card */}
-              <div className="bg-white border border-orange-200 rounded-lg p-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  <AlertTriangle className="w-5 h-5 text-gray-600" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900 mb-1">
                   {attendanceData.issues || 2}
@@ -572,7 +598,7 @@ const AttendanceApp = () => {
 
       {/* Main Content Grid */}
       <div className="px-4 lg:px-6 space-y-6">
-        {/* Today's Timeline Section - Redesigned to match image */}
+        {/* Today's Timeline Section - Enhanced UI */}
         <Card className="shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-gray-900">
@@ -581,9 +607,8 @@ const AttendanceApp = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Sample timeline data to match the image */}
+              {/* Check-in Entry */}
               <div className="flex items-start gap-4">
-                {/* Check-in Entry */}
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <CheckCircle className="w-4 h-4 text-green-600" />
@@ -638,7 +663,7 @@ const AttendanceApp = () => {
           </CardContent>
         </Card>
 
-        {/* Attendance Policies & Detection Rules Section - Redesigned to match image */}
+        {/* Attendance Policies & Detection Rules Section - Enhanced UI */}
         <Card className="shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-gray-900">

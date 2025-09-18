@@ -27,64 +27,194 @@ export default function CheckOut() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [hasAlreadyCheckedOut, setHasAlreadyCheckedOut] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [showForceCheckoutDialog, setShowForceCheckoutDialog] = useState(false);
+  const [backendSyncIssue, setBackendSyncIssue] = useState(false);
+
+  // FIXED: Utility functions for consistent date handling that match check-in component
+  const getTodayKey = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getTodayDateString = () => {
+    return new Date().toDateString();
+  };
+
+  // FIXED: Get all possible localStorage keys that check-in might have used
+  const getAllPossibleCheckinKeys = () => {
+    const todayKey = getTodayKey();
+    const todayDateString = getTodayDateString();
+    const now = new Date();
+
+    // Additional date formats for better compatibility
+    const isoDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const localDateString = now.toLocaleDateString(); // MM/DD/YYYY or DD/MM/YYYY
+
+    return [
+      `checkin_${todayKey}`, // YYYY-MM-DD format
+      `checkin_${todayDateString}`, // Full date string format (primary one used by check-in)
+      `checkin_${isoDate}`, // ISO date format
+      `checkin_${localDateString}`, // Local date format
+      // Additional fallback keys
+      `checkin_info_${todayKey}`,
+      `checkin_info_${todayDateString}`,
+      `attendance_${todayKey}`,
+      `attendance_${todayDateString}`,
+    ];
+  };
+
+  // FIXED: Get all possible checkout keys
+  const getAllPossibleCheckoutKeys = () => {
+    const todayKey = getTodayKey();
+    const todayDateString = getTodayDateString();
+
+    return [
+      `checkout_${todayKey}`,
+      `checkout_${todayDateString}`,
+      `checkout_${todayKey}_completed`,
+      `checkout_${todayDateString}_completed`,
+      `checkout_info_${todayKey}`,
+      `checkout_info_${todayDateString}`,
+    ];
+  };
 
   // Check if current time is after 5:10 PM (17:10)
   const isCurrentTimeOvertime = () => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-
-    // Check if it's after 5:10 PM (17:10)
     return currentHour > 17 || (currentHour === 17 && currentMinute >= 10);
+  };
+
+  // Get authentication token from various sources
+  const getAuthToken = () => {
+    return (
+      accessToken ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("authToken") ||
+      sessionStorage.getItem("token") ||
+      sessionStorage.getItem("access_token")
+    );
+  };
+
+  // Clear all stored tokens
+  const clearTokens = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("token");
+    localStorage.removeItem("access_token");
+    sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("access_token");
+  };
+
+  // FIXED: Enhanced function to find check-in data with better logging
+  const findCheckinData = () => {
+    const allCheckinKeys = getAllPossibleCheckinKeys();
+
+    console.log("=== SEARCHING FOR CHECKIN DATA ===");
+    console.log("Today YYYY-MM-DD:", getTodayKey());
+    console.log("Today DateString:", getTodayDateString());
+    console.log("All possible keys:", allCheckinKeys);
+
+    // Check all possible keys
+    for (const key of allCheckinKeys) {
+      const data = localStorage.getItem(key);
+      if (data) {
+        console.log(`✅ Found check-in data with key: ${key}`);
+        try {
+          const parsed = JSON.parse(data);
+          console.log("Check-in data:", parsed);
+          return { key, data: parsed };
+        } catch (e) {
+          console.log(`❌ Failed to parse check-in data for key ${key}:`, e);
+          // If it's not JSON, treat as simple string
+          console.log(`✅ Found simple check-in flag with key: ${key}`);
+          return { key, data: true };
+        }
+      }
+    }
+
+    console.log("❌ No check-in data found with any key");
+    console.log("=== END CHECKIN SEARCH ===");
+    return null;
   };
 
   // Check if user has already checked out today
   const checkAttendanceStatus = async () => {
     try {
       setIsCheckingStatus(true);
-
-      // Get auth token from multiple possible sources
-      let token =
-        accessToken ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("access_token") ||
-        sessionStorage.getItem("authToken") ||
-        sessionStorage.getItem("token") ||
-        sessionStorage.getItem("access_token");
+      const token = getAuthToken();
 
       if (!token) {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      // Check localStorage first for today's checkout status
-      const today = new Date().toDateString();
-      const todayCheckoutKey = `checkout_${today}`;
-      const hasCheckedOutToday = localStorage.getItem(todayCheckoutKey);
+      // FIXED: Check for checkout status with all possible keys
+      const checkoutKeys = getAllPossibleCheckoutKeys();
 
-      console.log("Checking localStorage for checkout status:", {
-        today,
-        todayCheckoutKey,
-        hasCheckedOutToday,
-      });
+      console.log("=== CHECKING CHECKOUT STATUS ===");
+      console.log(
+        "Checking localStorage for checkout status with keys:",
+        checkoutKeys
+      );
 
-      if (hasCheckedOutToday === "true") {
-        console.log("User has already checked out today (from localStorage)");
-        setHasAlreadyCheckedOut(true);
+      for (const key of checkoutKeys) {
+        const hasCheckedOut = localStorage.getItem(key);
+        if (hasCheckedOut === "true" || hasCheckedOut) {
+          console.log(`User has already checked out today (found key: ${key})`);
+          setHasAlreadyCheckedOut(true);
+          setShowMainDialog(false);
+          setShowAlreadyCheckedOutDialog(true);
+          setIsCheckingStatus(false);
+          return;
+        }
+      }
+
+      // Also check for any checkout info stored as JSON
+      for (const key of checkoutKeys) {
+        const checkoutInfo = localStorage.getItem(key);
+        if (checkoutInfo) {
+          try {
+            const parsed = JSON.parse(checkoutInfo);
+            if (parsed && (parsed.completed || parsed.timestamp)) {
+              console.log(
+                `User has already checked out today (found info: ${key})`
+              );
+              setHasAlreadyCheckedOut(true);
+              setShowMainDialog(false);
+              setShowAlreadyCheckedOutDialog(true);
+              setIsCheckingStatus(false);
+              return;
+            }
+          } catch (e) {
+            console.warn("Error parsing checkout info:", e);
+          }
+        }
+      }
+
+      // FIXED: Use enhanced check-in finder
+      const checkinData = findCheckinData();
+
+      if (!checkinData) {
+        console.log("No check-in info found in localStorage");
+        setError("No check-in record found for today. Please check in first.");
         setShowMainDialog(false);
-        setShowAlreadyCheckedOutDialog(true);
+        setShowErrorDialog(true);
         setIsCheckingStatus(false);
         return;
       }
 
-      // If not in localStorage, check with API
-      // Note: The attendance status endpoint might not exist, so we'll rely on localStorage
-      // and the checkout API response to handle the "already checked out" scenario
-      console.log("Checking attendance status via API...");
+      console.log("✅ Check-in data found, user can proceed with checkout");
 
+      // Try to check with API if available
       try {
         const response = await fetch(
-          "https://www.api.vire.agency/api/v1/attendance/status",
+          "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/status",
           {
             method: "GET",
             headers: {
@@ -94,42 +224,27 @@ export default function CheckOut() {
           }
         );
 
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            // Clear invalid token and redirect to login
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("token");
-            localStorage.removeItem("access_token");
-            sessionStorage.removeItem("authToken");
-            sessionStorage.removeItem("token");
-            sessionStorage.removeItem("access_token");
-            throw new Error("Session expired. Please log in again.");
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Attendance status API response:", result);
+
+          if (result.data && result.data.hasCheckedOut) {
+            setHasAlreadyCheckedOut(true);
+            setShowMainDialog(false);
+            setShowAlreadyCheckedOutDialog(true);
+            // Store in localStorage to prevent future API calls
+            const todayKey = getTodayKey();
+            const todayDateString = getTodayDateString();
+            localStorage.setItem(`checkout_${todayKey}`, "true");
+            localStorage.setItem(`checkout_${todayDateString}`, "true");
           }
-          // If API fails, continue with normal flow
-          console.warn(
-            "Could not check attendance status, continuing with normal flow"
-          );
-          setIsCheckingStatus(false);
-          return;
-        }
-
-        const result = await response.json();
-        console.log("Attendance status API response:", result);
-
-        // Check if user has already checked out today
-        if (result.data && result.data.hasCheckedOut) {
-          setHasAlreadyCheckedOut(true);
-          setShowMainDialog(false);
-          setShowAlreadyCheckedOutDialog(true);
-          // Store in localStorage to prevent future API calls
-          localStorage.setItem(todayCheckoutKey, "true");
+        } else {
+          console.warn("Attendance status API returned:", response.status);
+          // Continue with normal flow - the checkout API will handle validation
         }
       } catch (apiError) {
-        console.warn(
-          "Attendance status API not available, relying on localStorage and checkout API:",
-          apiError
-        );
-        // Continue with normal flow - the checkout API will handle the "already checked out" scenario
+        console.warn("Attendance status API not available:", apiError);
+        // Continue with normal flow
       }
     } catch (error) {
       console.error("Error checking attendance status:", error);
@@ -143,23 +258,14 @@ export default function CheckOut() {
   const fetchUserData = async () => {
     try {
       setIsLoadingUser(true);
-
-      // Get auth token from multiple possible sources
-      let token =
-        accessToken ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("access_token") ||
-        sessionStorage.getItem("authToken") ||
-        sessionStorage.getItem("token") ||
-        sessionStorage.getItem("access_token");
+      const token = getAuthToken();
 
       if (!token) {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
       const response = await fetch(
-        "https://www.api.vire.agency/api/v1/user/me",
+        "https://vireworkplace-backend-hpca.onrender.com/api/v1/user/me",
         {
           method: "GET",
           headers: {
@@ -171,13 +277,7 @@ export default function CheckOut() {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Clear invalid token and redirect to login
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("token");
-          localStorage.removeItem("access_token");
-          sessionStorage.removeItem("authToken");
-          sessionStorage.removeItem("token");
-          sessionStorage.removeItem("access_token");
+          clearTokens();
           throw new Error("Session expired. Please log in again.");
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,7 +291,7 @@ export default function CheckOut() {
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
-      // Use fallback data for demo purposes
+      // Use fallback data
       const lsFirst =
         localStorage.getItem("signup_firstName") ||
         localStorage.getItem("firstName") ||
@@ -216,7 +316,7 @@ export default function CheckOut() {
     }
   };
 
-  // Get user initials for avatar fallback with proper fallback logic
+  // Get user initials for avatar fallback
   const getUserInitials = () => {
     const safe = (s) => (typeof s === "string" ? s : "");
     const email = safe(userData?.email);
@@ -275,14 +375,8 @@ export default function CheckOut() {
       null;
 
     if (!url) return null;
-
-    // If the URL is already complete, return it
-    if (url.startsWith("http")) {
-      return url;
-    }
-
-    // If it's a relative URL, construct the full URL
-    return `https://www.api.vire.agency${url}`;
+    if (url.startsWith("http")) return url;
+    return `https://vireworkplace-backend-hpca.onrender.com${url}`;
   };
 
   // Handle profile image load error
@@ -308,7 +402,6 @@ export default function CheckOut() {
           null,
       });
       setIsLoadingUser(false);
-      // Check attendance status after user data is loaded
       checkAttendanceStatus();
       return;
     }
@@ -343,17 +436,8 @@ export default function CheckOut() {
   // API call to check out
   const checkOutToAPI = async (dailySummary) => {
     try {
-      // Get auth token from multiple possible sources
-      let token =
-        accessToken ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("access_token") ||
-        sessionStorage.getItem("authToken") ||
-        sessionStorage.getItem("token") ||
-        sessionStorage.getItem("access_token");
+      const token = getAuthToken();
 
-      // If no token found, throw an error
       if (!token) {
         throw new Error("Authentication token not found. Please log in again.");
       }
@@ -362,34 +446,59 @@ export default function CheckOut() {
         dailySummary: dailySummary || "No summary provided",
       };
 
+      // FIXED: Use enhanced check-in finder for debugging
+      const checkinData = findCheckinData();
+
+      console.log("=== CHECKOUT DEBUG INFO ===");
+      console.log("Today key (YYYY-MM-DD):", getTodayKey());
+      console.log("Today date string:", getTodayDateString());
+      console.log("Current timezone offset:", new Date().getTimezoneOffset());
+      console.log("Found check-in data:", checkinData);
+      console.log("=== END DEBUG INFO ===");
+
+      console.log("Making checkout API call:", {
+        url: "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/checkout",
+        method: "PATCH",
+        body: requestBody,
+        hasToken: !!token,
+        tokenPreview: token ? `${token.substring(0, 20)}...` : "No token",
+      });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("API call timed out after 30 seconds");
+        controller.abort();
+      }, 30000);
+
       const response = await fetch(
-        "https://www.api.vire.agency/api/v1/attendance/checkout",
+        "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/checkout",
         {
-          method: "PATCH", // Using PATCH as per API documentation
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(requestBody),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
+
+      console.log("Checkout API response:", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+
       if (!response.ok) {
-        // Handle specific HTTP status codes
         if (response.status === 401 || response.status === 403) {
-          // Clear invalid token and redirect to login
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("token");
-          localStorage.removeItem("access_token");
-          sessionStorage.removeItem("authToken");
-          sessionStorage.removeItem("token");
-          sessionStorage.removeItem("access_token");
+          clearTokens();
           throw new Error("Session expired. Please log in again.");
         }
 
         if (response.status === 400) {
           const errorData = await response.json();
-          // Check if the error message indicates already checked out
           if (
             errorData.message &&
             errorData.message.toLowerCase().includes("already checked out")
@@ -403,9 +512,19 @@ export default function CheckOut() {
         }
 
         if (response.status === 404) {
-          throw new Error(
-            "No check-in found for today. Please check in first."
-          );
+          // FIXED: Better handling of 404 error with check-in info
+          if (checkinData) {
+            console.log(
+              "404 error but check-in found in localStorage, backend sync issue"
+            );
+            throw new Error(
+              "Backend data sync issue detected. You appear to be checked in, but the system cannot find your check-in record. Please contact support or try again later."
+            );
+          } else {
+            throw new Error(
+              "No check-in found for today. Please check in first."
+            );
+          }
         }
 
         if (response.status === 500) {
@@ -419,6 +538,7 @@ export default function CheckOut() {
       }
 
       const data = await response.json();
+      console.log("Checkout API response data:", data);
 
       // Check if the response indicates overtime
       if (
@@ -431,12 +551,28 @@ export default function CheckOut() {
 
       return data;
     } catch (error) {
+      console.error("Checkout API error:", error);
+
+      if (error.name === "AbortError") {
+        throw new Error(
+          "Request timeout. Please check your internet connection and try again."
+        );
+      }
+
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        throw new Error(
+          "Network error. Please check your internet connection and try again."
+        );
+      }
+
       throw error;
     }
   };
 
   // Handle check out
   const handleCheckOut = async () => {
+    console.log("handleCheckOut called with dailySummary:", dailySummary);
+
     if (!dailySummary.trim()) {
       setError("Please provide a daily summary before checking out.");
       setShowMainDialog(false);
@@ -444,25 +580,61 @@ export default function CheckOut() {
       return;
     }
 
+    console.log("Starting checkout process...");
     setIsLoading(true);
     setError("");
 
-    try {
-      const result = await checkOutToAPI(dailySummary);
+    // FIXED: Use enhanced check-in finder
+    const checkinData = findCheckinData();
 
-      // Store checkout status in localStorage to prevent multiple checkouts
-      const today = new Date().toDateString();
-      const todayCheckoutKey = `checkout_${today}`;
-      localStorage.setItem(todayCheckoutKey, "true");
-      console.log("Checkout successful, stored in localStorage:", {
-        today,
-        todayCheckoutKey,
-        value: "true",
-      });
+    if (!checkinData) {
+      console.log("No check-in info found in localStorage");
+      setError("No check-in record found for today. Please check in first.");
+      setIsLoading(false);
+      setShowMainDialog(false);
+      setShowErrorDialog(true);
+      return;
+    }
+
+    console.log("Check-in info found, proceeding with checkout");
+
+    try {
+      console.log("Calling checkOutToAPI...");
+      const result = await checkOutToAPI(dailySummary);
+      console.log("checkOutToAPI completed successfully:", result);
+
+      // FIXED: Store checkout status with all possible keys for consistency
+      const todayKey = getTodayKey();
+      const todayDateString = getTodayDateString();
+
+      // Store with multiple keys for better compatibility
+      localStorage.setItem(`checkout_${todayKey}`, "true");
+      localStorage.setItem(`checkout_${todayDateString}`, "true");
+
+      // Store detailed checkout info
+      const checkoutInfo = {
+        date: todayKey,
+        dateString: todayDateString,
+        timestamp: new Date().toISOString(),
+        dailySummary: dailySummary,
+        completed: true,
+        apiResponse: result,
+      };
+
+      localStorage.setItem(
+        `checkout_info_${todayKey}`,
+        JSON.stringify(checkoutInfo)
+      );
+      localStorage.setItem(
+        `checkout_info_${todayDateString}`,
+        JSON.stringify(checkoutInfo)
+      );
+
+      console.log("Checkout successful, stored in localStorage:", checkoutInfo);
 
       setShowMainDialog(false);
 
-      // Check if overtime was detected from API response OR current time is after 5:10 PM
+      // Check if overtime was detected
       const hasOvertimeFromAPI =
         result.attendanceData &&
         result.attendanceData.overtimeHours &&
@@ -470,9 +642,18 @@ export default function CheckOut() {
 
       const hasOvertimeFromTime = isCurrentTimeOvertime();
 
+      console.log("Overtime check:", {
+        hasOvertimeFromAPI,
+        hasOvertimeFromTime,
+        currentTime: new Date().toLocaleTimeString(),
+        overtimeHours: result.attendanceData?.overtimeHours,
+      });
+
       if (hasOvertimeFromAPI || hasOvertimeFromTime) {
+        console.log("Showing overtime warning dialog");
         setShowOvertimeDialog(true);
       } else {
+        console.log("Normal checkout, showing success toast");
         setShowSuccessToast(true);
         setTimeout(() => {
           setShowSuccessToast(false);
@@ -485,9 +666,17 @@ export default function CheckOut() {
       // Handle already checked out scenario
       if (error.message === "ALREADY_CHECKED_OUT") {
         console.log("User has already checked out (from API error)");
-        // User has already checked out, show appropriate dialog
         setShowMainDialog(false);
         setShowAlreadyCheckedOutDialog(true);
+        return;
+      }
+
+      // Handle backend sync issue
+      if (error.message && error.message.includes("Backend data sync issue")) {
+        console.log("Backend sync issue detected");
+        setBackendSyncIssue(true);
+        setShowMainDialog(false);
+        setShowForceCheckoutDialog(true);
         return;
       }
 
@@ -507,11 +696,7 @@ export default function CheckOut() {
   // Handle overtime dialog close
   const handleOvertimeClose = () => {
     setShowOvertimeDialog(false);
-    setShowSuccessToast(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-      navigate("/staff/dashboard");
-    }, 2000);
+    navigate("/staff");
   };
 
   // Handle error dialog retry
@@ -531,6 +716,67 @@ export default function CheckOut() {
   const handleAlreadyCheckedOutClose = () => {
     setShowAlreadyCheckedOutDialog(false);
     navigate("/staff/dashboard");
+  };
+
+  // Handle force checkout (when backend sync fails)
+  const handleForceCheckout = () => {
+    console.log("Force checkout initiated");
+
+    const todayKey = getTodayKey();
+    const todayDateString = getTodayDateString();
+
+    // Store checkout status in localStorage with multiple keys
+    localStorage.setItem(`checkout_${todayKey}`, "true");
+    localStorage.setItem(`checkout_${todayDateString}`, "true");
+
+    // Store detailed checkout info
+    const checkoutInfo = {
+      date: todayKey,
+      dateString: todayDateString,
+      timestamp: new Date().toISOString(),
+      dailySummary: dailySummary,
+      forceCheckout: true,
+      completed: true,
+      reason: "Backend sync issue - checkout completed locally",
+    };
+
+    localStorage.setItem(
+      `checkout_info_${todayKey}`,
+      JSON.stringify(checkoutInfo)
+    );
+    localStorage.setItem(
+      `checkout_info_${todayDateString}`,
+      JSON.stringify(checkoutInfo)
+    );
+
+    console.log(
+      "Force checkout completed, stored in localStorage:",
+      checkoutInfo
+    );
+
+    setShowForceCheckoutDialog(false);
+
+    // Check for overtime and show appropriate dialog
+    const hasOvertimeFromTime = isCurrentTimeOvertime();
+
+    if (hasOvertimeFromTime) {
+      console.log("Showing overtime warning dialog (force checkout)");
+      setShowOvertimeDialog(true);
+    } else {
+      console.log("Normal checkout, showing success toast (force checkout)");
+      setShowSuccessToast(true);
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        navigate("/staff/dashboard");
+      }, 2000);
+    }
+  };
+
+  // Handle force checkout dialog close
+  const handleForceCheckoutClose = () => {
+    setShowForceCheckoutDialog(false);
+    setBackendSyncIssue(false);
+    navigate("/staff");
   };
 
   if (isLoadingUser || isCheckingStatus) {
@@ -641,33 +887,26 @@ export default function CheckOut() {
         </div>
       )}
 
-      {/* Overtime Warning Dialog - Matching the uploaded image design */}
+      {/* Overtime Warning Dialog */}
       {showOvertimeDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-500 bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4">
             <div className="p-8 space-y-6 text-center">
-              {/* Warning Icon - Orange triangle matching the image */}
               <div className="flex justify-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-8 h-8 text-orange-500" />
-                </div>
+                <AlertTriangle className="w-10 h-10 text-yellow-500 stroke-2 stroke-black" />
               </div>
-
-              {/* Content - Matching the uploaded image */}
               <div className="space-y-3">
-                <h3 className="text-xl font-semibold text-slate-900">
+                <h3 className="text-xl font-bold text-black">
                   Overtime Warning
                 </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
+                <p className="text-black text-sm leading-relaxed">
                   You checked out at late hours. HR has been informed
                 </p>
               </div>
-
-              {/* Close Button - Red button matching the image */}
               <div className="pt-2">
                 <Button
                   onClick={handleOvertimeClose}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white rounded-xl py-3 font-medium"
+                  className="w-full bg-red-400 hover:bg-red-500 text-white rounded-lg py-2 font-medium"
                 >
                   Close
                 </Button>
@@ -740,6 +979,46 @@ export default function CheckOut() {
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
                 >
                   Go to Dashboard
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Force Checkout Dialog - For Backend Sync Issues */}
+      {showForceCheckoutDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 space-y-4 text-center">
+              <div className="flex justify-center">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-orange-500" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-slate-900">
+                  Backend Sync Issue Detected
+                </h3>
+                <p className="text-slate-500 mt-1 text-sm">
+                  Your check-in record exists but the system cannot sync with
+                  the server. You can complete your checkout locally to maintain
+                  your work record.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleForceCheckoutClose}
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleForceCheckout}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                >
+                  Force Checkout
                 </Button>
               </div>
             </div>

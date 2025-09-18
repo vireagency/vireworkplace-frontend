@@ -249,24 +249,43 @@ export default function StaffDashboardMainPage() {
     analytics:
       staffDashboardConfig.analytics?.map((item) => {
         if (item.title === "Evaluations") {
-          return { ...item, badge: sidebarCounts.evaluations };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.evaluations > 0
+                ? sidebarCounts.evaluations
+                : undefined,
+          };
         }
         return item;
       }) || [],
     productivity:
       staffDashboardConfig.productivity?.map((item) => {
         if (item.title === "Tasks") {
-          return { ...item, badge: sidebarCounts.tasks };
+          return {
+            ...item,
+            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
+          };
         }
         if (item.title === "Attendance") {
-          return { ...item, badge: sidebarCounts.attendance };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.attendance > 0
+                ? sidebarCounts.attendance
+                : undefined,
+          };
         }
         return item;
       }) || [],
     company:
       staffDashboardConfig.company?.map((item) => {
         if (item.title === "Messages") {
-          return { ...item, badge: sidebarCounts.messages };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
+          };
         }
         return item;
       }) || [],
@@ -275,6 +294,13 @@ export default function StaffDashboardMainPage() {
   return (
     <StaffDashboardLayout
       sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: sidebarCounts.tasks,
+        evaluations: sidebarCounts.evaluations,
+        attendance: sidebarCounts.attendance,
+        messages: sidebarCounts.messages,
+      }}
+      isLoading={sidebarCounts.loading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

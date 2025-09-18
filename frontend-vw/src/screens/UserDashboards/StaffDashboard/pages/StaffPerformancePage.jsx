@@ -39,13 +39,22 @@ export default function StaffPerformancePage() {
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
     productivity: staffDashboardConfig.productivity.map((item) =>
-      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
+      item.title === "Tasks"
+        ? { ...item, badge: tasks.length > 0 ? tasks.length : undefined }
+        : item
     ),
   };
 
   return (
     <StaffDashboardLayout
       sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: tasks.length,
+        evaluations: 0,
+        attendance: 0,
+        messages: 0,
+      }}
+      isLoading={false}
       showSectionCards={true}
       showChart={true}
       showDataTable={true}
