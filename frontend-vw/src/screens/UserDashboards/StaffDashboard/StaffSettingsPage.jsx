@@ -3,6 +3,7 @@ import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,9 +41,41 @@ export default function StaffSettingsPage() {
 
   const [theme, setTheme] = useState("light");
 
+  // Get sidebar counts
+  const sidebarCounts = useSidebarCounts();
+
+  // Dynamically update the badges for sidebar items
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

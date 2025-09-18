@@ -4,11 +4,44 @@ import staffData from "../staffData.json";
 import { SectionCards } from "@/components/section-cards";
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { DataTable } from "@/components/data-table";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 
 export default function StaffReportsPage() {
+  // Get sidebar counts
+  const sidebarCounts = useSidebarCounts();
+
+  // Dynamically update the badges for sidebar items
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={true}
       showChart={true}
       showDataTable={true}

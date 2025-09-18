@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
+import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Lock, Shield, Key } from "lucide-react";
@@ -143,9 +145,41 @@ export default function StaffPasswordSettings() {
     }));
   }, []);
 
+  // Get sidebar counts
+  const sidebarCounts = useSidebarCounts();
+
+  // Dynamically update the badges for sidebar items
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -165,11 +199,14 @@ export default function StaffPasswordSettings() {
           <div className="flex items-start space-x-6">
             {/* Profile Picture */}
             <div className="relative">
-              <Avatar className="w-24 h-24" key={user?.avatarUpdatedAt || user?.avatar}>
-                <AvatarImage 
-                  src={user?.avatar} 
+              <Avatar
+                className="w-24 h-24"
+                key={user?.avatarUpdatedAt || user?.avatar}
+              >
+                <AvatarImage
+                  src={user?.avatar}
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.style.display = "none";
                   }}
                 />
                 <AvatarFallback className="text-lg bg-gray-200 text-gray-600">

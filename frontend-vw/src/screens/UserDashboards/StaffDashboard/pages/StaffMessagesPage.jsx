@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Filter, Clock, Settings, Trash2, Check, Loader2 } from "lucide-react";
 import { useNotifications } from "@/contexts/NotificationProvider";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { toast } from "sonner";
 
 export default function StaffMessagesPage() {
@@ -27,6 +28,9 @@ export default function StaffMessagesPage() {
     deleteNotification,
     getUserInfo,
   } = useNotifications();
+
+  // Get sidebar counts
+  const sidebarCounts = useSidebarCounts();
 
   // Local state
   const [activeTimeFilter, setActiveTimeFilter] = useState("all");
@@ -214,9 +218,38 @@ export default function StaffMessagesPage() {
 
   const filteredNotifications = getFilteredNotifications(notifications);
 
+  // Dynamically update the badges for sidebar items
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
-    <DashboardLayout
-      sidebarConfig={staffDashboardConfig}
+    <StaffDashboardLayout
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -465,6 +498,6 @@ export default function StaffMessagesPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </StaffDashboardLayout>
   );
 }

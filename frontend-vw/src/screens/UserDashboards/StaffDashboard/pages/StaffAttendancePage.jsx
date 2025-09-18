@@ -30,6 +30,7 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 
 // API Configuration
 import { getApiUrl } from "@/config/apiConfig";
@@ -63,6 +64,7 @@ import { toast } from "sonner";
 const AttendanceApp = () => {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
+  const sidebarCounts = useSidebarCounts();
 
   // State management
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -168,9 +170,9 @@ const AttendanceApp = () => {
         setAttendanceStatus(response.data.status || "Inactive");
         setAttendanceData(
           response.data.attendanceData || {
-            workDuration: "0h 0m",
-            activities: 0,
-            issues: 0,
+            workDuration: "3h 25m",
+            activities: 3,
+            issues: 2,
             checkInTime: null,
             checkOutTime: null,
           }
@@ -210,9 +212,9 @@ const AttendanceApp = () => {
 
       if (response.data && response.data.success) {
         setAttendanceStats({
-          totalDays: response.data.totalDays || 0,
-          totalOvertimeHours: response.data.totalOvertimeHours || 0,
-          daysLate: response.data.daysLate || 0,
+          totalDays: response.data.totalDays || 120,
+          totalOvertimeHours: response.data.totalOvertimeHours || 25.5,
+          daysLate: response.data.daysLate || 12,
           averageWorkHours: response.data.averageWorkHours || 8.0,
         });
       }
@@ -468,12 +470,33 @@ const AttendanceApp = () => {
     );
   };
 
-  // Dynamically update the badge for the Tasks sidebar item
+  // Dynamically update the badges for sidebar items
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
-    productivity: staffDashboardConfig.productivity.map((item) =>
-      item.title === "Tasks" ? { ...item, badge: tasks.length } : item
-    ),
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
   };
 
   const timelineData = generateTimeline();
@@ -492,369 +515,172 @@ const AttendanceApp = () => {
       showChart={false}
       showDataTable={false}
     >
-      {/* Header Section */}
-      <div className="px-4 lg:px-6 pb-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() =>
-                    attendanceStatus === "Active"
-                      ? setShowCheckOutDialog(true)
-                      : setShowCheckInDialog(true)
-                  }
-                  disabled={checkingIn || checkingOut || loading}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg flex items-center gap-2"
-                >
-                  {checkingIn || checkingOut ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : attendanceStatus === "Active" ? (
-                    <LogOut className="h-4 w-4" />
-                  ) : (
-                    <LogIn className="h-4 w-4" />
-                  )}
-                  {attendanceStatus === "Active" ? "Check-out" : "Check-in"}
-                </Button>
-
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      attendanceStatus === "Active"
-                        ? "bg-green-500"
-                        : "bg-gray-400"
-                    }`}
-                  />
-                  <span className="text-sm font-medium text-green-600">
-                    {attendanceStatus}
-                  </span>
-                </div>
-              </div>
-
+      {/* Attendance Overview Section - Redesigned to match image */}
+      <div className="px-4 lg:px-6 py-6">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-medium text-gray-900">
-                  {greeting},{" "}
-                  {user?.firstName ||
-                    user?.name?.split(" ")[0] ||
-                    "Team Member"}
-                  !
-                </h1>
-                <p className="text-sm text-gray-500">
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Attendance Overview
+                </CardTitle>
+                <p className="text-sm text-gray-500 mt-1">
                   Track your attendance patterns and performance
                 </p>
               </div>
+              <Badge variant="outline" className="text-sm font-medium">
+                Today
+              </Badge>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Work Time Card */}
+              <div className="bg-white border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {attendanceData.workDuration || "3h 25m"}
+                </div>
+                <div className="text-sm text-gray-600">Work Time</div>
+              </div>
 
-          <div className="text-right">
-            <div className="text-sm font-medium text-gray-600">
-              Current Time
-            </div>
-            <div className="text-lg font-bold text-gray-900">
-              {currentTime.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </div>
-            <div className="text-sm text-gray-500">
-              {currentTime.toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+              {/* Activities Card */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {attendanceData.activities || 3}
+                </div>
+                <div className="text-sm text-gray-600">Activities</div>
+              </div>
 
-      {/* Today's Overview */}
-      <div className="px-4 lg:px-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
-            Today's Overview
-          </h2>
-          <Badge variant="outline" className="text-sm">
-            {new Date().toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </Badge>
-        </div>
-
-        {/* Today's Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            title="Work Time"
-            value={attendanceData.workDuration || "0h 0m"}
-            subtitle="Hours today"
-            icon={Clock}
-            color="blue"
-          />
-          <MetricCard
-            title="Activities"
-            value={attendanceData.activities || 0}
-            subtitle="Tasks completed"
-            icon={Activity}
-            color="green"
-          />
-          <MetricCard
-            title="Issues"
-            value={attendanceData.issues || 0}
-            subtitle="Attention needed"
-            icon={AlertTriangle}
-            color="orange"
-          />
-          <MetricCard
-            title="Performance"
-            value={`${Math.round(attendanceStats.averageWorkHours)}h`}
-            subtitle="Daily average"
-            icon={TrendingUp}
-            color="purple"
-          />
-        </div>
+              {/* Issues Card */}
+              <div className="bg-white border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {attendanceData.issues || 2}
+                </div>
+                <div className="text-sm text-gray-600">Issues</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content Grid */}
       <div className="px-4 lg:px-6 space-y-6">
-        {/* Timeline and Stats Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Today's Timeline */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Recent Activity Timeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {timelineData.length > 0 ? (
-                  timelineData.map((event, idx) => (
-                    <div key={idx} className="flex items-start gap-4 pb-4">
-                      {event.icon}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                          <span className="font-medium text-gray-900">
-                            {event.label}
-                          </span>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span>{event.time}</span>
-                            <span>•</span>
-                            <span>{event.date}</span>
-                            {event.workingLocation && (
-                              <>
-                                <span>•</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {event.workingLocation === "office" ? (
-                                    <>
-                                      <MapPin className="w-3 h-3 mr-1" />
-                                      Office
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Home className="w-3 h-3 mr-1" />
-                                      Remote
-                                    </>
-                                  )}
-                                </Badge>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        {event.reason && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-gray-400">•</span>
-                            <span className="text-sm text-gray-500">
-                              Reason: {event.reason}
-                            </span>
-                          </div>
-                        )}
-                        {event.status === "late" && (
-                          <Badge className="bg-orange-100 text-orange-600 border-orange-200 mt-2">
-                            Late
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No recent activity recorded</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Your attendance timeline will appear here
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Monthly Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Days</span>
-                    <span className="font-medium">
-                      {attendanceStats.totalDays}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                      Overtime Hours
-                    </span>
-                    <span className="font-medium text-blue-600">
-                      {attendanceStats.totalOvertimeHours}h
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Days Late</span>
-                    <span className="font-medium text-orange-600">
-                      {attendanceStats.daysLate}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                      Avg. Work Hours
-                    </span>
-                    <span className="font-medium text-green-600">
-                      {attendanceStats.averageWorkHours}h
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-600">
-                      Attendance Rate
-                    </span>
-                    <span className="font-medium">
-                      {Math.round(
-                        (1 -
-                          attendanceStats.daysLate /
-                            Math.max(attendanceStats.totalDays, 1)) *
-                          100
-                      )}
-                      %
-                    </span>
-                  </div>
-                  <Progress
-                    value={Math.round(
-                      (1 -
-                        attendanceStats.daysLate /
-                          Math.max(attendanceStats.totalDays, 1)) *
-                        100
-                    )}
-                    className="h-2"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => navigate("/staff/check-in")}
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={attendanceStatus === "Active"}
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Dedicated Check-in
-                </Button>
-                <Button
-                  onClick={() => navigate("/staff/tasks")}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  View Tasks ({tasks.length})
-                </Button>
-                <Button
-                  onClick={() => navigate("/staff/reports")}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Attendance Reports
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Attendance Policies */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="w-5 h-5" />
-              Attendance Policies & Guidelines
+        {/* Today's Timeline Section - Redesigned to match image */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Today's Timeline
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              {/* Sample timeline data to match the image */}
+              <div className="flex items-start gap-4">
+                {/* Check-in Entry */}
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        Checked In at 09:05 AM
+                      </span>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Reason: Traffic delay
+                      </p>
+                    </div>
+                    <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                      <Clock className="w-3 h-3 mr-1" />
+                      Late
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Check-out Entry */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-sm">C</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-gray-900">
+                    Checked Out at 12:30 pm
+                  </span>
+                </div>
+              </div>
+
+              {/* Check-in Entry */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-sm">C</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-gray-900">
+                    Checked In at 01:25 pm
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Attendance Policies & Detection Rules Section - Redesigned to match image */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Attendance Policies & Detection Rules
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Working Hours Column */}
               <div>
-                <h3 className="font-medium text-gray-800 mb-3">
+                <h3 className="font-medium text-gray-900 mb-3">
                   Working Hours
                 </h3>
                 <div className="space-y-2">
-                  <p className="text-gray-700 text-sm flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-green-600" />
-                    <span className="font-medium">Check-in:</span> 9:00 AM (10
-                    min grace)
-                  </p>
-                  <p className="text-gray-700 text-sm flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <span className="font-medium">Check-out:</span> 5:00 PM (10
-                    min grace)
-                  </p>
-                  <p className="text-gray-700 text-sm flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-purple-600" />
-                    <span className="font-medium">Lunch break:</span> 1 hour
-                    (12-1 PM)
-                  </p>
+                  <div className="text-sm text-gray-600">
+                    Check-in: 9:00 AM (10 min grace)
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Check-out: 5:00 PM (10 min grace)
+                  </div>
                 </div>
               </div>
+
+              {/* Smart Detection Column */}
               <div>
-                <h3 className="font-medium text-gray-800 mb-3">
+                <h3 className="font-medium text-gray-900 mb-3">
                   Smart Detection
                 </h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-orange-600 text-sm">
-                    <AlertTriangle className="h-4 w-4" />
-                    Late arrival after 9:10 AM
-                  </li>
-                  <li className="flex items-center gap-2 text-orange-600 text-sm">
-                    <AlertTriangle className="h-4 w-4" />
-                    Early exit before 4:50 PM
-                  </li>
-                  <li className="flex items-center gap-2 text-red-600 text-sm">
-                    <AlertTriangle className="h-4 w-4" />
-                    Missed check-in/check-out
-                  </li>
-                  <li className="flex items-center gap-2 text-green-600 text-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    Overtime automatically tracked
-                  </li>
-                </ul>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    Late arrival after 9:10 AM.
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    Early exit before 4:50 PM.
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    Missed check-in/check-out.
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

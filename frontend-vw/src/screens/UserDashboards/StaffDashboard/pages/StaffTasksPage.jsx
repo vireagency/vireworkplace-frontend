@@ -23,6 +23,7 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
+  RefreshCw,
 } from "lucide-react";
 import axios from "axios";
 
@@ -70,6 +71,7 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 
 // API Configuration
 import { getApiUrl } from "@/config/apiConfig";
@@ -611,6 +613,9 @@ export default function StaffTasksPage() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
 
+  // Get sidebar counts
+  const sidebarCounts = useSidebarCounts();
+
   // State management
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -837,22 +842,56 @@ export default function StaffTasksPage() {
     fetchTasks();
   }, [accessToken, statusFilter, priorityFilter, dueDateFilter]);
 
-  // Filter tasks based on search term
+  // Filter tasks based on search term and filters
   const filteredTasks = (tasks || []).filter((task) => {
     const matchesSearch =
       (task.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (task.assignee || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (task.description || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch;
+    const matchesStatus =
+      statusFilter === "all" || task.status === statusFilter;
+    const matchesPriority =
+      priorityFilter === "all" || task.priority === priorityFilter;
+
+    return matchesSearch && matchesStatus && matchesPriority;
   });
 
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User";
 
+  // Dynamically update the badges for sidebar items
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return { ...item, badge: sidebarCounts.evaluations };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return { ...item, badge: sidebarCounts.tasks };
+        }
+        if (item.title === "Attendance") {
+          return { ...item, badge: sidebarCounts.attendance };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return { ...item, badge: sidebarCounts.messages };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -868,13 +907,26 @@ export default function StaffTasksPage() {
               Oversee and monitor all assigned and personal tasks
             </p>
           </div>
-          <Button
-            onClick={() => setShowModal(true)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Task
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => fetchTasks()}
+              variant="outline"
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+              {loading ? "Refreshing..." : "Refresh"}
+            </Button>
+            <Button
+              onClick={() => setShowModal(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Task
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -931,8 +983,20 @@ export default function StaffTasksPage() {
               <LoadingState />
             ) : error ? (
               <ErrorState error={error} onRetry={fetchTasks} />
-            ) : filteredTasks.length === 0 ? (
+            ) : (tasks || []).length === 0 ? (
               <EmptyState />
+            ) : filteredTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                  <Search className="w-8 h-8 text-blue-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No tasks match your filters
+                </h3>
+                <p className="text-gray-500 text-center">
+                  Try adjusting your search or filter criteria.
+                </p>
+              </div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {filteredTasks.map((task) => (
