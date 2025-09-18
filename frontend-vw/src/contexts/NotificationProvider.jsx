@@ -244,9 +244,14 @@ export const NotificationProvider = ({ children }) => {
       
       isConnectingRef.current = true;
 
-      const socketUrl = import.meta.env?.VITE_SOCKET_URL || 'ws://localhost:5000';
+      // Use production socket URL for deployed frontend, localhost for development
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
+        (isProduction ? 'wss://api.workplace.vire.agency' : 'ws://localhost:5000');
+      
       console.log('Connecting to socket:', socketUrl);
       console.log('Environment variables:', import.meta.env);
+      console.log('Is production:', isProduction);
 
       const newSocket = io(socketUrl, {
         auth: {
