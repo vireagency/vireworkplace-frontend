@@ -249,9 +249,13 @@ export const NotificationProvider = ({ children }) => {
       const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
         (isProduction ? 'https://www.api.vire.agency' : 'ws://localhost:5000');
       
-      console.log('Connecting to socket:', socketUrl);
-      console.log('Environment variables:', import.meta.env);
+      console.log('=== SOCKET CONNECTION DEBUG ===');
+      console.log('Hostname:', window.location.hostname);
       console.log('Is production:', isProduction);
+      console.log('VITE_SOCKET_URL:', import.meta.env?.VITE_SOCKET_URL);
+      console.log('Final socket URL:', socketUrl);
+      console.log('Environment variables:', import.meta.env);
+      console.log('================================');
 
       const newSocket = io(socketUrl, {
         path: "/socket.io",
