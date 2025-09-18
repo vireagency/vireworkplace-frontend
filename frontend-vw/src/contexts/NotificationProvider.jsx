@@ -247,19 +247,23 @@ export const NotificationProvider = ({ children }) => {
       // Use production socket URL for deployed frontend, localhost for development
       const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       const socketUrl = import.meta.env?.VITE_SOCKET_URL || 
-        (isProduction ? 'wss://api.workplace.vire.agency' : 'ws://localhost:5000');
+        (isProduction ? 'https://www.api.vire.agency' : 'ws://localhost:5000');
       
       console.log('Connecting to socket:', socketUrl);
       console.log('Environment variables:', import.meta.env);
       console.log('Is production:', isProduction);
 
       const newSocket = io(socketUrl, {
+        path: "/socket.io",
+        transports: ["websocket", "polling"], // try to force websocket upgrade
+        withCredentials: true,
         auth: {
           token: accessToken
         },
-        transports: ['websocket', 'polling'],
         timeout: 10000,
-        forceNew: true
+        forceNew: true,
+        upgrade: true,
+        rememberUpgrade: false
       });
 
     // Connection event handlers
@@ -283,8 +287,31 @@ export const NotificationProvider = ({ children }) => {
 
     newSocket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        description: error.description,
+        context: error.context,
+        type: error.type
+      });
       setIsConnected(false);
       isConnectingRef.current = false;
+      
+      // If WebSocket fails, try polling fallback
+      if (error.type === 'TransportError') {
+        console.log('WebSocket failed, attempting polling fallback...');
+        setTimeout(() => {
+          if (!isConnected) {
+            console.log('Retrying with polling only...');
+            const fallbackSocket = io(socketUrl, {
+              auth: { token: accessToken },
+              transports: ['polling'],
+              timeout: 15000,
+              forceNew: true
+            });
+            setSocket(fallbackSocket);
+          }
+        }, 2000);
+      }
     });
 
     // Notification event handler
