@@ -255,7 +255,7 @@ export default function HRDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.activeEmployees || 'N/A'}
+                  {overviewData.data?.activeEmployees || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -270,7 +270,7 @@ export default function HRDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Total Remote Workers Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.totalRemoteWorkersToday || 'N/A'}
+                  {overviewData.data?.totalRemoteWorkersToday || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -285,7 +285,7 @@ export default function HRDashboardMainPage() {
               <CardHeader>
                 <CardDescription>No Check-In Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.noCheckInToday || 'N/A'}
+                  {overviewData.data?.noCheckInToday || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -300,7 +300,7 @@ export default function HRDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Productivity Index</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.productivityIndex || 'N/A'}
+                  {overviewData.data?.productivityIndex || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -441,7 +441,7 @@ export default function HRDashboardMainPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">Active Employees</span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.activeEmployees?.toLocaleString() || 'N/A'}
+                      {overviewData.data?.activeEmployees?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -460,7 +460,7 @@ export default function HRDashboardMainPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">Remote Workers Today</span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.totalRemoteWorkersToday?.toLocaleString() || 'N/A'}
+                      {overviewData.data?.totalRemoteWorkersToday?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -479,7 +479,7 @@ export default function HRDashboardMainPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">No Check-In Today</span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.noCheckInToday?.toLocaleString() || 'N/A'}
+                      {overviewData.data?.noCheckInToday?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -501,7 +501,7 @@ export default function HRDashboardMainPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">Incomplete Tasks</span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.incompleteTasks?.toLocaleString() || 'N/A'}
+                      {overviewData.data?.incompleteTasks?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
