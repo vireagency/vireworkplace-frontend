@@ -40,7 +40,7 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
+import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
 
 // API Configuration
 import { getApiUrl } from "@/config/apiConfig";
@@ -700,7 +700,7 @@ const ErrorState = ({ error, onRetry }) => (
 export default function Evaluation() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
-  const sidebarCounts = useSidebarCounts();
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // State management
   const [evaluations, setEvaluations] = useState([]);
@@ -1039,64 +1039,9 @@ export default function Evaluation() {
     }
   }, [accessToken]);
 
-  // Dynamically update the badges for sidebar items
-  const dynamicSidebarConfig = {
-    ...staffDashboardConfig,
-    analytics:
-      staffDashboardConfig.analytics?.map((item) => {
-        if (item.title === "Evaluations") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.evaluations > 0
-                ? sidebarCounts.evaluations
-                : undefined,
-          };
-        }
-        return item;
-      }) || [],
-    productivity:
-      staffDashboardConfig.productivity?.map((item) => {
-        if (item.title === "Tasks") {
-          return {
-            ...item,
-            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
-          };
-        }
-        if (item.title === "Attendance") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.attendance > 0
-                ? sidebarCounts.attendance
-                : undefined,
-          };
-        }
-        return item;
-      }) || [],
-    company:
-      staffDashboardConfig.company?.map((item) => {
-        if (item.title === "Messages") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
-          };
-        }
-        return item;
-      }) || [],
-  };
-
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
-      itemCounts={{
-        tasks: sidebarCounts.tasks,
-        evaluations: sidebarCounts.evaluations,
-        attendance: sidebarCounts.attendance,
-        messages: sidebarCounts.messages,
-      }}
-      isLoading={sidebarCounts.loading}
+      sidebarConfig={sidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

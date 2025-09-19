@@ -3,23 +3,22 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { DataTable } from "@/components/data-table";
 import { SectionCards } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
+import { StaffSidebarProvider } from "@/contexts/StaffSidebarContext";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-import { useEffect } from "react";
+import { useEffect, memo } from "react";
 
-export default function StaffDashboardLayout({
+const StaffDashboardLayoutComponent = ({
   children,
   sidebarConfig,
-  itemCounts = {},
   onNavigate,
-  isLoading = false,
   showSectionCards = true,
   showChart = true,
   showDataTable = false,
   dataTableData = null,
   className = "min-h-screen bg-white",
-}) {
+}) => {
   useEffect(() => {
     document.documentElement.classList.remove("dark");
     document.documentElement.classList.add("light");
@@ -43,9 +42,7 @@ export default function StaffDashboardLayout({
         <StaffSidebar
           variant="inset"
           config={sidebarConfig}
-          itemCounts={itemCounts}
           onNavigate={onNavigate}
-          isLoading={isLoading}
         />
         <SidebarInset>
           <SiteHeader />
@@ -68,5 +65,17 @@ export default function StaffDashboardLayout({
         </SidebarInset>
       </SidebarProvider>
     </div>
+  );
+};
+
+// Memoize the layout component to prevent unnecessary re-renders
+const MemoizedStaffDashboardLayout = memo(StaffDashboardLayoutComponent);
+
+// Wrapper component that provides the sidebar context
+export default function StaffDashboardLayout(props) {
+  return (
+    <StaffSidebarProvider>
+      <MemoizedStaffDashboardLayout {...props} />
+    </StaffSidebarProvider>
   );
 }

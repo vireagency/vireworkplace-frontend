@@ -29,7 +29,7 @@ import {
 import { useNotifications } from "@/contexts/NotificationProvider";
 import { useNotificationFilters } from "@/hooks/useNotificationFilters";
 import { useNotificationActions } from "@/hooks/useNotificationActions";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
+import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
 import { toast } from "sonner";
 
 export default function StaffMessagesPage() {
@@ -76,8 +76,8 @@ export default function StaffMessagesPage() {
     isLoading: actionsLoading,
   } = useNotificationActions();
 
-  // Get sidebar counts
-  const sidebarCounts = useSidebarCounts();
+  // Get standardized sidebar
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // Local state
   const [selectedNotifications, setSelectedNotifications] = useState([]);
@@ -279,64 +279,9 @@ export default function StaffMessagesPage() {
     setShowBulkActions(selectedNotifications.length > 0);
   }, [selectedNotifications]);
 
-  // Dynamically update the badges for sidebar items
-  const dynamicSidebarConfig = {
-    ...staffDashboardConfig,
-    analytics:
-      staffDashboardConfig.analytics?.map((item) => {
-        if (item.title === "Evaluations") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.evaluations > 0
-                ? sidebarCounts.evaluations
-                : undefined,
-          };
-        }
-        return item;
-      }) || [],
-    productivity:
-      staffDashboardConfig.productivity?.map((item) => {
-        if (item.title === "Tasks") {
-          return {
-            ...item,
-            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
-          };
-        }
-        if (item.title === "Attendance") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.attendance > 0
-                ? sidebarCounts.attendance
-                : undefined,
-          };
-        }
-        return item;
-      }) || [],
-    company:
-      staffDashboardConfig.company?.map((item) => {
-        if (item.title === "Messages") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
-          };
-        }
-        return item;
-      }) || [],
-  };
-
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
-      itemCounts={{
-        tasks: sidebarCounts.tasks,
-        evaluations: sidebarCounts.evaluations,
-        attendance: sidebarCounts.attendance,
-        messages: sidebarCounts.messages,
-      }}
-      isLoading={sidebarCounts.loading}
+      sidebarConfig={sidebarConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

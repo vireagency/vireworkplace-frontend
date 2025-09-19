@@ -55,6 +55,9 @@ import { AuthProvider } from "@/hooks/useAuth";
 // Notification context provider for real-time notifications
 import { NotificationProvider } from "@/contexts/NotificationProvider";
 
+// Staff sidebar context provider for staff dashboard
+import { StaffSidebarProvider } from "@/contexts/StaffSidebarContext";
+
 // Route protection component for authenticated users
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -202,301 +205,352 @@ const App = () => (
         <NotificationProvider>
           {/* Tooltip functionality provider */}
           <TooltipProvider>
-          {/* Toast notification system for user feedback */}
-          <Toaster />
+            {/* Toast notification system for user feedback */}
+            <Toaster />
 
-          {/* Client-side routing configuration */}
-          <BrowserRouter>
-            <Routes>
-              {/* ========================================================================
+            {/* Client-side routing configuration */}
+            <BrowserRouter>
+              <Routes>
+                {/* ========================================================================
                    PUBLIC AUTHENTICATION ROUTES
                    These routes are accessible without authentication
                    ======================================================================== */}
 
-              {/* Landing page - Entry point for all users */}
-              <Route path="/" element={<LandingPage />} />
+                {/* Landing page - Entry point for all users */}
+                <Route path="/" element={<LandingPage />} />
 
-              {/* OTP (One-Time Password) authentication flow */}
-              <Route
-                path="/otp-confirmation"
-                element={<OTPConfirmationPage />}
-              />
-              <Route path="/otp-request" element={<OTPRequestPage />} />
+                {/* OTP (One-Time Password) authentication flow */}
+                <Route
+                  path="/otp-confirmation"
+                  element={<OTPConfirmationPage />}
+                />
+                <Route path="/otp-request" element={<OTPRequestPage />} />
 
-              {/* Password management and recovery */}
-              <Route path="/reset-password" element={<PasswordResetPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                {/* Password management and recovery */}
+                <Route path="/reset-password" element={<PasswordResetPage />} />
+                <Route
+                  path="/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
 
-              {/* User onboarding and welcome */}
-              <Route path="/welcome-user" element={<WelcomeUserPage />} />
+                {/* User onboarding and welcome */}
+                <Route path="/welcome-user" element={<WelcomeUserPage />} />
 
-              {/* Role selection for users with multiple roles */}
-              <Route
-                path="/role-selection"
-                element={<RoleSelectionPageForAdminandHR />}
-              />
+                {/* Role selection for users with multiple roles */}
+                <Route
+                  path="/role-selection"
+                  element={<RoleSelectionPageForAdminandHR />}
+                />
 
-              {/* ========================================================================
+                {/* ========================================================================
                    PROTECTED ROLE-BASED DASHBOARD ROUTES
                    These routes require authentication and specific role permissions
                    ======================================================================== */}
 
-              {/* HR Manager Dashboard Routes */}
-              <Route
-                path="/human-resource-manager"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRDashboardMainPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/dashboard"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRDashboardMainPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/evaluations"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HREvaluationsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/evaluations/create"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <EvaluationCreator />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/performance"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRPerformancePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/hiring"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRHiringPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/employees"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <EmployeesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/messages"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRMessagesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/reports"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRReportsPage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* HR Manager Dashboard Routes */}
+                <Route
+                  path="/human-resource-manager"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRDashboardMainPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/dashboard"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRDashboardMainPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/evaluations"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HREvaluationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/evaluations/create"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <EvaluationCreator />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/performance"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRPerformancePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/hiring"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRHiringPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/employees"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <EmployeesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/messages"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRMessagesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/reports"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* HR Settings and Configuration Routes */}
-              <Route
-                path="/human-resource-manager/settings"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRSettingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/settings/profile"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRProfileSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/settings/password"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRPasswordSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/human-resource-manager/settings/notifications"
-                element={
-                  <ProtectedRoute requiredRole="Human Resource Manager">
-                    <HRNotificationSettings />
-                  </ProtectedRoute>
-                }
-              />
+                {/* HR Settings and Configuration Routes */}
+                <Route
+                  path="/human-resource-manager/settings"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRSettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/settings/profile"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRProfileSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/settings/password"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRPasswordSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/human-resource-manager/settings/notifications"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HRNotificationSettings />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin Dashboard Route */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute requiredRole="Admin">
-                    <AdminDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin Dashboard Route */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Staff Dashboard Routes */}
-              <Route
-                path="/staff"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <StaffLandingPage />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
+                {/* Staff Dashboard Routes - Wrapped with StaffSidebarProvider */}
+                <Route
+                  path="/staff"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffLandingPage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/dashboard"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffDashboardMainPage />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/dashboard"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <StaffDashboardMainPage />
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Staff Features */}
-              <Route
-                path="/staff/check-in"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <CheckIn />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Staff Features */}
+                <Route
+                  path="/staff/check-in"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <CheckIn />
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/check-out"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <CheckOut />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/check-out"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <CheckOut />
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/tasks"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffTasksPage />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/tasks"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffTasksPage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/evaluation"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <Evaluation />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/evaluation"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <Evaluation />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* New Staff Dashboard Pages */}
-              <Route
-                path="/staff/performance"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffPerformancePage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* New Staff Dashboard Pages */}
+                <Route
+                  path="/staff/performance"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffPerformancePage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/attendance"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffAttendancePage />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/attendance"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffAttendancePage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/messages"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffMessagesPage />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/messages"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffMessagesPage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/staff/reports"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffReportsPage />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/staff/reports"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffReportsPage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Staff Settings Routes */}
-              <Route
-                path="/staff/settings"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffSettingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/staff/settings/profile"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffProfileSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/staff/settings/password"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffPasswordSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/staff/settings/notifications"
-                element={
-                  <ProtectedRoute requiredRole="Staff">
-                    <StaffNotificationSettings />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Staff Settings Routes */}
+                <Route
+                  path="/staff/settings"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffSettingsPage />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/staff/settings/profile"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffProfileSettings />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/staff/settings/password"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffPasswordSettings />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/staff/settings/notifications"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <StaffNotificationSettings />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* ========================================================================
+                {/* ========================================================================
                    FALLBACK ROUTES
                    ======================================================================== */}
 
-              {/* 404 Not Found page - Catch-all for unmatched routes */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+                {/* 404 Not Found page - Catch-all for unmatched routes */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
         </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>

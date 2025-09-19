@@ -20,7 +20,8 @@ export const useSidebarCounts = () => {
 
   // Use ref to prevent unnecessary re-renders
   const lastFetchTime = useRef(0);
-  const FETCH_INTERVAL = 60000; // 60 seconds - longer cache to prevent disappearing
+  const FETCH_INTERVAL = 300000; // 5 minutes - much longer cache to prevent disappearing
+  const isInitialized = useRef(false);
 
   // Create API client
   const createApiClient = useCallback(() => {
@@ -116,12 +117,15 @@ export const useSidebarCounts = () => {
       }
 
       const now = Date.now();
-      if (!force && now - lastFetchTime.current < FETCH_INTERVAL) {
-        return; // Skip if fetched recently
+      if (!force && now - lastFetchTime.current < FETCH_INTERVAL && isInitialized.current) {
+        return; // Skip if fetched recently and already initialized
       }
 
       try {
-        setCounts((prev) => ({ ...prev, loading: true, error: null }));
+        // Only show loading on initial load, not on refreshes
+        if (!isInitialized.current) {
+          setCounts((prev) => ({ ...prev, loading: true, error: null }));
+        }
         lastFetchTime.current = now;
 
         const apiClient = createApiClient();
@@ -134,14 +138,16 @@ export const useSidebarCounts = () => {
             fetchMessagesCount(apiClient),
           ]);
 
-        setCounts({
+        setCounts((prev) => ({
           tasks: tasksCount,
           evaluations: evaluationsCount,
           attendance: attendanceCount,
           messages: messagesCount,
           loading: false,
           error: null,
-        });
+        }));
+        
+        isInitialized.current = true;
       } catch (error) {
         console.error("Error fetching sidebar counts:", error);
         // Keep existing counts if there's an error to prevent disappearing
