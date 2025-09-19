@@ -10,6 +10,7 @@ import {
   IconChevronDown,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
@@ -54,7 +55,8 @@ const StatusBadge = React.memo(({ status }) => {
 });
 
 export default function StaffNotificationSettings() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
+  const sidebarCounts = useSidebarCounts();
 
   // Consolidated state object following React best practices
   const [state, setState] = useState({
@@ -240,9 +242,64 @@ export default function StaffNotificationSettings() {
     []
   );
 
+  // Dynamically update the sidebar config with counts
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.evaluations > 0
+                ? sidebarCounts.evaluations
+                : undefined,
+          };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return {
+            ...item,
+            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
+          };
+        }
+        if (item.title === "Attendance") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.attendance > 0
+                ? sidebarCounts.attendance
+                : undefined,
+          };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
+          };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: sidebarCounts.tasks,
+        evaluations: sidebarCounts.evaluations,
+        attendance: sidebarCounts.attendance,
+        messages: sidebarCounts.messages,
+      }}
+      isLoading={sidebarCounts.loading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -259,10 +316,10 @@ export default function StaffNotificationSettings() {
 
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
-          <div className="flex items-start space-x-6">
+          <div className="flex items-start space-x-4">
             {/* Profile Picture Upload */}
             <ProfileImageUpload
-              size="w-24 h-24"
+              size="w-20 h-20"
               currentImageUrl={user?.avatar}
               userName={user ? `${user.firstName} ${user.lastName}` : ""}
               showActions={true}
@@ -274,19 +331,14 @@ export default function StaffNotificationSettings() {
               <h3 className="text-lg font-bold text-gray-800 mb-1">
                 {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
               </h3>
-              <p className="text-gray-600 mb-3">
+              <p className="text-gray-600 mb-2">
                 {user?.jobRole || user?.role || "Loading..."}
               </p>
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
                 <StatusBadge status={user?.attendanceStatus || "Active"} />
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
                     Work ID: {user?.workId || "N/A"}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">
-                    Arrival: {user?.isLate ? "Late" : "On Time"}
                   </span>
                 </div>
               </div>

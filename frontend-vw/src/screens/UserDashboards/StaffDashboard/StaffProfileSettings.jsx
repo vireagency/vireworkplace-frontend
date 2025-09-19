@@ -35,6 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
 import {
   IconPlus,
@@ -57,10 +58,13 @@ import {
 } from "@tabler/icons-react";
 
 export default function StaffProfileSettings() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
+  const sidebarCounts = useSidebarCounts();
   const [activeTab, setActiveTab] = useState("personal");
   const [selectedDate, setSelectedDate] = useState(null);
   const [dateOpen, setDateOpen] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [lastActivity, setLastActivity] = useState(Date.now());
   const [isEducationOpen, setIsEducationOpen] = useState(false);
   const [showEducationModal, setShowEducationModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -165,6 +169,40 @@ export default function StaffProfileSettings() {
     personalPronouns: user?.personalPronouns || "",
   });
 
+  // Real-time activity tracking
+  useEffect(() => {
+    const updateActivity = () => {
+      setLastActivity(Date.now());
+      setIsActive(true);
+    };
+
+    const checkInactivity = () => {
+      const now = Date.now();
+      const timeSinceLastActivity = now - lastActivity;
+      const inactiveThreshold = 5 * 60 * 1000; // 5 minutes
+
+      if (timeSinceLastActivity > inactiveThreshold) {
+        setIsActive(false);
+      }
+    };
+
+    // Update activity on user interactions
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      document.addEventListener(event, updateActivity, true);
+    });
+
+    // Check for inactivity every minute
+    const inactivityInterval = setInterval(checkInactivity, 60000);
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, updateActivity, true);
+      });
+      clearInterval(inactivityInterval);
+    };
+  }, [lastActivity]);
+
   // Update form data when user data changes
   useEffect(() => {
     if (user) {
@@ -247,9 +285,64 @@ export default function StaffProfileSettings() {
     // { id: "health", label: "Health Info", icon: IconShield },
   ];
 
+  // Dynamically update the sidebar config with counts
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.evaluations > 0
+                ? sidebarCounts.evaluations
+                : undefined,
+          };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return {
+            ...item,
+            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
+          };
+        }
+        if (item.title === "Attendance") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.attendance > 0
+                ? sidebarCounts.attendance
+                : undefined,
+          };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
+          };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={staffDashboardConfig}
+      sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: sidebarCounts.tasks,
+        evaluations: sidebarCounts.evaluations,
+        attendance: sidebarCounts.attendance,
+        messages: sidebarCounts.messages,
+      }}
+      isLoading={sidebarCounts.loading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -266,10 +359,10 @@ export default function StaffProfileSettings() {
 
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
-          <div className="flex items-start space-x-6">
+          <div className="flex items-start space-x-4">
             {/* Profile Picture Upload */}
             <ProfileImageUpload
-              size="w-24 h-24"
+              size="w-20 h-20"
               currentImageUrl={user?.avatar}
               userName={user ? `${user.firstName} ${user.lastName}` : ""}
               showActions={true}
@@ -281,11 +374,11 @@ export default function StaffProfileSettings() {
               <h3 className="text-lg font-bold text-gray-800 mb-1">
                 {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
               </h3>
-              <p className="text-gray-600 mb-3">
+              <p className="text-gray-600 mb-2">
                 {user?.jobRole || user?.role || "Loading..."}
               </p>
-              <div className="flex items-center space-x-6">
-                <StatusBadge status={user?.attendanceStatus || "Active"} />
+              <div className="flex items-center space-x-4">
+                <StatusBadge status={isActive ? "Active" : "Inactive"} />
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
                     Work ID: {user?.workId || "N/A"}

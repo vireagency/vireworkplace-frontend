@@ -297,32 +297,46 @@ export default function ProfileImageUpload({
       console.log('Upload response:', response)
       
       if (response.success) {
-        // Step 2: Wait for backend processing
-        console.log('Step 2: Waiting for backend to process image...')
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // Step 3: Fetch fresh profile data from API
-        console.log('Step 3: Fetching fresh profile data from API...')
-        const profileResult = await fetchFreshProfile()
-        
-        if (profileResult.success) {
-          console.log('Step 4: Profile data updated successfully')
-          
-          // Clear preview since we now have fresh data
-          setPreviewUrl(null)
-          
-          // Show success message
-          toast.success("Profile image updated successfully!")
-          
-          // Call callback if provided
-          if (onImageUpdate) {
-            onImageUpdate(profileResult.data)
+        // Step 2: Update user state immediately with the new image URL
+        console.log('Step 2: Updating user state immediately...')
+        if (user && response.data?.profileImage) {
+          const updatedUser = {
+            ...user,
+            profileImage: response.data.profileImage,
+            profileImagePublicId: response.data.profileImagePublicId
           }
-        } else {
-          console.error('Failed to fetch fresh profile data:', profileResult.error)
-          toast.success("Profile image uploaded successfully, but there may be a delay in displaying the new image")
-          setPreviewUrl(null)
+          setUser(updatedUser)
+          localStorage.setItem('user', JSON.stringify(updatedUser))
+          
+          // Force re-render
+          setForceRerender(prev => prev + 1)
         }
+        
+        // Step 3: Keep preview URL for immediate display
+        console.log('Step 3: Keeping preview for immediate display')
+        
+        // Show success message
+        toast.success("Profile image updated successfully!")
+        
+        // Call callback if provided
+        if (onImageUpdate) {
+          onImageUpdate(response.data)
+        }
+        
+        // Step 4: Fetch fresh profile data in background (optional)
+        setTimeout(async () => {
+          try {
+            const profileResult = await fetchFreshProfile()
+            if (profileResult.success) {
+              console.log('Background profile refresh completed')
+              // Clear preview since we now have fresh data
+              setPreviewUrl(null)
+            }
+          } catch (error) {
+            console.log('Background profile refresh failed, but image is already displayed')
+          }
+        }, 1000)
+        
       } else {
         throw new Error(response.message || 'Upload failed')
       }

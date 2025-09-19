@@ -629,13 +629,14 @@ export default function StaffTasksPage() {
   // API configuration
   const API_URL = getApiUrl();
 
-  // Fetch tasks from API
+  // Fetch tasks from API with enhanced error handling and debugging
   const fetchTasks = async () => {
     try {
       setLoading(true);
       setError(null);
 
       if (!accessToken) {
+        console.error("No access token available for task fetching");
         throw new Error("No access token available. Please log in again.");
       }
 
@@ -654,69 +655,93 @@ export default function StaffTasksPage() {
       const queryString = params.toString();
       const url = `${API_URL}/tasks${queryString ? `?${queryString}` : ""}`;
 
-      console.log("Fetching tasks from:", url);
+      console.log("🔍 Fetching tasks from:", url);
+      console.log("👤 Current user:", user?.firstName, user?.lastName);
+      console.log("🔑 Access token available:", !!accessToken);
 
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
+        timeout: 10000, // 10 second timeout
       });
+
+      console.log("📡 API Response:", response.data);
 
       if (response.data.success) {
         const apiData =
           response.data.data || response.data.tasks || response.data || [];
 
         if (Array.isArray(apiData)) {
-          const transformedTasks = apiData.map((task) => ({
-            id: task._id || task.id,
-            title: task.title || "Untitled Task",
-            description: task.description || "No description provided",
-            assignee:
-              task.assignedTo?.firstName && task.assignedTo?.lastName
-                ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
-                : task.assignedTo?.name || task.assignee || "Unassigned",
-            dueDate: task.dueDate
-              ? new Date(task.dueDate).toISOString().split("T")[0]
-              : "",
-            status: task.status?.toLowerCase() || "pending",
-            priority: task.priority?.toLowerCase() || "medium",
-            progress: task.progress || 0,
-            createdBy: task.createdBy,
-            assignedTo: task.assignedTo,
-            createdAt: task.createdAt,
-            updatedAt: task.updatedAt,
-            canEdit:
-              task.createdBy?._id === user?._id ||
-              task.assignedTo?._id === user?._id,
-            canDelete: task.createdBy?._id === user?._id,
-          }));
+          const transformedTasks = apiData.map((task) => {
+            const transformedTask = {
+              id: task._id || task.id,
+              title: task.title || "Untitled Task",
+              description: task.description || "No description provided",
+              assignee:
+                task.assignedTo?.firstName && task.assignedTo?.lastName
+                  ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+                  : task.assignedTo?.name || task.assignee || "Unassigned",
+              dueDate: task.dueDate
+                ? new Date(task.dueDate).toISOString().split("T")[0]
+                : "",
+              status: task.status?.toLowerCase() || "pending",
+              priority: task.priority?.toLowerCase() || "medium",
+              progress: task.progress || 0,
+              createdBy: task.createdBy,
+              assignedTo: task.assignedTo,
+              createdAt: task.createdAt,
+              updatedAt: task.updatedAt,
+              canEdit:
+                task.createdBy?._id === user?._id ||
+                task.assignedTo?._id === user?._id,
+              canDelete: task.createdBy?._id === user?._id,
+            };
+            
+            console.log("🔄 Transformed task:", transformedTask.title, {
+              canEdit: transformedTask.canEdit,
+              canDelete: transformedTask.canDelete,
+              status: transformedTask.status
+            });
+            
+            return transformedTask;
+          });
 
           setTasks(transformedTasks);
-          console.log("Tasks fetched successfully:", transformedTasks);
+          console.log("✅ Tasks fetched successfully:", {
+            count: transformedTasks.length,
+            tasks: transformedTasks.map(t => ({ title: t.title, status: t.status }))
+          });
         } else {
-          console.warn("API response data is not an array:", apiData);
+          console.warn("⚠️ API response data is not an array:", apiData);
           setTasks([]);
         }
       } else {
-        console.warn("API response indicates failure:", response.data);
+        console.warn("⚠️ API response indicates failure:", response.data);
         setTasks([]);
         if (response.data.message) {
           throw new Error(response.data.message);
         }
       }
     } catch (err) {
-      console.error("Error fetching tasks:", err);
+      console.error("❌ Error fetching tasks:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        code: err.code
+      });
 
       if (err.response?.status === 401) {
         setError("Authentication failed. Please log in again.");
+      } else if (err.response?.status === 403) {
+        setError("Access denied. You don't have permission to view tasks.");
       } else if (err.response?.status === 500) {
         setError("Server error. Please try again later.");
-      } else if (
-        err.code === "NETWORK_ERROR" ||
-        err.message.includes("Network Error")
-      ) {
+      } else if (err.code === "NETWORK_ERROR" || err.message.includes("Network Error")) {
         setError("Network error. Please check your connection and try again.");
+      } else if (err.code === "ECONNABORTED") {
+        setError("Request timeout. Please try again.");
       } else {
         setError(
           err.message || "An unexpected error occurred while fetching tasks."
@@ -768,12 +793,15 @@ export default function StaffTasksPage() {
     }
   };
 
-  // Update task status
+  // Update task status with enhanced debugging
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       if (!accessToken) {
+        console.error("No access token available for status update");
         throw new Error("No access token available. Please log in again.");
       }
+
+      console.log("🔄 Updating task status:", { taskId, newStatus });
 
       const response = await axios.patch(
         `${API_URL}/tasks/${taskId}/status`,
@@ -783,50 +811,76 @@ export default function StaffTasksPage() {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
+          timeout: 10000,
         }
       );
 
+      console.log("📡 Status update response:", response.data);
+
       if (response.data.success) {
         await fetchTasks();
-        toast.success("Task status updated successfully!");
+        toast.success(`Task status updated to ${newStatus}!`);
+        console.log("✅ Task status updated successfully");
       } else {
         throw new Error(
           response.data.message || "Failed to update task status"
         );
       }
     } catch (err) {
-      console.error("Error updating task status:", err);
-      toast.error("Failed to update task status. Please try again.");
+      console.error("❌ Error updating task status:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        taskId,
+        newStatus
+      });
+      
+      const errorMessage = err.response?.data?.message || err.message || "Failed to update task status";
+      toast.error(`Failed to update task status: ${errorMessage}`);
     }
   };
 
-  // Delete task
+  // Delete task with enhanced debugging
   const handleDeleteTask = async (taskId) => {
-    if (!confirm("Are you sure you want to delete this task?")) {
+    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
       return;
     }
 
     try {
       if (!accessToken) {
+        console.error("No access token available for task deletion");
         throw new Error("No access token available. Please log in again.");
       }
+
+      console.log("🗑️ Deleting task:", taskId);
 
       const response = await axios.delete(`${API_URL}/tasks/${taskId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
+        timeout: 10000,
       });
+
+      console.log("📡 Delete response:", response.data);
 
       if (response.data.success) {
         await fetchTasks();
         toast.success("Task deleted successfully!");
+        console.log("✅ Task deleted successfully");
       } else {
         throw new Error(response.data.message || "Failed to delete task");
       }
     } catch (err) {
-      console.error("Error deleting task:", err);
-      toast.error("Failed to delete task. Please try again.");
+      console.error("❌ Error deleting task:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        taskId
+      });
+      
+      const errorMessage = err.response?.data?.message || err.message || "Failed to delete task";
+      toast.error(`Failed to delete task: ${errorMessage}`);
     }
   };
 
@@ -989,6 +1043,18 @@ export default function StaffTasksPage() {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Priorities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priorities</SelectItem>
+                    <SelectItem value="high">High Priority</SelectItem>
+                    <SelectItem value="medium">Medium Priority</SelectItem>
+                    <SelectItem value="low">Low Priority</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
