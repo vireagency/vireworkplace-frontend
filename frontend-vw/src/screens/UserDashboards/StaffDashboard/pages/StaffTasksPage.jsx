@@ -698,20 +698,23 @@ export default function StaffTasksPage() {
                 task.assignedTo?._id === user?._id,
               canDelete: task.createdBy?._id === user?._id,
             };
-            
+
             console.log("🔄 Transformed task:", transformedTask.title, {
               canEdit: transformedTask.canEdit,
               canDelete: transformedTask.canDelete,
-              status: transformedTask.status
+              status: transformedTask.status,
             });
-            
+
             return transformedTask;
           });
 
           setTasks(transformedTasks);
           console.log("✅ Tasks fetched successfully:", {
             count: transformedTasks.length,
-            tasks: transformedTasks.map(t => ({ title: t.title, status: t.status }))
+            tasks: transformedTasks.map((t) => ({
+              title: t.title,
+              status: t.status,
+            })),
           });
         } else {
           console.warn("⚠️ API response data is not an array:", apiData);
@@ -729,7 +732,7 @@ export default function StaffTasksPage() {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
-        code: err.code
+        code: err.code,
       });
 
       if (err.response?.status === 401) {
@@ -738,7 +741,10 @@ export default function StaffTasksPage() {
         setError("Access denied. You don't have permission to view tasks.");
       } else if (err.response?.status === 500) {
         setError("Server error. Please try again later.");
-      } else if (err.code === "NETWORK_ERROR" || err.message.includes("Network Error")) {
+      } else if (
+        err.code === "NETWORK_ERROR" ||
+        err.message.includes("Network Error")
+      ) {
         setError("Network error. Please check your connection and try again.");
       } else if (err.code === "ECONNABORTED") {
         setError("Request timeout. Please try again.");
@@ -832,17 +838,24 @@ export default function StaffTasksPage() {
         status: err.response?.status,
         data: err.response?.data,
         taskId,
-        newStatus
+        newStatus,
       });
-      
-      const errorMessage = err.response?.data?.message || err.message || "Failed to update task status";
+
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update task status";
       toast.error(`Failed to update task status: ${errorMessage}`);
     }
   };
 
   // Delete task with enhanced debugging
   const handleDeleteTask = async (taskId) => {
-    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this task? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
@@ -876,10 +889,11 @@ export default function StaffTasksPage() {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
-        taskId
+        taskId,
       });
-      
-      const errorMessage = err.response?.data?.message || err.message || "Failed to delete task";
+
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to delete task";
       toast.error(`Failed to delete task: ${errorMessage}`);
     }
   };
@@ -1046,7 +1060,10 @@ export default function StaffTasksPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={setPriorityFilter}
+                >
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="All Priorities" />
                   </SelectTrigger>

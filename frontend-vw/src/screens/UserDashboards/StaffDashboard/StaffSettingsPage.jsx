@@ -16,15 +16,15 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
-  Settings,
-  User,
-  Bell,
-  Shield,
-  Palette,
-  Database,
-  Mail,
-  Clock,
-} from "lucide-react";
+  IconSettings,
+  IconUser,
+  IconBell,
+  IconShield,
+  IconPalette,
+  IconDatabase,
+  IconMail,
+  IconClock,
+} from "@tabler/icons-react";
 
 export default function StaffSettingsPage() {
   const [notifications, setNotifications] = useState({
@@ -44,30 +44,49 @@ export default function StaffSettingsPage() {
   // Get sidebar counts
   const sidebarCounts = useSidebarCounts();
 
-  // Dynamically update the badges for sidebar items
+  // Dynamically update the sidebar config with counts
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
     analytics:
       staffDashboardConfig.analytics?.map((item) => {
         if (item.title === "Evaluations") {
-          return { ...item, badge: sidebarCounts.evaluations };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.evaluations > 0
+                ? sidebarCounts.evaluations
+                : undefined,
+          };
         }
         return item;
       }) || [],
     productivity:
       staffDashboardConfig.productivity?.map((item) => {
         if (item.title === "Tasks") {
-          return { ...item, badge: sidebarCounts.tasks };
+          return {
+            ...item,
+            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
+          };
         }
         if (item.title === "Attendance") {
-          return { ...item, badge: sidebarCounts.attendance };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.attendance > 0
+                ? sidebarCounts.attendance
+                : undefined,
+          };
         }
         return item;
       }) || [],
     company:
       staffDashboardConfig.company?.map((item) => {
         if (item.title === "Messages") {
-          return { ...item, badge: sidebarCounts.messages };
+          return {
+            ...item,
+            badge:
+              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
+          };
         }
         return item;
       }) || [],
@@ -76,6 +95,13 @@ export default function StaffSettingsPage() {
   return (
     <StaffDashboardLayout
       sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: sidebarCounts.tasks,
+        evaluations: sidebarCounts.evaluations,
+        attendance: sidebarCounts.attendance,
+        messages: sidebarCounts.messages,
+      }}
+      isLoading={sidebarCounts.loading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -94,7 +120,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <User className="w-6 h-6 text-blue-600" />
+                <IconUser className="w-6 h-6 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Profile Settings
                 </h2>
@@ -138,7 +164,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Shield className="w-6 h-6 text-red-600" />
+                <IconShield className="w-6 h-6 text-red-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Password & Security
                 </h2>
@@ -185,7 +211,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Bell className="w-6 h-6 text-green-600" />
+                <IconBell className="w-6 h-6 text-green-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Notification Preferences
                 </h2>
@@ -255,7 +281,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Shield className="w-6 h-6 text-purple-600" />
+                <IconShield className="w-6 h-6 text-purple-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Privacy & Security
                 </h2>
@@ -330,7 +356,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Palette className="w-6 h-6 text-orange-600" />
+                <IconPalette className="w-6 h-6 text-orange-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Appearance
                 </h2>
@@ -364,7 +390,7 @@ export default function StaffSettingsPage() {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Settings className="w-6 h-6 text-gray-600" />
+                <IconSettings className="w-6 h-6 text-gray-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   System Settings
                 </h2>

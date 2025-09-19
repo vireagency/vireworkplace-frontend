@@ -187,8 +187,14 @@ export default function StaffProfileSettings() {
     };
 
     // Update activity on user interactions
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => {
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+    ];
+    events.forEach((event) => {
       document.addEventListener(event, updateActivity, true);
     });
 
@@ -196,7 +202,7 @@ export default function StaffProfileSettings() {
     const inactivityInterval = setInterval(checkInactivity, 60000);
 
     return () => {
-      events.forEach(event => {
+      events.forEach((event) => {
         document.removeEventListener(event, updateActivity, true);
       });
       clearInterval(inactivityInterval);
