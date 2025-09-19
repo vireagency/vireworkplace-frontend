@@ -685,7 +685,7 @@ export function SiteHeader() {
                   alt={user ? `${user.firstName} ${user.lastName}` : "User"}
                   className="object-cover w-full h-full"
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.style.display = "none";
                   }}
                 />
                 <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm hover:bg-green-500/10 rounded-full">
@@ -704,7 +704,7 @@ export function SiteHeader() {
                       src={getStableAvatarUrl(user) || "/staff.png"}
                       alt={user ? `${user.firstName} ${user.lastName}` : "User"}
                       onError={(e) => {
-                        e.target.style.display = 'none';
+                        e.target.style.display = "none";
                       }}
                     />
                     <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm rounded-full">

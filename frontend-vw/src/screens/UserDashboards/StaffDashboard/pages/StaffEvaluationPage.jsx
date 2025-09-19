@@ -163,26 +163,19 @@ const EmptyState = ({ icon: Icon, title, description, action }) => (
   </div>
 );
 
-// Evaluation Detail Modal Component
-const EvaluationModal = ({
+// Performance Review Modal Component (Step 1: Instructions)
+const PerformanceReviewModal = ({
   isOpen,
   onClose,
   evaluation,
   onStartEvaluation,
-  showForm,
-  onSubmitForm,
-  formResponses,
-  setFormResponses,
-  formComments,
-  setFormComments,
-  submitting,
   loading,
 }) => {
   if (!evaluation && !loading) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader className="space-y-4">
           <div className="flex items-center space-x-2 text-gray-600">
             <ArrowLeft className="w-4 h-4" />
@@ -195,15 +188,14 @@ const EvaluationModal = ({
             </div>
           ) : (
             <div className="space-y-2">
-              <DialogTitle className="text-xl font-semibold text-gray-900">
-                {evaluation?.title}
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                Performance Review
               </DialogTitle>
               {evaluation?.dueDate && (
                 <p className="text-sm text-blue-600">
                   Due by {new Date(evaluation.dueDate).toLocaleDateString()}
                 </p>
               )}
-              <EvaluationStatusBadge status={evaluation?.status} />
             </div>
           )}
         </DialogHeader>
@@ -215,34 +207,85 @@ const EvaluationModal = ({
               <p className="text-gray-600">Loading evaluation form...</p>
             </div>
           </div>
-        ) : !showForm ? (
+        ) : (
           <div className="space-y-6 py-4">
             <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-3">
+              <h4 className="text-lg font-semibold text-gray-900 mb-3">
                 Instructions
               </h4>
               <p className="text-sm text-gray-600 leading-relaxed">
                 {evaluation?.instructions ||
-                  evaluation?.description ||
-                  "Please complete this evaluation to provide feedback on your performance and development."}
+                  "This review is designed to assess your performance over the past year. Please provide honest and thoughtful responses to each question. Your feedback will be used to help you grow and develop in your role."}
               </p>
             </div>
+          </div>
+        )}
 
-            {evaluation?.requirements && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  Requirements
-                </h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  {evaluation.requirements.map((req, index) => (
-                    <li key={index} className="flex items-start space-x-2">
-                      <span className="text-blue-600 mt-1">•</span>
-                      <span>{req}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        <DialogFooter className="flex items-center space-x-3">
+          <Button variant="outline" onClick={onClose} className="px-6">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => onStartEvaluation(evaluation)}
+            className="bg-green-600 hover:bg-green-700 px-6"
+            disabled={evaluation?.status === "completed"}
+          >
+            {evaluation?.status === "completed"
+              ? "Completed"
+              : "Start Evaluation"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Performance Evaluation Form Modal Component (Step 2: Form)
+const PerformanceEvaluationFormModal = ({
+  isOpen,
+  onClose,
+  evaluation,
+  onSubmitForm,
+  formResponses,
+  setFormResponses,
+  formComments,
+  setFormComments,
+  submitting,
+  loading,
+}) => {
+  if (!evaluation && !loading) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-4">
+          <div className="flex items-center space-x-2 text-gray-600">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Evaluations Overview</span>
+          </div>
+          {loading ? (
+            <div className="flex items-center space-x-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading evaluation form...</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                Performance Evaluation
+              </DialogTitle>
+              <p className="text-sm text-gray-600">
+                Review of employee performance.
+              </p>
+            </div>
+          )}
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-600">Loading evaluation form...</p>
+            </div>
           </div>
         ) : (
           <form
@@ -252,68 +295,296 @@ const EvaluationModal = ({
             }}
             className="space-y-6 py-4"
           >
-            <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg mb-4">
-              Please provide thoughtful responses to help with your performance
-              review.
+            {/* Employee Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                Employee Information
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <Input
+                    value={formResponses.employeeName || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        employeeName: e.target.value,
+                      })
+                    }
+                    placeholder="Employee Name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role
+                  </label>
+                  <Input
+                    value={formResponses.role || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        role: e.target.value,
+                      })
+                    }
+                    placeholder="Job Title"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <Input
+                    value={formResponses.department || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        department: e.target.value,
+                      })
+                    }
+                    placeholder="Department"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
-            {Array.isArray(evaluation?.questions) &&
-            evaluation.questions.length > 0 ? (
-              evaluation.questions.map((q, idx) => (
-                <div key={q.id || idx} className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900">
-                    {q.text || q.question}
-                    {q.required && <span className="text-red-500 ml-1">*</span>}
+            {/* Review Period */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                Review Period
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Period
                   </label>
-                  {q.type === "textarea" || q.text?.length > 100 ? (
-                    <textarea
-                      value={formResponses[q.id] || ""}
-                      onChange={(e) =>
-                        setFormResponses({
-                          ...formResponses,
-                          [q.id]: e.target.value,
-                        })
-                      }
-                      placeholder="Your response..."
-                      className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                      required={q.required}
-                    />
-                  ) : (
-                    <Input
-                      type="text"
-                      value={formResponses[q.id] || ""}
-                      onChange={(e) =>
-                        setFormResponses({
-                          ...formResponses,
-                          [q.id]: e.target.value,
-                        })
-                      }
-                      placeholder="Your answer..."
-                      required={q.required}
-                    />
-                  )}
+                  <Input
+                    value={formResponses.reviewPeriod || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        reviewPeriod: e.target.value,
+                      })
+                    }
+                    placeholder="January 1, 2023 - December 31, 2023"
+                    required
+                  />
                 </div>
-              ))
-            ) : (
-              <div className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p>No specific questions found for this evaluation.</p>
-                <p className="text-sm mt-1">
-                  Please provide your comments below.
-                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reviewer
+                  </label>
+                  <Input
+                    value={formResponses.reviewer || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        reviewer: e.target.value,
+                      })
+                    }
+                    placeholder="Reviewer Name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Review Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={formResponses.reviewDate || ""}
+                    onChange={(e) =>
+                      setFormResponses({
+                        ...formResponses,
+                        reviewDate: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
               </div>
-            )}
+            </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-900">
-                Additional Comments
-              </label>
-              <textarea
-                value={formComments}
-                onChange={(e) => setFormComments(e.target.value)}
-                placeholder="Any additional feedback or comments..."
-                className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-              />
+            {/* Rating Scale */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                Rating Scale
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-semibold">1</div>
+                  <div className="text-gray-600">Unsatisfactory</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-semibold">2</div>
+                  <div className="text-gray-600">Needs Improvement</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-semibold">3</div>
+                  <div className="text-gray-600">Meets Expectations</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-semibold">4</div>
+                  <div className="text-gray-600">Exceeds Expectations</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-semibold">5</div>
+                  <div className="text-gray-600">Outstanding</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Sections */}
+            <div className="space-y-6">
+              <h4 className="text-lg font-semibold text-gray-900">
+                Performance Assessment
+              </h4>
+              
+              {/* Technical Skills */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="font-semibold text-gray-900">Technical Skills</h5>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Rating:</span>
+                    <select
+                      value={formResponses.technicalSkillsRating || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          technicalSkillsRating: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                      required
+                    >
+                      <option value="">Select Rating</option>
+                      <option value="1">1 - Unsatisfactory</option>
+                      <option value="2">2 - Needs Improvement</option>
+                      <option value="3">3 - Meets Expectations</option>
+                      <option value="4">4 - Exceeds Expectations</option>
+                      <option value="5">5 - Outstanding</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Comments & Examples
+                    </label>
+                    <textarea
+                      value={formResponses.technicalSkillsComments || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          technicalSkillsComments: e.target.value,
+                        })
+                      }
+                      placeholder="Provide specific examples of technical skills demonstrated..."
+                      className="w-full min-h-[80px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Areas of Strength
+                    </label>
+                    <textarea
+                      value={formResponses.technicalSkillsStrengths || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          technicalSkillsStrengths: e.target.value,
+                        })
+                      }
+                      placeholder="Highlight areas where technical skills excel..."
+                      className="w-full min-h-[80px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Areas for Improvement
+                    </label>
+                    <textarea
+                      value={formResponses.technicalSkillsImprovements || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          technicalSkillsImprovements: e.target.value,
+                        })
+                      }
+                      placeholder="Identify areas for technical skill development..."
+                      className="w-full min-h-[80px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Overall Performance Summary */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                  Overall Performance Summary
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Overall Performance Rating
+                    </label>
+                    <select
+                      value={formResponses.overallRating || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          overallRating: e.target.value,
+                        })
+                      }
+                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Select Overall Rating</option>
+                      <option value="1">1 - Unsatisfactory</option>
+                      <option value="2">2 - Needs Improvement</option>
+                      <option value="3">3 - Meets Expectations</option>
+                      <option value="4">4 - Exceeds Expectations</option>
+                      <option value="5">5 - Outstanding</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Key Achievements
+                    </label>
+                    <textarea
+                      value={formResponses.keyAchievements || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          keyAchievements: e.target.value,
+                        })
+                      }
+                      placeholder="List key achievements and accomplishments..."
+                      className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Development Goals
+                    </label>
+                    <textarea
+                      value={formResponses.developmentGoals || ""}
+                      onChange={(e) =>
+                        setFormResponses({
+                          ...formResponses,
+                          developmentGoals: e.target.value,
+                        })
+                      }
+                      placeholder="Outline development goals and areas for growth..."
+                      className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <DialogFooter className="flex items-center space-x-3 pt-4">
@@ -343,23 +614,52 @@ const EvaluationModal = ({
             </DialogFooter>
           </form>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-        {!showForm && !loading && (
-          <DialogFooter className="flex items-center space-x-3">
-            <Button variant="outline" onClick={onClose} className="px-6">
-              Cancel
-            </Button>
-            <Button
-              onClick={() => onStartEvaluation(evaluation)}
-              className="bg-green-600 hover:bg-green-700 px-6"
-              disabled={evaluation?.status === "completed"}
-            >
-              {evaluation?.status === "completed"
-                ? "Completed"
-                : "Start Evaluation"}
-            </Button>
-          </DialogFooter>
-        )}
+// Evaluation Submitted Success Modal Component (Step 3: Success)
+const EvaluationSubmittedModal = ({
+  isOpen,
+  onClose,
+  onViewEvaluation,
+  onReturnToDashboard,
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="space-y-4">
+          <div className="flex items-center space-x-2 text-gray-600">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Evaluations Overview</span>
+          </div>
+          <div className="text-center">
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              Evaluation Submitted
+            </DialogTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              Your evaluation has been successfully submitted. You can view the
+              completed evaluation or return to the dashboard.
+            </p>
+          </div>
+        </DialogHeader>
+
+        <DialogFooter className="flex items-center justify-center space-x-3 pt-4">
+          <Button
+            variant="outline"
+            onClick={onReturnToDashboard}
+            className="px-6"
+          >
+            Return to Dashboard
+          </Button>
+          <Button
+            onClick={onViewEvaluation}
+            className="bg-green-600 hover:bg-green-700 px-6"
+          >
+            View Evaluation
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -405,8 +705,12 @@ export default function Evaluation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
-  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  
+  // Modal states for the 3-step flow
+  const [showPerformanceReviewModal, setShowPerformanceReviewModal] = useState(false);
+  const [showEvaluationFormModal, setShowEvaluationFormModal] = useState(false);
+  const [showSubmittedModal, setShowSubmittedModal] = useState(false);
+  
   const [formResponses, setFormResponses] = useState({});
   const [formComments, setFormComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -627,11 +931,10 @@ export default function Evaluation() {
     }
   };
 
-  // Handle evaluation click: fetch full evaluation form
+  // Handle evaluation click: show performance review modal (Step 1)
   const handleEvaluationClick = async (evaluation) => {
     setSelectedEvaluation(evaluation);
-    setShowEvaluationModal(true);
-    setShowForm(false);
+    setShowPerformanceReviewModal(true);
     setFormResponses({});
     setFormComments("");
 
@@ -644,13 +947,14 @@ export default function Evaluation() {
     }
   };
 
-  // Show the evaluation form
+  // Show the evaluation form (Step 2)
   const handleStartEvaluation = (evaluation) => {
     if (evaluation.status === "completed") {
       toast.info("This evaluation has already been completed.");
       return;
     }
-    setShowForm(true);
+    setShowPerformanceReviewModal(false);
+    setShowEvaluationFormModal(true);
     setFormResponses({});
     setFormComments("");
   };
@@ -685,11 +989,10 @@ export default function Evaluation() {
       );
 
       if (success) {
-        setShowEvaluationModal(false);
-        setShowForm(false);
+        setShowEvaluationFormModal(false);
+        setShowSubmittedModal(true);
         setFormResponses({});
         setFormComments("");
-        setSelectedEvaluation(null);
 
         // Refresh evaluations to reflect the update
         await fetchEvaluations();
@@ -704,11 +1007,25 @@ export default function Evaluation() {
 
   // Handle modal close
   const handleCloseModal = () => {
-    setShowEvaluationModal(false);
-    setShowForm(false);
+    setShowPerformanceReviewModal(false);
+    setShowEvaluationFormModal(false);
+    setShowSubmittedModal(false);
     setFormResponses({});
     setFormComments("");
     setSelectedEvaluation(null);
+  };
+
+  // Handle success modal actions
+  const handleViewEvaluation = () => {
+    setShowSubmittedModal(false);
+    // Could navigate to a view evaluation page or show evaluation details
+    toast.info("Evaluation details would be shown here");
+  };
+
+  const handleReturnToDashboard = () => {
+    setShowSubmittedModal(false);
+    setSelectedEvaluation(null);
+    // Could navigate to dashboard or just close modal
   };
 
   // Initial fetch
@@ -926,13 +1243,20 @@ export default function Evaluation() {
         </Card>
       </div>
 
-      {/* Evaluation Detail Modal */}
-      <EvaluationModal
-        isOpen={showEvaluationModal}
+      {/* Performance Review Modal (Step 1) */}
+      <PerformanceReviewModal
+        isOpen={showPerformanceReviewModal}
         onClose={handleCloseModal}
         evaluation={selectedEvaluation}
         onStartEvaluation={handleStartEvaluation}
-        showForm={showForm}
+        loading={evaluationLoading}
+      />
+
+      {/* Performance Evaluation Form Modal (Step 2) */}
+      <PerformanceEvaluationFormModal
+        isOpen={showEvaluationFormModal}
+        onClose={handleCloseModal}
+        evaluation={selectedEvaluation}
         onSubmitForm={handleSubmitForm}
         formResponses={formResponses}
         setFormResponses={setFormResponses}
@@ -940,6 +1264,14 @@ export default function Evaluation() {
         setFormComments={setFormComments}
         submitting={submitting}
         loading={evaluationLoading}
+      />
+
+      {/* Evaluation Submitted Success Modal (Step 3) */}
+      <EvaluationSubmittedModal
+        isOpen={showSubmittedModal}
+        onClose={handleCloseModal}
+        onViewEvaluation={handleViewEvaluation}
+        onReturnToDashboard={handleReturnToDashboard}
       />
     </StaffDashboardLayout>
   );
