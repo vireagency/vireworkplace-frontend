@@ -826,6 +826,24 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
     }
   }, [formData, task, isOpen]);
 
+  // Cleanup effect when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when modal is closed
+      setFormData({
+        title: "",
+        description: "",
+        dueDate: "",
+        priority: "",
+        status: "",
+        assigneeSearch: "",
+        assignedTo: null,
+      });
+      setHasChanges(false);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -884,9 +902,33 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
       if (
         confirm("You have unsaved changes. Are you sure you want to close?")
       ) {
+        // Reset form state before closing
+        setFormData({
+          title: "",
+          description: "",
+          dueDate: "",
+          priority: "",
+          status: "",
+          assigneeSearch: "",
+          assignedTo: null,
+        });
+        setHasChanges(false);
+        setIsSubmitting(false);
         onClose();
       }
     } else {
+      // Reset form state before closing
+      setFormData({
+        title: "",
+        description: "",
+        dueDate: "",
+        priority: "",
+        status: "",
+        assigneeSearch: "",
+        assignedTo: null,
+      });
+      setHasChanges(false);
+      setIsSubmitting(false);
       onClose();
     }
   };
@@ -894,7 +936,11 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
   if (!task) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        handleClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px] p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-green-600">Edit Task</h2>
@@ -1624,6 +1670,11 @@ export default function StaffTasksPage() {
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setEditingTask(null);
+    // Force a small delay to ensure modal is fully closed before allowing interactions
+    setTimeout(() => {
+      // This ensures the modal is completely closed and focus is restored
+      document.body.style.pointerEvents = 'auto';
+    }, 100);
   };
 
   // Initial fetch and refetch when filters change
