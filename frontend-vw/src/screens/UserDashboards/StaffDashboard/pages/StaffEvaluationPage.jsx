@@ -443,11 +443,13 @@ const PerformanceEvaluationFormModal = ({
               <h4 className="text-lg font-semibold text-gray-900">
                 Performance Assessment
               </h4>
-              
+
               {/* Technical Skills */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h5 className="font-semibold text-gray-900">Technical Skills</h5>
+                  <h5 className="font-semibold text-gray-900">
+                    Technical Skills
+                  </h5>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Rating:</span>
                     <select
@@ -705,12 +707,13 @@ export default function Evaluation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
-  
+
   // Modal states for the 3-step flow
-  const [showPerformanceReviewModal, setShowPerformanceReviewModal] = useState(false);
+  const [showPerformanceReviewModal, setShowPerformanceReviewModal] =
+    useState(false);
   const [showEvaluationFormModal, setShowEvaluationFormModal] = useState(false);
   const [showSubmittedModal, setShowSubmittedModal] = useState(false);
-  
+
   const [formResponses, setFormResponses] = useState({});
   const [formComments, setFormComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
