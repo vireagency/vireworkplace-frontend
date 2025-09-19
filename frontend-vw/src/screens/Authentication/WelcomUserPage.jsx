@@ -4,18 +4,39 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const WelcomeUserPage = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(30);
+  const [displayName, setDisplayName] = useState('User');
 
-  // Debug: Log user data to understand structure
+  // Set display name once and keep it stable
   useEffect(() => {
     if (user) {
       console.log('User data in WelcomeUserPage:', user);
       console.log('User firstName:', user.firstName);
+      console.log('User first_name:', user.first_name);
       console.log('User email:', user.email);
+      console.log('All user keys:', Object.keys(user));
+      
+      // Set the display name once and don't change it
+      const name = user?.firstName || user?.first_name || localStorage.getItem('signup_firstName') || user?.email?.split('@')[0] || 'User';
+      setDisplayName(name);
+    } else {
+      // Fallback to localStorage or email if user is not available
+      const signupName = localStorage.getItem('signup_firstName');
+      if (signupName) {
+        setDisplayName(signupName);
+      }
     }
   }, [user]);
+
+  // Set display name from localStorage if user data is not available yet
+  useEffect(() => {
+    const signupFirstName = localStorage.getItem('signup_firstName');
+    if (signupFirstName && displayName === 'User') {
+      setDisplayName(signupFirstName);
+    }
+  }, [displayName]);
 
   // Clean up signup firstName from localStorage after displaying welcome message
   useEffect(() => {
@@ -95,7 +116,7 @@ const WelcomeUserPage = () => {
         {/* Welcome Message */}
         <div className="text-center max-w-5xl mx-auto animate-slide-up" >
           <h1 className="text-3xl md:text-3xl lg:text-3xl font-bold text-foreground mb-8 leading-tight">
-            👋 Hi, {user?.firstName || localStorage.getItem('signup_firstName') || user?.email?.split('@')[0] || 'User'}! Welcome to Vire Workplace
+            👋 Hi, {displayName}! Welcome to Vire Workplace
           </h1>
           
           {/* Security Information */}
