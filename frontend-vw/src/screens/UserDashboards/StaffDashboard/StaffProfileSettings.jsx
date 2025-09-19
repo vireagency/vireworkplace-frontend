@@ -35,7 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
+import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
 import {
   IconPlus,
@@ -59,7 +59,7 @@ import {
 
 export default function StaffProfileSettings() {
   const { user, accessToken } = useAuth();
-  const sidebarCounts = useSidebarCounts();
+  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
   const [activeTab, setActiveTab] = useState("personal");
   const [selectedDate, setSelectedDate] = useState(null);
   const [dateOpen, setDateOpen] = useState(false);
@@ -291,64 +291,12 @@ export default function StaffProfileSettings() {
     // { id: "health", label: "Health Info", icon: IconShield },
   ];
 
-  // Dynamically update the sidebar config with counts
-  const dynamicSidebarConfig = {
-    ...staffDashboardConfig,
-    analytics:
-      staffDashboardConfig.analytics?.map((item) => {
-        if (item.title === "Evaluations") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.evaluations > 0
-                ? sidebarCounts.evaluations
-                : undefined,
-          };
-        }
-        return item;
-      }) || [],
-    productivity:
-      staffDashboardConfig.productivity?.map((item) => {
-        if (item.title === "Tasks") {
-          return {
-            ...item,
-            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
-          };
-        }
-        if (item.title === "Attendance") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.attendance > 0
-                ? sidebarCounts.attendance
-                : undefined,
-          };
-        }
-        return item;
-      }) || [],
-    company:
-      staffDashboardConfig.company?.map((item) => {
-        if (item.title === "Messages") {
-          return {
-            ...item,
-            badge:
-              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
-          };
-        }
-        return item;
-      }) || [],
-  };
 
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
-      itemCounts={{
-        tasks: sidebarCounts.tasks,
-        evaluations: sidebarCounts.evaluations,
-        attendance: sidebarCounts.attendance,
-        messages: sidebarCounts.messages,
-      }}
-      isLoading={sidebarCounts.loading}
+      sidebarConfig={sidebarConfig}
+      itemCounts={itemCounts}
+      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

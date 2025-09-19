@@ -64,7 +64,7 @@ import { staffDashboardConfig } from "@/config/dashboardConfigs";
 
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
+import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
 
 // API Configuration
 import { getApiUrl } from "@/config/apiConfig";
@@ -1228,7 +1228,7 @@ const ErrorState = ({ error, onRetry }) => (
 export default function StaffTasksPage() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
-  const sidebarCounts = useSidebarCounts();
+  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
 
   // State management
   const [tasks, setTasks] = useState([]);
@@ -1694,9 +1694,10 @@ export default function StaffTasksPage() {
   //   }
   // }, [tasks.length, sidebarCounts]);
 
-  // Filter tasks based on search term - memoized for performance
+  // Filter tasks based on search term, status, and priority - memoized for performance
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
+      // Search filter
       const matchesSearch =
         (task.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (task.assignee || "")
@@ -1706,75 +1707,30 @@ export default function StaffTasksPage() {
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
 
-      return matchesSearch;
-    });
-  }, [tasks, searchTerm]);
+      // Status filter
+      const matchesStatus =
+        statusFilter === "all" ||
+        task.status?.toLowerCase() === statusFilter.toLowerCase();
 
-  // Dynamically update the badges for sidebar items - memoized for performance
-  const dynamicSidebarConfig = useMemo(() => {
-    return {
-      ...staffDashboardConfig,
-      analytics:
-        staffDashboardConfig.analytics?.map((item) => {
-          if (item.title === "Evaluations") {
-            return {
-              ...item,
-              badge:
-                sidebarCounts.evaluations > 0
-                  ? sidebarCounts.evaluations
-                  : undefined,
-            };
-          }
-          return item;
-        }) || [],
-      productivity:
-        staffDashboardConfig.productivity?.map((item) => {
-          if (item.title === "Tasks") {
-            return {
-              ...item,
-              badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
-            };
-          }
-          if (item.title === "Attendance") {
-            return {
-              ...item,
-              badge:
-                sidebarCounts.attendance > 0
-                  ? sidebarCounts.attendance
-                  : undefined,
-            };
-          }
-          return item;
-        }) || [],
-      company:
-        staffDashboardConfig.company?.map((item) => {
-          if (item.title === "Messages") {
-            return {
-              ...item,
-              badge:
-                sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
-            };
-          }
-          return item;
-        }) || [],
-    };
-  }, [
-    sidebarCounts.evaluations,
-    sidebarCounts.tasks,
-    sidebarCounts.attendance,
-    sidebarCounts.messages,
-  ]);
+      // Priority filter
+      const matchesPriority =
+        priorityFilter === "all" ||
+        task.priority?.toLowerCase() === priorityFilter.toLowerCase();
+
+      // Due date filter
+      const matchesDueDate = !dueDateFilter || task.dueDate === dueDateFilter;
+
+      return (
+        matchesSearch && matchesStatus && matchesPriority && matchesDueDate
+      );
+    });
+  }, [tasks, searchTerm, statusFilter, priorityFilter, dueDateFilter]);
 
   return (
     <StaffDashboardLayout
-      sidebarConfig={dynamicSidebarConfig}
-      itemCounts={{
-        tasks: sidebarCounts.tasks,
-        evaluations: sidebarCounts.evaluations,
-        attendance: sidebarCounts.attendance,
-        messages: sidebarCounts.messages,
-      }}
-      isLoading={sidebarCounts.loading}
+      sidebarConfig={sidebarConfig}
+      itemCounts={itemCounts}
+      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -1863,11 +1819,39 @@ export default function StaffTasksPage() {
                     <SelectItem value="low">Low</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Input
+                  type="date"
+                  value={dueDateFilter}
+                  onChange={(e) => setDueDateFilter(e.target.value)}
+                  placeholder="Due Date"
+                  className="w-48"
+                />
               </div>
 
-              <span className="text-sm text-gray-500">
-                {filteredTasks.length} of {tasks.length} tasks
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">
+                  {filteredTasks.length} of {tasks.length} tasks
+                </span>
+                {(statusFilter !== "all" ||
+                  priorityFilter !== "all" ||
+                  dueDateFilter ||
+                  searchTerm) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setPriorityFilter("all");
+                      setDueDateFilter("");
+                      setSearchTerm("");
+                    }}
+                    className="text-xs"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
