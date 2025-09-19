@@ -11,7 +11,7 @@ import axios from "axios";
 
 export default function StaffPerformancePage() {
   const { accessToken } = useAuth();
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
   const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
@@ -38,12 +38,9 @@ export default function StaffPerformancePage() {
     fetchTasks();
   }, [accessToken]);
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={true}
       showChart={true}
       showDataTable={true}

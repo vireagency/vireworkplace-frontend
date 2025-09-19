@@ -59,7 +59,7 @@ import {
 
 export default function StaffProfileSettings() {
   const { user, accessToken } = useAuth();
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
   const [activeTab, setActiveTab] = useState("personal");
   const [selectedDate, setSelectedDate] = useState(null);
   const [dateOpen, setDateOpen] = useState(false);
@@ -291,12 +291,9 @@ export default function StaffProfileSettings() {
     // { id: "health", label: "Health Info", icon: IconShield },
   ];
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

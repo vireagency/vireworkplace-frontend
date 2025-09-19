@@ -64,7 +64,7 @@ import { toast } from "sonner";
 const AttendanceApp = () => {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // State management
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -525,7 +525,6 @@ const AttendanceApp = () => {
     );
   };
 
-
   const timelineData = generateTimeline();
   const currentHour = currentTime.getHours();
   const greeting =
@@ -538,8 +537,6 @@ const AttendanceApp = () => {
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

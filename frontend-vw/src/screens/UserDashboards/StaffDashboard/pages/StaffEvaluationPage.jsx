@@ -700,7 +700,7 @@ const ErrorState = ({ error, onRetry }) => (
 export default function Evaluation() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // State management
   const [evaluations, setEvaluations] = useState([]);
@@ -1039,12 +1039,9 @@ export default function Evaluation() {
     }
   }, [accessToken]);
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

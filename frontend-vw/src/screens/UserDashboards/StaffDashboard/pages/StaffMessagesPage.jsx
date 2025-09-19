@@ -77,7 +77,7 @@ export default function StaffMessagesPage() {
   } = useNotificationActions();
 
   // Get standardized sidebar
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // Local state
   const [selectedNotifications, setSelectedNotifications] = useState([]);
@@ -279,12 +279,9 @@ export default function StaffMessagesPage() {
     setShowBulkActions(selectedNotifications.length > 0);
   }, [selectedNotifications]);
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

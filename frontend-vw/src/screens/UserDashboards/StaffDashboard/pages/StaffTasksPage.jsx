@@ -1228,7 +1228,7 @@ const ErrorState = ({ error, onRetry }) => (
 export default function StaffTasksPage() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // State management
   const [tasks, setTasks] = useState([]);
@@ -1729,8 +1729,6 @@ export default function StaffTasksPage() {
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

@@ -250,7 +250,7 @@ const overtimeReportsSummaryCards = [
 ];
 
 export default function StaffReportsPage() {
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
   const [activeTab, setActiveTab] = useState("my-reports");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -418,12 +418,9 @@ export default function StaffReportsPage() {
     }
   });
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

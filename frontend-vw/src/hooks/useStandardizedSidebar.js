@@ -1,86 +1,43 @@
-import { useMemo } from 'react';
-import { staffDashboardConfig } from '@/config/dashboardConfigs';
-import { useSidebarCounts } from './useSidebarCounts';
+import { useMemo } from "react";
+import { staffDashboardConfig } from "@/config/dashboardConfigs";
+import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
 
 /**
  * Custom hook to provide a standardized sidebar configuration across all staff pages
  * This prevents badge flickering and ensures consistent sidebar behavior
+ * Now uses the shared StaffSidebarContext for state management
  */
 export const useStandardizedSidebar = () => {
-  const sidebarCounts = useSidebarCounts();
+  const { counts, loading, updateCount, refreshCounts } = useStaffSidebar();
 
   // Memoized sidebar configuration to prevent unnecessary re-renders
   const standardizedSidebarConfig = useMemo(() => {
     return {
       ...staffDashboardConfig,
-      analytics:
-        staffDashboardConfig.analytics?.map((item) => {
-          if (item.title === "Evaluations") {
-            return {
-              ...item,
-              badge:
-                sidebarCounts.evaluations > 0
-                  ? sidebarCounts.evaluations
-                  : undefined,
-            };
-          }
-          return item;
-        }) || [],
-      productivity:
-        staffDashboardConfig.productivity?.map((item) => {
-          if (item.title === "Tasks") {
-            return {
-              ...item,
-              badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
-            };
-          }
-          if (item.title === "Attendance") {
-            return {
-              ...item,
-              badge:
-                sidebarCounts.attendance > 0
-                  ? sidebarCounts.attendance
-                  : undefined,
-            };
-          }
-          return item;
-        }) || [],
-      company:
-        staffDashboardConfig.company?.map((item) => {
-          if (item.title === "Messages") {
-            return {
-              ...item,
-              badge:
-                sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
-            };
-          }
-          return item;
-        }) || [],
+      // Remove badge properties as they're now handled by the context
+      analytics: staffDashboardConfig.analytics || [],
+      productivity: staffDashboardConfig.productivity || [],
+      company: staffDashboardConfig.company || [],
     };
-  }, [
-    sidebarCounts.evaluations,
-    sidebarCounts.tasks,
-    sidebarCounts.attendance,
-    sidebarCounts.messages,
-  ]);
+  }, []);
 
   // Memoized item counts for consistent behavior
-  const standardizedItemCounts = useMemo(() => ({
-    tasks: sidebarCounts.tasks,
-    evaluations: sidebarCounts.evaluations,
-    attendance: sidebarCounts.attendance,
-    messages: sidebarCounts.messages,
-  }), [
-    sidebarCounts.tasks,
-    sidebarCounts.evaluations,
-    sidebarCounts.attendance,
-    sidebarCounts.messages,
-  ]);
+  const standardizedItemCounts = useMemo(
+    () => ({
+      tasks: counts.tasks,
+      evaluations: counts.evaluations,
+      attendance: counts.attendance,
+      messages: counts.messages,
+    }),
+    [counts.tasks, counts.evaluations, counts.attendance, counts.messages]
+  );
 
   return {
     sidebarConfig: standardizedSidebarConfig,
     itemCounts: standardizedItemCounts,
-    isLoading: sidebarCounts.loading,
-    sidebarCounts, // Expose the raw counts if needed
+    isLoading: loading,
+    sidebarCounts: counts, // Expose the raw counts if needed
+    updateCount, // Expose update function for pages that need to update counts
+    refreshCounts, // Expose refresh function for manual refresh
   };
 };

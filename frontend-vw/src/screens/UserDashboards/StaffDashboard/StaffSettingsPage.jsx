@@ -27,7 +27,7 @@ import {
 } from "@tabler/icons-react";
 
 export default function StaffSettingsPage() {
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -42,12 +42,9 @@ export default function StaffSettingsPage() {
 
   const [theme, setTheme] = useState("light");
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

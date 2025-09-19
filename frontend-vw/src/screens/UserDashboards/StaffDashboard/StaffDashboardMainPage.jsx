@@ -77,7 +77,7 @@ export default function StaffDashboardMainPage() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
   const greeting = getGreeting();
-  const { sidebarConfig, itemCounts, isLoading } = useStandardizedSidebar();
+  const { sidebarConfig } = useStandardizedSidebar();
 
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User";
@@ -248,12 +248,9 @@ export default function StaffDashboardMainPage() {
     navigate("/staff/tasks");
   };
 
-
   return (
     <StaffDashboardLayout
       sidebarConfig={sidebarConfig}
-      itemCounts={itemCounts}
-      isLoading={isLoading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}

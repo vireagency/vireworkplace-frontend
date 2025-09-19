@@ -6,7 +6,7 @@
  * @since 2024
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getUserAvatarUrl } from "@/utils/avatarUtils";
 import { NavUser } from "@/components/nav-user";
 import { NavSecondary } from "@/components/nav-secondary";
+import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
 
 /**
  * StaffSidebar Component
@@ -32,22 +33,15 @@ import { NavSecondary } from "@/components/nav-secondary";
  * @component
  * @param {Object} props - Component props
  * @param {Object} [props.config] - Navigation configuration
- * @param {Object} [props.itemCounts] - Item counts for badges
  * @param {Function} [props.onNavigate] - Navigation handler
- * @param {boolean} [props.isLoading] - Loading state
  * @param {...any} props - Additional props passed to the Sidebar component
  * @returns {JSX.Element} The staff sidebar component
  */
-export function StaffSidebar({
-  config,
-  itemCounts = {},
-  onNavigate,
-  isLoading = false,
-  ...props
-}) {
+const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { counts, loading: sidebarLoading } = useStaffSidebar();
   const [isNavigating, setIsNavigating] = useState(false);
 
   // Handle navigation with proper state management
@@ -87,9 +81,9 @@ export function StaffSidebar({
     [location.pathname]
   );
 
-  // Get item count for badges
+  // Get item count for badges from shared context
   const getItemCount = useCallback(
-    (itemTitle, sectionKey) => {
+    (itemTitle) => {
       // Map item titles to count keys
       const titleMapping = {
         Evaluations: "evaluations",
@@ -100,22 +94,16 @@ export function StaffSidebar({
       };
 
       const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
-      const count =
-        itemCounts[`${sectionKey}_${countKey}`] ||
-        itemCounts[countKey] ||
-        itemCounts[itemTitle] ||
-        0;
-
-      return count;
+      return counts[countKey] || 0;
     },
-    [itemCounts]
+    [counts]
   );
 
   // Render navigation item
   const renderNavItem = useCallback(
-    (item, sectionKey) => {
+    (item) => {
       const isActive = isActiveItem(item.url);
-      const itemCount = getItemCount(item.title, sectionKey);
+      const itemCount = getItemCount(item.title);
       const Icon = item.icon;
 
       return (
@@ -128,7 +116,7 @@ export function StaffSidebar({
               isActive ? "text-[#00DB12] bg-green-50" : "",
               isNavigating && "opacity-50 pointer-events-none"
             )}
-            disabled={isNavigating || isLoading}
+            disabled={isNavigating || sidebarLoading}
           >
             {Icon && <Icon />}
             <span>{item.title}</span>
@@ -149,7 +137,7 @@ export function StaffSidebar({
         </SidebarMenuItem>
       );
     },
-    [isActiveItem, getItemCount, handleNavigation, isNavigating, isLoading]
+    [isActiveItem, getItemCount, handleNavigation, isNavigating, sidebarLoading]
   );
 
   // Render navigation section
@@ -163,7 +151,7 @@ export function StaffSidebar({
             {sectionTitle}
           </h3>
           <SidebarMenu>
-            {section.map((item) => renderNavItem(item, sectionKey))}
+            {section.map((item) => renderNavItem(item))}
           </SidebarMenu>
         </div>
       );
@@ -244,6 +232,9 @@ export function StaffSidebar({
       </SidebarFooter>
     </Sidebar>
   );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const StaffSidebar = memo(StaffSidebarComponent);
 
 export default StaffSidebar;
