@@ -10,11 +10,15 @@ import {
   MapPin,
   Loader2,
   Info,
+  Clock,
+  Home,
+  Building,
 } from "lucide-react";
 import StaffDashboardMainPage from "@/screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { toast } from "sonner";
+import axios from "axios";
 
 // Office location configuration
 const OFFICE = {
@@ -22,6 +26,9 @@ const OFFICE = {
   lng: -0.180019,
   radius: 100, // meters
 };
+
+// API Configuration
+const API_BASE_URL = "https://vireworkplace-backend-hpca.onrender.com/api/v1";
 
 // Calculate distance between two points using Haversine formula
 const getDistance = (lat1, lng1, lat2, lng2) => {
@@ -36,6 +43,18 @@ const getDistance = (lat1, lng1, lat2, lng2) => {
       Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+};
+
+// Create axios instance with default config
+const createApiClient = (token) => {
+  return axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    timeout: 30000, // 30 seconds timeout
+  });
 };
 
 export default function CheckIn() {
@@ -54,6 +73,7 @@ export default function CheckIn() {
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
   // Error states
   const [error, setError] = useState("");
@@ -67,6 +87,7 @@ export default function CheckIn() {
 
   // User data
   const [userData, setUserData] = useState(null);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
   // Get authentication token from various sources
   const getAuthToken = () => {
@@ -222,34 +243,44 @@ export default function CheckIn() {
   // Initialize user data and check attendance status
   useEffect(() => {
     const initializeComponent = async () => {
-      if (user) {
-        setUserData({
-          firstName:
-            user.firstName || (user.name ? user.name.split(" ")[0] : ""),
-          lastName:
-            user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
-          email: user.email || "",
-          profileImage:
-            user.profileImage || user.avatar || user.photoUrl || null,
-        });
-        setLoadingUser(false);
-      } else {
-        await fetchUserData();
-      }
-
-      // Check attendance status after user data is loaded
       try {
-        const statusData = await checkAttendanceStatus();
-        if (statusData && statusData.data && statusData.data.hasCheckedIn) {
-          console.log("User is already checked in, redirecting to dashboard");
-          toast.info("You are already checked in for today!");
-          setTimeout(() => {
-            navigate("/staff/dashboard");
-          }, 1000);
+        setCheckingStatus(true);
+        
+        if (user) {
+          setUserData({
+            firstName:
+              user.firstName || (user.name ? user.name.split(" ")[0] : ""),
+            lastName:
+              user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
+            email: user.email || "",
+            profileImage:
+              user.profileImage || user.avatar || user.photoUrl || null,
+          });
+          setLoadingUser(false);
+        } else {
+          await fetchUserData();
+        }
+
+        // Check attendance status after user data is loaded
+        try {
+          const statusData = await checkAttendanceStatus();
+          if (statusData && statusData.success && statusData.data && statusData.data.hasCheckedIn) {
+            console.log("User is already checked in, redirecting to dashboard");
+            toast.info("You are already checked in for today!");
+            setTimeout(() => {
+              navigate("/staff/dashboard");
+            }, 1000);
+            return;
+          }
+        } catch (error) {
+          console.warn("Could not check attendance status:", error);
+          // Continue with normal flow
         }
       } catch (error) {
-        console.warn("Could not check attendance status:", error);
-        // Continue with normal flow
+        console.error("Initialization error:", error);
+        toast.error("Failed to initialize. Please refresh the page.");
+      } finally {
+        setCheckingStatus(false);
       }
     };
 
@@ -420,30 +451,18 @@ export default function CheckIn() {
     }
 
     try {
-      const response = await fetch(
-        "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/status",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Attendance status:", data);
-        return data;
-      } else if (response.status === 401 || response.status === 403) {
-        clearTokens();
-        throw new Error("Session expired. Please log in again.");
-      } else {
-        console.warn("Could not fetch attendance status:", response.status);
-        return null;
-      }
+      const apiClient = createApiClient(token);
+      const response = await apiClient.get("/attendance/status");
+      
+      console.log("Attendance status:", response.data);
+      setAttendanceStatus(response.data);
+      return response.data;
     } catch (error) {
       console.warn("Error checking attendance status:", error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        clearTokens();
+        throw new Error("Session expired. Please log in again.");
+      }
       return null;
     }
   };
@@ -471,27 +490,65 @@ export default function CheckIn() {
       requestBody,
     });
 
-    const response = await fetch(
-      "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/checkin",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
+    try {
+      const apiClient = createApiClient(token);
+      const response = await apiClient.post("/attendance/checkin", requestBody);
 
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
+      // Log the response for debugging
+      console.log("Check-in response:", response.data);
+
+      if (response.data.success !== true) {
+        throw new Error("Unexpected response format");
+      }
+
+      // Store check-in info in localStorage for synchronization with checkout
+      const today = new Date().toDateString();
+      const todayKey = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+      const now = new Date();
+
+      const checkinInfo = {
+        date: today,
+        dateKey: todayKey,
+        timestamp: now.toISOString(),
+        timezoneOffset: now.getTimezoneOffset(),
+        workingLocation: workingLocation,
+        latitude: lat,
+        longitude: lng,
+        response: response.data,
+        attendanceData: response.data.attendanceData,
+        late: response.data.late || false,
+        user: response.data.user,
+        completed: true,
+      };
+
+      // Store with multiple keys for better compatibility with checkout
+      localStorage.setItem(`checkin_${today}`, JSON.stringify(checkinInfo));
+      localStorage.setItem(`checkin_${todayKey}`, JSON.stringify(checkinInfo));
+      localStorage.setItem(`checkin_info_${today}`, JSON.stringify(checkinInfo));
+      localStorage.setItem(
+        `checkin_info_${todayKey}`,
+        JSON.stringify(checkinInfo)
+      );
+
+      console.log("=== CHECKIN DEBUG INFO ===");
+      console.log("Check-in date (toDateString):", today);
+      console.log("Check-in date (YYYY-MM-DD):", todayKey);
+      console.log("Check-in date (ISO):", now.toISOString());
+      console.log("Check-in timezone offset:", now.getTimezoneOffset());
+      console.log("Check-in info stored:", checkinInfo);
+      console.log("=== END DEBUG INFO ===");
+
+      return response.data;
+    } catch (error) {
+      console.error("Check-in API error:", error);
+      
+      if (error.response?.status === 401 || error.response?.status === 403) {
         clearTokens();
         throw new Error("Session expired. Please log in again.");
       }
 
-      if (response.status === 400) {
-        const errorData = await response.json();
-        const errorMsg = errorData.message || "Invalid request";
+      if (error.response?.status === 400) {
+        const errorMsg = error.response.data?.message || "Invalid request";
 
         // Check for location-related errors
         if (
@@ -504,62 +561,22 @@ export default function CheckIn() {
           );
         }
 
+        // Check for already checked in error
+        if (errorMsg.toLowerCase().includes("already checked in")) {
+          throw new Error("You have already checked in for today.");
+        }
+
         throw new Error(errorMsg);
       }
 
-      const errorData = await response.json().catch(() => ({}));
+      if (error.code === "ECONNABORTED") {
+        throw new Error("Request timed out. Please check your internet connection and try again.");
+      }
+
       throw new Error(
-        errorData.message || `Request failed: ${response.status}`
+        error.response?.data?.message || error.message || "Check-in failed. Please try again."
       );
     }
-
-    const data = await response.json();
-
-    // Log the response for debugging
-    console.log("Check-in response:", data);
-
-    if (data.success !== true) {
-      throw new Error("Unexpected response format");
-    }
-
-    // Store check-in info in localStorage for synchronization with checkout
-    const today = new Date().toDateString();
-    const todayKey = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-    const now = new Date();
-
-    const checkinInfo = {
-      date: today,
-      dateKey: todayKey,
-      timestamp: now.toISOString(),
-      timezoneOffset: now.getTimezoneOffset(),
-      workingLocation: workingLocation,
-      latitude: lat,
-      longitude: lng,
-      response: data,
-      attendanceData: data.attendanceData,
-      late: data.late || false,
-      user: data.user,
-      completed: true,
-    };
-
-    // Store with multiple keys for better compatibility with checkout
-    localStorage.setItem(`checkin_${today}`, JSON.stringify(checkinInfo));
-    localStorage.setItem(`checkin_${todayKey}`, JSON.stringify(checkinInfo));
-    localStorage.setItem(`checkin_info_${today}`, JSON.stringify(checkinInfo));
-    localStorage.setItem(
-      `checkin_info_${todayKey}`,
-      JSON.stringify(checkinInfo)
-    );
-
-    console.log("=== CHECKIN DEBUG INFO ===");
-    console.log("Check-in date (toDateString):", today);
-    console.log("Check-in date (YYYY-MM-DD):", todayKey);
-    console.log("Check-in date (ISO):", now.toISOString());
-    console.log("Check-in timezone offset:", now.getTimezoneOffset());
-    console.log("Check-in info stored:", checkinInfo);
-    console.log("=== END DEBUG INFO ===");
-
-    return data;
   };
 
   // Handle check-in process
@@ -632,12 +649,14 @@ export default function CheckIn() {
     navigate("/staff");
   };
 
-  if (loadingUser) {
+  if (loadingUser || checkingStatus) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-slate-600">Loading...</p>
+          <p className="text-slate-600">
+            {checkingStatus ? "Checking attendance status..." : "Loading..."}
+          </p>
         </div>
       </div>
     );
@@ -695,7 +714,7 @@ export default function CheckIn() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <MapPin className="w-4 h-4" />
+                      <Building className={`w-5 h-5 ${workLocation === "office" ? "text-blue-600" : "text-slate-500"}`} />
                       <div>
                         <Label
                           className={`cursor-pointer font-medium ${
@@ -729,6 +748,7 @@ export default function CheckIn() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
+                      <Home className={`w-5 h-5 ${workLocation === "remote" ? "text-blue-600" : "text-slate-500"}`} />
                       <div>
                         <Label
                           className={`cursor-pointer font-medium ${

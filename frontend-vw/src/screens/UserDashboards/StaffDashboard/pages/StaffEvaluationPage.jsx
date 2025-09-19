@@ -1138,22 +1138,13 @@ export default function Evaluation() {
       {/* Metrics Cards */}
       <div className="px-4 lg:px-6 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            title="IN PROGRESS"
-            value={metrics.inProgress}
-          />
-          <MetricCard
-            title="REVIEWS DUE"
-            value={metrics.reviewsDue}
-          />
+          <MetricCard title="IN PROGRESS" value={metrics.inProgress} />
+          <MetricCard title="REVIEWS DUE" value={metrics.reviewsDue} />
           <MetricCard
             title="COMPLETED REVIEWS"
             value={metrics.completedReviews}
           />
-          <MetricCard
-            title="TOTAL EVALUATIONS"
-            value={evaluations.length}
-          />
+          <MetricCard title="TOTAL EVALUATIONS" value={evaluations.length} />
         </div>
       </div>
 
