@@ -224,11 +224,13 @@ export default function CheckIn() {
     const initializeComponent = async () => {
       if (user) {
         setUserData({
-          firstName: user.firstName || (user.name ? user.name.split(" ")[0] : ""),
+          firstName:
+            user.firstName || (user.name ? user.name.split(" ")[0] : ""),
           lastName:
             user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
           email: user.email || "",
-          profileImage: user.profileImage || user.avatar || user.photoUrl || null,
+          profileImage:
+            user.profileImage || user.avatar || user.photoUrl || null,
         });
         setLoadingUser(false);
       } else {
@@ -522,9 +524,9 @@ export default function CheckIn() {
 
     // Store check-in info in localStorage for synchronization with checkout
     const today = new Date().toDateString();
-    const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const todayKey = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
     const now = new Date();
-    
+
     const checkinInfo = {
       date: today,
       dateKey: todayKey,
@@ -537,14 +539,17 @@ export default function CheckIn() {
       attendanceData: data.attendanceData,
       late: data.late || false,
       user: data.user,
-      completed: true
+      completed: true,
     };
 
     // Store with multiple keys for better compatibility with checkout
     localStorage.setItem(`checkin_${today}`, JSON.stringify(checkinInfo));
     localStorage.setItem(`checkin_${todayKey}`, JSON.stringify(checkinInfo));
     localStorage.setItem(`checkin_info_${today}`, JSON.stringify(checkinInfo));
-    localStorage.setItem(`checkin_info_${todayKey}`, JSON.stringify(checkinInfo));
+    localStorage.setItem(
+      `checkin_info_${todayKey}`,
+      JSON.stringify(checkinInfo)
+    );
 
     console.log("=== CHECKIN DEBUG INFO ===");
     console.log("Check-in date (toDateString):", today);

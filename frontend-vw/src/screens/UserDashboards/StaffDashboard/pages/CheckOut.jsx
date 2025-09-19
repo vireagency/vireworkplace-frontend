@@ -92,22 +92,22 @@ export default function CheckOut() {
   // Calculate overtime hours based on check-in time
   const calculateOvertimeHours = (checkinTime) => {
     if (!checkinTime) return 0;
-    
+
     const now = new Date();
     const checkin = new Date(checkinTime);
     const workStartTime = new Date(checkin);
     workStartTime.setHours(9, 0, 0, 0); // 9:00 AM
-    
+
     const workEndTime = new Date(checkin);
     workEndTime.setHours(17, 0, 0, 0); // 5:00 PM
-    
+
     // If current time is after 5:00 PM, calculate overtime
     if (now > workEndTime) {
       const overtimeMs = now.getTime() - workEndTime.getTime();
       const overtimeHours = overtimeMs / (1000 * 60 * 60); // Convert to hours
       return Math.round(overtimeHours * 10) / 10; // Round to 1 decimal place
     }
-    
+
     return 0;
   };
 
@@ -278,14 +278,22 @@ export default function CheckOut() {
                   timestamp: result.data.checkInTime,
                   workingLocation: result.data.workingLocation || "unknown",
                   apiData: result.data,
-                  completed: true
+                  completed: true,
                 };
-                localStorage.setItem(`checkin_${todayDateString}`, JSON.stringify(checkinInfo));
-                localStorage.setItem(`checkin_${todayKey}`, JSON.stringify(checkinInfo));
+                localStorage.setItem(
+                  `checkin_${todayDateString}`,
+                  JSON.stringify(checkinInfo)
+                );
+                localStorage.setItem(
+                  `checkin_${todayKey}`,
+                  JSON.stringify(checkinInfo)
+                );
               }
             } else {
               console.log("❌ User has not checked in today");
-              setError("No check-in record found for today. Please check in first.");
+              setError(
+                "No check-in record found for today. Please check in first."
+              );
               setShowMainDialog(false);
               setShowErrorDialog(true);
               setIsCheckingStatus(false);
@@ -608,7 +616,11 @@ export default function CheckOut() {
         data.attendanceData.overtimeHours > 0
       ) {
         setIsOvertime(true);
-        console.log("Overtime detected from API:", data.attendanceData.overtimeHours, "hours");
+        console.log(
+          "Overtime detected from API:",
+          data.attendanceData.overtimeHours,
+          "hours"
+        );
       }
 
       // Also check current time for overtime
@@ -969,11 +981,14 @@ export default function CheckOut() {
                   Overtime Detected
                 </h3>
                 <p className="text-black text-sm leading-relaxed">
-                  You checked out after 5:00 PM. Your overtime has been recorded and HR has been notified.
+                  You checked out after 5:00 PM. Your overtime has been recorded
+                  and HR has been notified.
                 </p>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
                   <div className="text-sm text-yellow-800">
-                    <div className="font-medium">Check-out Time: {currentTime}</div>
+                    <div className="font-medium">
+                      Check-out Time: {currentTime}
+                    </div>
                     <div className="text-xs mt-1">
                       Standard work hours: 9:00 AM - 5:00 PM
                     </div>
