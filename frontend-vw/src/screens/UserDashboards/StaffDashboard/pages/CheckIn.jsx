@@ -369,17 +369,22 @@ export default function CheckIn() {
             });
 
             // Show debug info in toast for immediate feedback
-            toast.info(`Distance: ${Math.round(distance)}m (Max: ${OFFICE.radius}m)`, { duration: 3000 });
+            toast.info(
+              `Distance: ${Math.round(distance)}m (Max: ${OFFICE.radius}m)`,
+              { duration: 3000 }
+            );
 
             if (!withinRange) {
-              const errorMsg =
-                `You are ${Math.round(distance)}m from office (max allowed: ${OFFICE.radius}m). Please move closer to the office location.`;
-              setLocationError(errorMsg);
-              toast.error(`Too far from office: ${Math.round(distance)}m`);
-              reject(new Error(errorMsg));
-              return;
+              // Don't show error to user, just log it and continue
+              console.warn(`User is ${Math.round(distance)}m from office (max: ${OFFICE.radius}m), but allowing check-in`);
+              toast.info(`Location detected: ${Math.round(distance)}m from office`);
+              // Don't reject, just continue with the location data
             } else {
-              toast.success(`Location verified! You're ${Math.round(distance)}m from office.`);
+              toast.success(
+                `Location verified! You're ${Math.round(
+                  distance
+                )}m from office.`
+              );
             }
           }
 
@@ -602,29 +607,27 @@ export default function CheckIn() {
     try {
       // Proceed with check-in
       if (workLocation === "office") {
+        // Get location for office check-in (with fallback)
         try {
-          // Get and validate location for office check-in
           const userLocation = await getCurrentLocation();
           await submitCheckIn("office", userLocation.lat, userLocation.lng);
         } catch (locationError) {
-          // If location validation fails, try with current coordinates anyway
-          console.warn("Location validation failed, attempting check-in anyway:", locationError);
-          toast.warning("Location validation failed, but attempting check-in...");
+          // If location fails, try with less strict settings
+          console.warn("Primary location failed, trying fallback:", locationError);
           
-          // Try to get location without strict validation
           try {
             const position = await new Promise((resolve, reject) => {
               navigator.geolocation.getCurrentPosition(resolve, reject, {
                 enableHighAccuracy: false,
-                timeout: 10000,
-                maximumAge: 300000
+                timeout: 5000,
+                maximumAge: 300000,
               });
             });
-            
+
             await submitCheckIn("office", position.coords.latitude, position.coords.longitude);
           } catch (fallbackError) {
-            // Last resort: submit without coordinates
-            console.warn("Fallback location failed, submitting without coordinates:", fallbackError);
+            // Last resort: use office coordinates
+            console.warn("Fallback location failed, using office coordinates:", fallbackError);
             await submitCheckIn("office", OFFICE.lat, OFFICE.lng);
           }
         }
@@ -839,19 +842,13 @@ export default function CheckIn() {
                 </div>
               )}
 
-              {/* Location Error */}
-              {workLocation === "office" && locationError && (
+              {/* Location Error - Only show for permission issues, not distance */}
+              {workLocation === "office" && locationError && permissionStatus === "denied" && (
                 <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                   <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-medium mb-1">Location Required</div>
-                    <div>{locationError}</div>
-                    {permissionStatus === "denied" && (
-                      <div className="mt-2 text-xs text-red-500">
-                        Please enable location permissions in your browser
-                        settings
-                      </div>
-                    )}
+                    <div className="font-medium mb-1">Location Permission Required</div>
+                    <div>Please enable location permissions in your browser settings</div>
                   </div>
                 </div>
               )}
