@@ -185,21 +185,31 @@ const AssigneeSearchInput = ({
     try {
       setLoading(true);
       const response = await axios.get(
-        `${API_URL}/tasks/assignees/search?query=${encodeURIComponent(query)}`,
+        `${API_URL}/api/v1/tasks/assignees/search?query=${encodeURIComponent(query)}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
+          timeout: 10000,
         }
       );
 
-      if (response.data.success) {
-        setUsers(response.data.data || []);
+      console.log("🔍 User search response:", response.data);
+
+      if (response.status === 200) {
+        setUsers(response.data || []);
         setIsOpen(true);
+      } else {
+        setUsers([]);
+        setIsOpen(false);
       }
     } catch (error) {
-      console.error("Error searching users:", error);
+      console.error("❌ Error searching users:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       setUsers([]);
       setIsOpen(false);
     } finally {
@@ -519,6 +529,259 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   );
 };
 
+// Edit Task Modal Component
+const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
+  const { user } = useAuth();
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    department: "",
+    dueDate: "",
+    priority: "",
+    status: "",
+    assigneeSearch: "",
+    assignedTo: null,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Populate form when task changes
+  useEffect(() => {
+    if (task && isOpen) {
+      setFormData({
+        title: task.title || "",
+        description: task.description || "",
+        department: "",
+        dueDate: task.dueDate || "",
+        priority: task.priority || "",
+        status: task.status || "",
+        assigneeSearch: task.assignee || "",
+        assignedTo: task.assignedTo?._id || null,
+      });
+    }
+  }, [task, isOpen]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        title: "",
+        description: "",
+        department: "",
+        dueDate: "",
+        priority: "",
+        status: "",
+        assigneeSearch: "",
+        assignedTo: null,
+      });
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.title.trim()) {
+      setIsSubmitting(true);
+      try {
+        // If no assignee is selected, keep the current one
+        const assigneeId = formData.assignedTo || task?.assignedTo?._id;
+
+        await onUpdateTask({
+          title: formData.title,
+          description: formData.description,
+          assignedTo: assigneeId,
+          dueDate: formData.dueDate,
+          priority: formData.priority || "Medium",
+          status: formData.status || "Pending",
+        });
+        onClose();
+        toast.success("Task updated successfully!");
+      } catch (error) {
+        console.error("Error updating task:", error);
+        toast.error("Failed to update task. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  if (!task) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-medium text-green-600">Edit Task</h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Title */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="edit-title"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Title
+            </Label>
+            <Input
+              id="edit-title"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="Enter task title..."
+              required
+              className="w-full"
+            />
+          </div>
+
+          {/* Task Description */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="edit-description"
+              className="text-sm font-medium text-gray-900"
+            >
+              Task Description
+            </Label>
+            <Textarea
+              id="edit-description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              placeholder="Provide detailed task description..."
+              rows={4}
+              className="w-full resize-none"
+            />
+          </div>
+
+          {/* Department and Due Date Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Department
+              </Label>
+              <Select
+                value={formData.department}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, department: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                  <SelectItem value="Finance">Finance</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Operations">Operations</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Due Date
+              </Label>
+              <Input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, dueDate: e.target.value })
+                }
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          {/* Priority, Status and Assignee Row */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Priority
+              </Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, priority: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Status
+              </Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">
+                Assignee
+              </Label>
+              <AssigneeSearchInput
+                value={formData.assigneeSearch}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, assigneeSearch: value })
+                }
+                selectedUser={formData.assignedTo}
+                onUserSelect={(userId) =>
+                  setFormData({ ...formData, assignedTo: userId })
+                }
+                placeholder="Search by name"
+              />
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Updating..." : "Update Task"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Task Actions Menu Component
 const TaskActionsMenu = ({
   task,
@@ -625,6 +888,8 @@ export default function StaffTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [dueDateFilter, setDueDateFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
 
   // API configuration
   const API_URL = getApiUrl();
@@ -640,20 +905,32 @@ export default function StaffTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      // Build query parameters
+      // Build query parameters according to API documentation
       const params = new URLSearchParams();
       if (statusFilter !== "all") {
-        params.append("status", statusFilter);
+        // Convert to proper case for API
+        const statusMap = {
+          "pending": "Pending",
+          "in progress": "In Progress", 
+          "completed": "Completed"
+        };
+        params.append("status", statusMap[statusFilter] || statusFilter);
       }
       if (priorityFilter !== "all") {
-        params.append("priority", priorityFilter);
+        // Convert to proper case for API
+        const priorityMap = {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        };
+        params.append("priority", priorityMap[priorityFilter] || priorityFilter);
       }
       if (dueDateFilter) {
         params.append("dueDate", dueDateFilter);
       }
 
       const queryString = params.toString();
-      const url = `${API_URL}/tasks${queryString ? `?${queryString}` : ""}`;
+      const url = `${API_URL}/api/v1/tasks${queryString ? `?${queryString}` : ""}`;
 
       console.log("🔍 Fetching tasks from:", url);
       console.log("👤 Current user:", user?.firstName, user?.lastName);
@@ -669,9 +946,9 @@ export default function StaffTasksPage() {
 
       console.log("📡 API Response:", response.data);
 
-      if (response.data.success) {
-        const apiData =
-          response.data.data || response.data.tasks || response.data || [];
+      // Handle successful response (200 status)
+      if (response.status === 200) {
+        const apiData = response.data || [];
 
         if (Array.isArray(apiData)) {
           const transformedTasks = apiData.map((task) => {
@@ -721,11 +998,8 @@ export default function StaffTasksPage() {
           setTasks([]);
         }
       } else {
-        console.warn("⚠️ API response indicates failure:", response.data);
+        console.warn("⚠️ Unexpected response status:", response.status);
         setTasks([]);
-        if (response.data.message) {
-          throw new Error(response.data.message);
-        }
       }
     } catch (err) {
       console.error("❌ Error fetching tasks:", {
@@ -767,8 +1041,10 @@ export default function StaffTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
+      console.log("🔄 Creating task with data:", taskData);
+
       const response = await axios.post(
-        `${API_URL}/tasks/create`,
+        `${API_URL}/api/v1/tasks/create`,
         {
           title: taskData.title,
           description: taskData.description,
@@ -781,20 +1057,44 @@ export default function StaffTasksPage() {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
+          timeout: 10000,
         }
       );
 
-      if (response.data.success) {
+      console.log("📡 Create task response:", response.data);
+
+      if (response.status === 201) {
         await fetchTasks();
-        console.log("Task added successfully");
+        console.log("✅ Task created successfully");
+        toast.success("Task created successfully!");
       } else {
-        throw new Error(response.data.message || "Failed to add task");
+        throw new Error(response.data.message || "Failed to create task");
       }
     } catch (err) {
-      console.error("Error adding task:", err);
-      const errorMessage =
-        err.response?.data?.message || err.message || "Failed to add task";
-      setError(`Failed to add task: ${errorMessage}`);
+      console.error("❌ Error creating task:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+
+      let errorMessage = "Failed to create task";
+      
+      if (err.response?.status === 400) {
+        errorMessage = "Invalid task data. Please check all fields.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (err.response?.status === 404) {
+        errorMessage = "Assigned user not found.";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(`Failed to create task: ${errorMessage}`);
+      toast.error(errorMessage);
       throw err;
     }
   };
@@ -807,11 +1107,19 @@ export default function StaffTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      console.log("🔄 Updating task status:", { taskId, newStatus });
+      // Convert status to proper case for API
+      const statusMap = {
+        "pending": "Pending",
+        "in progress": "In Progress",
+        "completed": "Completed"
+      };
+      const apiStatus = statusMap[newStatus] || newStatus;
+
+      console.log("🔄 Updating task status:", { taskId, newStatus, apiStatus });
 
       const response = await axios.patch(
-        `${API_URL}/tasks/${taskId}/status`,
-        { status: newStatus },
+        `${API_URL}/api/v1/tasks/${taskId}/status`,
+        { status: apiStatus },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -823,7 +1131,7 @@ export default function StaffTasksPage() {
 
       console.log("📡 Status update response:", response.data);
 
-      if (response.data.success) {
+      if (response.status === 200) {
         await fetchTasks();
         toast.success(`Task status updated to ${newStatus}!`);
         console.log("✅ Task status updated successfully");
@@ -841,11 +1149,25 @@ export default function StaffTasksPage() {
         newStatus,
       });
 
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to update task status";
-      toast.error(`Failed to update task status: ${errorMessage}`);
+      let errorMessage = "Failed to update task status";
+      
+      if (err.response?.status === 400) {
+        errorMessage = "Invalid task ID or status.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (err.response?.status === 403) {
+        errorMessage = "Only the assignee can update task status.";
+      } else if (err.response?.status === 404) {
+        errorMessage = "Task not found.";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      toast.error(errorMessage);
     }
   };
 
@@ -867,7 +1189,7 @@ export default function StaffTasksPage() {
 
       console.log("🗑️ Deleting task:", taskId);
 
-      const response = await axios.delete(`${API_URL}/tasks/${taskId}`, {
+      const response = await axios.delete(`${API_URL}/api/v1/tasks/${taskId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
@@ -877,7 +1199,7 @@ export default function StaffTasksPage() {
 
       console.log("📡 Delete response:", response.data);
 
-      if (response.data.success) {
+      if (response.status === 200) {
         await fetchTasks();
         toast.success("Task deleted successfully!");
         console.log("✅ Task deleted successfully");
@@ -892,17 +1214,106 @@ export default function StaffTasksPage() {
         taskId,
       });
 
-      const errorMessage =
-        err.response?.data?.message || err.message || "Failed to delete task";
-      toast.error(`Failed to delete task: ${errorMessage}`);
+      let errorMessage = "Failed to delete task";
+      
+      if (err.response?.status === 400) {
+        errorMessage = "Invalid task ID.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (err.response?.status === 403) {
+        errorMessage = "Only the creator can delete this task.";
+      } else if (err.response?.status === 404) {
+        errorMessage = "Task not found.";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      toast.error(errorMessage);
     }
   };
 
-  // Edit task (placeholder for future implementation)
+  // Edit task functionality
   const handleEditTask = (task) => {
     console.log("Edit task:", task);
-    // TODO: Implement edit task modal
-    toast.info("Edit functionality coming soon!");
+    setEditingTask(task);
+    setShowEditModal(true);
+  };
+
+  // Update task functionality
+  const handleUpdateTask = async (taskData) => {
+    try {
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
+      }
+
+      if (!editingTask) {
+        throw new Error("No task selected for editing.");
+      }
+
+      console.log("🔄 Updating task:", editingTask.id, "with data:", taskData);
+
+      const response = await axios.put(
+        `${API_URL}/api/v1/tasks/${editingTask.id}`,
+        {
+          title: taskData.title,
+          description: taskData.description,
+          assignedTo: taskData.assignedTo,
+          dueDate: taskData.dueDate,
+          priority: taskData.priority,
+          status: taskData.status,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
+
+      console.log("📡 Update task response:", response.data);
+
+      if (response.status === 200) {
+        await fetchTasks();
+        setShowEditModal(false);
+        setEditingTask(null);
+        console.log("✅ Task updated successfully");
+        toast.success("Task updated successfully!");
+      } else {
+        throw new Error(response.data.message || "Failed to update task");
+      }
+    } catch (err) {
+      console.error("❌ Error updating task:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+
+      let errorMessage = "Failed to update task";
+      
+      if (err.response?.status === 400) {
+        errorMessage = "Invalid request data. Please check all fields.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (err.response?.status === 403) {
+        errorMessage = "You are not allowed to edit this task.";
+      } else if (err.response?.status === 404) {
+        errorMessage = "Task or assigned user not found.";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      toast.error(errorMessage);
+      throw err;
+    }
   };
 
   // Initial fetch and refetch when filters change
@@ -1184,6 +1595,17 @@ export default function StaffTasksPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onAddTask={handleAddTask}
+      />
+
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingTask(null);
+        }}
+        onUpdateTask={handleUpdateTask}
+        task={editingTask}
       />
     </StaffDashboardLayout>
   );
