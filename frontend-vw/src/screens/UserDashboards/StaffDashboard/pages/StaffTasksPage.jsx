@@ -23,7 +23,6 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  RefreshCw,
 } from "lucide-react";
 import axios from "axios";
 
@@ -185,31 +184,21 @@ const AssigneeSearchInput = ({
     try {
       setLoading(true);
       const response = await axios.get(
-        `${API_URL}/api/v1/tasks/assignees/search?query=${encodeURIComponent(query)}`,
+        `${API_URL}/tasks/assignees/search?query=${encodeURIComponent(query)}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          timeout: 10000,
         }
       );
 
-      console.log("🔍 User search response:", response.data);
-
-      if (response.status === 200) {
-        setUsers(response.data || []);
+      if (response.data.success) {
+        setUsers(response.data.data || []);
         setIsOpen(true);
-      } else {
-        setUsers([]);
-        setIsOpen(false);
       }
     } catch (error) {
-      console.error("❌ Error searching users:", {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
+      console.error("Error searching users:", error);
       setUsers([]);
       setIsOpen(false);
     } finally {
@@ -529,259 +518,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   );
 };
 
-// Edit Task Modal Component
-const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
-  const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    department: "",
-    dueDate: "",
-    priority: "",
-    status: "",
-    assigneeSearch: "",
-    assignedTo: null,
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Populate form when task changes
-  useEffect(() => {
-    if (task && isOpen) {
-      setFormData({
-        title: task.title || "",
-        description: task.description || "",
-        department: "",
-        dueDate: task.dueDate || "",
-        priority: task.priority || "",
-        status: task.status || "",
-        assigneeSearch: task.assignee || "",
-        assignedTo: task.assignedTo?._id || null,
-      });
-    }
-  }, [task, isOpen]);
-
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData({
-        title: "",
-        description: "",
-        department: "",
-        dueDate: "",
-        priority: "",
-        status: "",
-        assigneeSearch: "",
-        assignedTo: null,
-      });
-    }
-  }, [isOpen]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (formData.title.trim()) {
-      setIsSubmitting(true);
-      try {
-        // If no assignee is selected, keep the current one
-        const assigneeId = formData.assignedTo || task?.assignedTo?._id;
-
-        await onUpdateTask({
-          title: formData.title,
-          description: formData.description,
-          assignedTo: assigneeId,
-          dueDate: formData.dueDate,
-          priority: formData.priority || "Medium",
-          status: formData.status || "Pending",
-        });
-        onClose();
-        toast.success("Task updated successfully!");
-      } catch (error) {
-        console.error("Error updating task:", error);
-        toast.error("Failed to update task. Please try again.");
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
-  if (!task) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-medium text-green-600">Edit Task</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Task Title */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-title"
-              className="text-sm font-medium text-gray-900"
-            >
-              Task Title
-            </Label>
-            <Input
-              id="edit-title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Enter task title..."
-              required
-              className="w-full"
-            />
-          </div>
-
-          {/* Task Description */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-description"
-              className="text-sm font-medium text-gray-900"
-            >
-              Task Description
-            </Label>
-            <Textarea
-              id="edit-description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Provide detailed task description..."
-              rows={4}
-              className="w-full resize-none"
-            />
-          </div>
-
-          {/* Department and Due Date Row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Department
-              </Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, department: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Operations">Operations</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Due Date
-              </Label>
-              <Input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, dueDate: e.target.value })
-                }
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          {/* Priority, Status and Assignee Row */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Priority
-              </Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, priority: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Status
-              </Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, status: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">
-                Assignee
-              </Label>
-              <AssigneeSearchInput
-                value={formData.assigneeSearch}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, assigneeSearch: value })
-                }
-                selectedUser={formData.assignedTo}
-                onUserSelect={(userId) =>
-                  setFormData({ ...formData, assignedTo: userId })
-                }
-                placeholder="Search by name"
-              />
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex items-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Updating..." : "Update Task"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 // Task Actions Menu Component
 const TaskActionsMenu = ({
   task,
@@ -875,7 +611,7 @@ const ErrorState = ({ error, onRetry }) => (
 export default function StaffTasksPage() {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
-
+  
   // Get sidebar counts
   const sidebarCounts = useSidebarCounts();
 
@@ -888,131 +624,91 @@ export default function StaffTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [dueDateFilter, setDueDateFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
 
   // API configuration
   const API_URL = getApiUrl();
 
-  // Fetch tasks from API with enhanced error handling and debugging
+  // Fetch tasks from API
   const fetchTasks = async () => {
     try {
       setLoading(true);
       setError(null);
 
       if (!accessToken) {
-        console.error("No access token available for task fetching");
         throw new Error("No access token available. Please log in again.");
       }
 
-      // Build query parameters according to API documentation
+      // Build query parameters
       const params = new URLSearchParams();
       if (statusFilter !== "all") {
-        // Convert to proper case for API
-        const statusMap = {
-          "pending": "Pending",
-          "in progress": "In Progress", 
-          "completed": "Completed"
-        };
-        params.append("status", statusMap[statusFilter] || statusFilter);
+        params.append("status", statusFilter);
       }
       if (priorityFilter !== "all") {
-        // Convert to proper case for API
-        const priorityMap = {
-          "high": "High",
-          "medium": "Medium",
-          "low": "Low"
-        };
-        params.append("priority", priorityMap[priorityFilter] || priorityFilter);
+        params.append("priority", priorityFilter);
       }
       if (dueDateFilter) {
         params.append("dueDate", dueDateFilter);
       }
 
       const queryString = params.toString();
-      const url = `${API_URL}/api/v1/tasks${queryString ? `?${queryString}` : ""}`;
+      const url = `${API_URL}/tasks${queryString ? `?${queryString}` : ""}`;
 
-      console.log("🔍 Fetching tasks from:", url);
-      console.log("👤 Current user:", user?.firstName, user?.lastName);
-      console.log("🔑 Access token available:", !!accessToken);
+      console.log("Fetching tasks from:", url);
 
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        timeout: 10000, // 10 second timeout
       });
 
-      console.log("📡 API Response:", response.data);
-
-      // Handle successful response (200 status)
-      if (response.status === 200) {
-        const apiData = response.data || [];
+      if (response.data.success) {
+        const apiData =
+          response.data.data || response.data.tasks || response.data || [];
 
         if (Array.isArray(apiData)) {
-          const transformedTasks = apiData.map((task) => {
-            const transformedTask = {
-              id: task._id || task.id,
-              title: task.title || "Untitled Task",
-              description: task.description || "No description provided",
-              assignee:
-                task.assignedTo?.firstName && task.assignedTo?.lastName
-                  ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
-                  : task.assignedTo?.name || task.assignee || "Unassigned",
-              dueDate: task.dueDate
-                ? new Date(task.dueDate).toISOString().split("T")[0]
-                : "",
-              status: task.status?.toLowerCase() || "pending",
-              priority: task.priority?.toLowerCase() || "medium",
-              progress: task.progress || 0,
-              createdBy: task.createdBy,
-              assignedTo: task.assignedTo,
-              createdAt: task.createdAt,
-              updatedAt: task.updatedAt,
-              canEdit:
-                task.createdBy?._id === user?._id ||
-                task.assignedTo?._id === user?._id,
-              canDelete: task.createdBy?._id === user?._id,
-            };
-
-            console.log("🔄 Transformed task:", transformedTask.title, {
-              canEdit: transformedTask.canEdit,
-              canDelete: transformedTask.canDelete,
-              status: transformedTask.status,
-            });
-
-            return transformedTask;
-          });
+          const transformedTasks = apiData.map((task) => ({
+            id: task._id || task.id,
+            title: task.title || "Untitled Task",
+            description: task.description || "No description provided",
+            assignee:
+              task.assignedTo?.firstName && task.assignedTo?.lastName
+                ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+                : task.assignedTo?.name || task.assignee || "Unassigned",
+            dueDate: task.dueDate
+              ? new Date(task.dueDate).toISOString().split("T")[0]
+              : "",
+            status: task.status?.toLowerCase() || "pending",
+            priority: task.priority?.toLowerCase() || "medium",
+            progress: task.progress || 0,
+            createdBy: task.createdBy,
+            assignedTo: task.assignedTo,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+            canEdit:
+              task.createdBy?._id === user?._id ||
+              task.assignedTo?._id === user?._id,
+            canDelete: task.createdBy?._id === user?._id,
+          }));
 
           setTasks(transformedTasks);
-          console.log("✅ Tasks fetched successfully:", {
-            count: transformedTasks.length,
-            tasks: transformedTasks.map((t) => ({
-              title: t.title,
-              status: t.status,
-            })),
-          });
+          console.log("Tasks fetched successfully:", transformedTasks);
         } else {
-          console.warn("⚠️ API response data is not an array:", apiData);
+          console.warn("API response data is not an array:", apiData);
           setTasks([]);
         }
       } else {
-        console.warn("⚠️ Unexpected response status:", response.status);
+        console.warn("API response indicates failure:", response.data);
         setTasks([]);
+        if (response.data.message) {
+          throw new Error(response.data.message);
+        }
       }
     } catch (err) {
-      console.error("❌ Error fetching tasks:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        code: err.code,
-      });
+      console.error("Error fetching tasks:", err);
 
       if (err.response?.status === 401) {
         setError("Authentication failed. Please log in again.");
-      } else if (err.response?.status === 403) {
-        setError("Access denied. You don't have permission to view tasks.");
       } else if (err.response?.status === 500) {
         setError("Server error. Please try again later.");
       } else if (
@@ -1020,8 +716,6 @@ export default function StaffTasksPage() {
         err.message.includes("Network Error")
       ) {
         setError("Network error. Please check your connection and try again.");
-      } else if (err.code === "ECONNABORTED") {
-        setError("Request timeout. Please try again.");
       } else {
         setError(
           err.message || "An unexpected error occurred while fetching tasks."
@@ -1041,10 +735,8 @@ export default function StaffTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      console.log("🔄 Creating task with data:", taskData);
-
       const response = await axios.post(
-        `${API_URL}/api/v1/tasks/create`,
+        `${API_URL}/tasks/create`,
         {
           title: taskData.title,
           description: taskData.description,
@@ -1057,263 +749,91 @@ export default function StaffTasksPage() {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          timeout: 10000,
         }
       );
 
-      console.log("📡 Create task response:", response.data);
-
-      if (response.status === 201) {
+      if (response.data.success) {
         await fetchTasks();
-        console.log("✅ Task created successfully");
-        toast.success("Task created successfully!");
+        console.log("Task added successfully");
       } else {
-        throw new Error(response.data.message || "Failed to create task");
+        throw new Error(response.data.message || "Failed to add task");
       }
     } catch (err) {
-      console.error("❌ Error creating task:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-
-      let errorMessage = "Failed to create task";
-      
-      if (err.response?.status === 400) {
-        errorMessage = "Invalid task data. Please check all fields.";
-      } else if (err.response?.status === 401) {
-        errorMessage = "Authentication failed. Please log in again.";
-      } else if (err.response?.status === 404) {
-        errorMessage = "Assigned user not found.";
-      } else if (err.response?.status === 500) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(`Failed to create task: ${errorMessage}`);
-      toast.error(errorMessage);
+      console.error("Error adding task:", err);
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to add task";
+      setError(`Failed to add task: ${errorMessage}`);
       throw err;
     }
   };
 
-  // Update task status with enhanced debugging
+  // Update task status
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       if (!accessToken) {
-        console.error("No access token available for status update");
         throw new Error("No access token available. Please log in again.");
       }
 
-      // Convert status to proper case for API
-      const statusMap = {
-        "pending": "Pending",
-        "in progress": "In Progress",
-        "completed": "Completed"
-      };
-      const apiStatus = statusMap[newStatus] || newStatus;
-
-      console.log("🔄 Updating task status:", { taskId, newStatus, apiStatus });
-
       const response = await axios.patch(
-        `${API_URL}/api/v1/tasks/${taskId}/status`,
-        { status: apiStatus },
+        `${API_URL}/tasks/${taskId}/status`,
+        { status: newStatus },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          timeout: 10000,
         }
       );
 
-      console.log("📡 Status update response:", response.data);
-
-      if (response.status === 200) {
+      if (response.data.success) {
         await fetchTasks();
-        toast.success(`Task status updated to ${newStatus}!`);
-        console.log("✅ Task status updated successfully");
+        toast.success("Task status updated successfully!");
       } else {
         throw new Error(
           response.data.message || "Failed to update task status"
         );
       }
     } catch (err) {
-      console.error("❌ Error updating task status:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        taskId,
-        newStatus,
-      });
-
-      let errorMessage = "Failed to update task status";
-      
-      if (err.response?.status === 400) {
-        errorMessage = "Invalid task ID or status.";
-      } else if (err.response?.status === 401) {
-        errorMessage = "Authentication failed. Please log in again.";
-      } else if (err.response?.status === 403) {
-        errorMessage = "Only the assignee can update task status.";
-      } else if (err.response?.status === 404) {
-        errorMessage = "Task not found.";
-      } else if (err.response?.status === 500) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      toast.error(errorMessage);
+      console.error("Error updating task status:", err);
+      toast.error("Failed to update task status. Please try again.");
     }
   };
 
-  // Delete task with enhanced debugging
+  // Delete task
   const handleDeleteTask = async (taskId) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this task? This action cannot be undone."
-      )
-    ) {
+    if (!confirm("Are you sure you want to delete this task?")) {
       return;
     }
 
     try {
       if (!accessToken) {
-        console.error("No access token available for task deletion");
         throw new Error("No access token available. Please log in again.");
       }
 
-      console.log("🗑️ Deleting task:", taskId);
-
-      const response = await axios.delete(`${API_URL}/api/v1/tasks/${taskId}`, {
+      const response = await axios.delete(`${API_URL}/tasks/${taskId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        timeout: 10000,
       });
 
-      console.log("📡 Delete response:", response.data);
-
-      if (response.status === 200) {
+      if (response.data.success) {
         await fetchTasks();
         toast.success("Task deleted successfully!");
-        console.log("✅ Task deleted successfully");
       } else {
         throw new Error(response.data.message || "Failed to delete task");
       }
     } catch (err) {
-      console.error("❌ Error deleting task:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        taskId,
-      });
-
-      let errorMessage = "Failed to delete task";
-      
-      if (err.response?.status === 400) {
-        errorMessage = "Invalid task ID.";
-      } else if (err.response?.status === 401) {
-        errorMessage = "Authentication failed. Please log in again.";
-      } else if (err.response?.status === 403) {
-        errorMessage = "Only the creator can delete this task.";
-      } else if (err.response?.status === 404) {
-        errorMessage = "Task not found.";
-      } else if (err.response?.status === 500) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      toast.error(errorMessage);
+      console.error("Error deleting task:", err);
+      toast.error("Failed to delete task. Please try again.");
     }
   };
 
-  // Edit task functionality
+  // Edit task (placeholder for future implementation)
   const handleEditTask = (task) => {
     console.log("Edit task:", task);
-    setEditingTask(task);
-    setShowEditModal(true);
-  };
-
-  // Update task functionality
-  const handleUpdateTask = async (taskData) => {
-    try {
-      if (!accessToken) {
-        throw new Error("No access token available. Please log in again.");
-      }
-
-      if (!editingTask) {
-        throw new Error("No task selected for editing.");
-      }
-
-      console.log("🔄 Updating task:", editingTask.id, "with data:", taskData);
-
-      const response = await axios.put(
-        `${API_URL}/api/v1/tasks/${editingTask.id}`,
-        {
-          title: taskData.title,
-          description: taskData.description,
-          assignedTo: taskData.assignedTo,
-          dueDate: taskData.dueDate,
-          priority: taskData.priority,
-          status: taskData.status,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 10000,
-        }
-      );
-
-      console.log("📡 Update task response:", response.data);
-
-      if (response.status === 200) {
-        await fetchTasks();
-        setShowEditModal(false);
-        setEditingTask(null);
-        console.log("✅ Task updated successfully");
-        toast.success("Task updated successfully!");
-      } else {
-        throw new Error(response.data.message || "Failed to update task");
-      }
-    } catch (err) {
-      console.error("❌ Error updating task:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-
-      let errorMessage = "Failed to update task";
-      
-      if (err.response?.status === 400) {
-        errorMessage = "Invalid request data. Please check all fields.";
-      } else if (err.response?.status === 401) {
-        errorMessage = "Authentication failed. Please log in again.";
-      } else if (err.response?.status === 403) {
-        errorMessage = "You are not allowed to edit this task.";
-      } else if (err.response?.status === 404) {
-        errorMessage = "Task or assigned user not found.";
-      } else if (err.response?.status === 500) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      toast.error(errorMessage);
-      throw err;
-    }
+    // TODO: Implement edit task modal
+    toast.info("Edit functionality coming soon!");
   };
 
   // Initial fetch and refetch when filters change
@@ -1321,25 +841,20 @@ export default function StaffTasksPage() {
     fetchTasks();
   }, [accessToken, statusFilter, priorityFilter, dueDateFilter]);
 
-  // Filter tasks based on search term and filters
+  // Filter tasks based on search term
   const filteredTasks = (tasks || []).filter((task) => {
     const matchesSearch =
       (task.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (task.assignee || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (task.description || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || task.status === statusFilter;
-    const matchesPriority =
-      priorityFilter === "all" || task.priority === priorityFilter;
-
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch;
   });
 
   // Get user's first name, fallback to "User" if not available
   const userName = user?.firstName || "User";
 
-  // Dynamically update the badges for sidebar items
+  // Dynamically update the sidebar config with counts
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
     analytics:
@@ -1412,26 +927,13 @@ export default function StaffTasksPage() {
               Oversee and monitor all assigned and personal tasks
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => fetchTasks()}
-              variant="outline"
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
-              {loading ? "Refreshing..." : "Refresh"}
-            </Button>
-            <Button
-              onClick={() => setShowModal(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Task
-            </Button>
-          </div>
+          <Button
+            onClick={() => setShowModal(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Task
+          </Button>
         </div>
       </div>
 
@@ -1470,21 +972,6 @@ export default function StaffTasksPage() {
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <Select
-                  value={priorityFilter}
-                  onValueChange={setPriorityFilter}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All Priorities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="high">High Priority</SelectItem>
-                    <SelectItem value="medium">Medium Priority</SelectItem>
-                    <SelectItem value="low">Low Priority</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <span className="text-sm text-gray-500">
@@ -1503,20 +990,8 @@ export default function StaffTasksPage() {
               <LoadingState />
             ) : error ? (
               <ErrorState error={error} onRetry={fetchTasks} />
-            ) : (tasks || []).length === 0 ? (
-              <EmptyState />
             ) : filteredTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                  <Search className="w-8 h-8 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No tasks match your filters
-                </h3>
-                <p className="text-gray-500 text-center">
-                  Try adjusting your search or filter criteria.
-                </p>
-              </div>
+              <EmptyState />
             ) : (
               <div className="divide-y divide-gray-100">
                 {filteredTasks.map((task) => (
@@ -1595,17 +1070,6 @@ export default function StaffTasksPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onAddTask={handleAddTask}
-      />
-
-      {/* Edit Task Modal */}
-      <EditTaskModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingTask(null);
-        }}
-        onUpdateTask={handleUpdateTask}
-        task={editingTask}
       />
     </StaffDashboardLayout>
   );
