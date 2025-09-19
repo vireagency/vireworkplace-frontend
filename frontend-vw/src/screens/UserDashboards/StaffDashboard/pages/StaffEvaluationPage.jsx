@@ -1141,26 +1141,18 @@ export default function Evaluation() {
           <MetricCard
             title="IN PROGRESS"
             value={metrics.inProgress}
-            change="Updated"
-            changeType="neutral"
           />
           <MetricCard
             title="REVIEWS DUE"
             value={metrics.reviewsDue}
-            change="Pending"
-            changeType="negative"
           />
           <MetricCard
             title="COMPLETED REVIEWS"
             value={metrics.completedReviews}
-            change="Done"
-            changeType="positive"
           />
           <MetricCard
             title="TOTAL EVALUATIONS"
             value={evaluations.length}
-            change="Available"
-            changeType="neutral"
           />
         </div>
       </div>

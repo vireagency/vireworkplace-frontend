@@ -936,11 +936,14 @@ const EditTaskModal = ({ isOpen, onClose, onUpdateTask, task }) => {
   if (!task) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        handleClose();
-      }
-    }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          handleClose();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-[500px] p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-green-600">Edit Task</h2>
@@ -1673,7 +1676,7 @@ export default function StaffTasksPage() {
     // Force a small delay to ensure modal is fully closed before allowing interactions
     setTimeout(() => {
       // This ensures the modal is completely closed and focus is restored
-      document.body.style.pointerEvents = 'auto';
+      document.body.style.pointerEvents = "auto";
     }, 100);
   };
 
