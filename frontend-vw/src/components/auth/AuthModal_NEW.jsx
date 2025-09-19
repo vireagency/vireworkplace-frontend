@@ -1,7 +1,7 @@
 /**
- * @fileoverview Authentication Modal Component - NEW FILE: Fixed duplicate keys
- * @updated 2025-09-10 - RENAMED FILE: Complete fix for React key duplication warning
- * @filename AuthModal_NEW.jsx - Renamed to bypass persistent browser cache
+ * @fileoverview Authentication Modal Component - Optimized for West African countries
+ * @updated 2025-09-19 - PERFORMANCE OPTIMIZED: Simplified country codes and reduced re-renders
+ * @filename AuthModal_NEW.jsx - Optimized version with React.memo and performance improvements
  * @description A comprehensive modal component that handles both user login and signup functionality
  * with role-based access control (Admin, HR Manager, Staff). It provides a unified interface 
  * for authentication with role-specific form fields and integrates with the backend API for 
@@ -32,8 +32,8 @@
  */
 
 // React and UI Components
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // Data imports
 import countryCodes from "@/data/countryCodes.json";
-// Force refresh - duplicate key fix applied
 
 // Custom Hooks and Utilities
 import { useAuth } from "@/hooks/useAuth";
@@ -61,9 +60,6 @@ import { useNavigate } from "react-router-dom";
  * @param {string} props.role - User role for signup
  */
 const AuthModal = ({ isOpen, onClose, mode, role }) => {
-  // 🔥🔥🔥 NEW FILE CACHE BUSTER LOG - If you see this, the new code is loaded! 🔥🔥🔥
-  console.log('🆕🆕🆕 AuthModal_NEW LOADED - DUPLICATE KEY FIX ACTIVE!', new Date().toISOString());
-  console.log('🔑 Using memoized unique keys for country codes');
   /**
    * Consolidated UI State Management
    * @type {Object} All UI-related state in one object to reduce re-renders
@@ -104,35 +100,35 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
   const { signUp, signIn } = useAuth();
 
   /**
-   * Memoized country codes with unique keys to prevent React key duplication warnings
-   * Each country gets a guaranteed unique key using index + sanitized country name
+   * Memoized selected country display to prevent unnecessary re-renders
+   * Since all West African countries have unique codes, we can use the code directly as the key
    */
-  const countryCodesWithUniqueKeys = useMemo(() => {
-    const result = countryCodes.map((country, index) => ({
-      ...country,
-      uniqueKey: `country-${index}-${country.country.replace(/[^a-zA-Z0-9]/g, '')}`
-    }));
-    
-    // Debug: Log first few keys to verify uniqueness
-    console.log('🔍 UNIQUE KEYS GENERATED:', result.slice(0, 5).map(c => c.uniqueKey));
-    
-    return result;
-  }, []);
+  const selectedCountry = useMemo(() => {
+    return countryCodes.find(c => c.code === uiState.countryCode);
+  }, [uiState.countryCode]);
 
   /**
-   * Helper function to update UI state
+   * Helper function to update UI state with batching
    * @param {Object} updates - Partial state updates
    */
   const updateUiState = useCallback((updates) => {
-    setUiState(prev => ({ ...prev, ...updates }));
+    setUiState(prev => {
+      // Check if the update actually changes the state
+      const hasChanges = Object.keys(updates).some(key => prev[key] !== updates[key]);
+      return hasChanges ? { ...prev, ...updates } : prev;
+    });
   }, []);
 
   /**
-   * Helper function to update form data
+   * Helper function to update form data with batching
    * @param {Object} updates - Partial form data updates
    */
   const updateFormData = useCallback((updates) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    setFormData(prev => {
+      // Check if the update actually changes the state
+      const hasChanges = Object.keys(updates).some(key => prev[key] !== updates[key]);
+      return hasChanges ? { ...prev, ...updates } : prev;
+    });
   }, []);
 
   /**
@@ -398,10 +394,10 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
    * formatPhoneNumber("+233-543-466-492") // Returns "+233543466492"
    * formatPhoneNumber("abc123def456") // Returns "123456"
    */
-  const formatPhoneNumber = (phoneNumber) => {
+  const formatPhoneNumber = useCallback((phoneNumber) => {
     // Remove any non-digit characters and limit to 9 digits
     return phoneNumber.replace(/\D/g, '').slice(0, 9);
-  };
+  }, []);
 
   /**
    * Main component render
@@ -417,6 +413,9 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
           <DialogTitle className="text-2xl font-bold text-white text-center">
             {uiState.currentMode === 'login' ? 'Welcome Back' : `Join as ${uiState.selectedRole === 'staff' ? 'Staff' : uiState.selectedRole === 'hr' ? 'HR Manager' : 'Admin'}`}
           </DialogTitle>
+          <DialogDescription className="text-center text-gray-300">
+            {uiState.currentMode === 'login' ? 'Sign in to your account to continue' : 'Create your account to get started'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
@@ -428,7 +427,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <div className="space-y-2">
                   <Label htmlFor="first_name" className="text-white">First Name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="first_name"
                       type="text"
@@ -444,7 +443,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                 <div className="space-y-2">
                   <Label htmlFor="last_name" className="text-white">Last Name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="last_name"
                       type="text"
@@ -504,36 +503,33 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
                       <SelectTrigger className="glass border-white/20 text-white h-10 cursor-pointer">
                         <SelectValue>
                           <div className="flex items-center space-x-2">
-                            <span>{countryCodesWithUniqueKeys.find(c => c.code === uiState.countryCode)?.flag}</span>
+                            <span>{selectedCountry?.flag}</span>
                             <span className="text-sm">{uiState.countryCode}</span>
                           </div>
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-60 max-w-40">
-                        {/* CACHE-BUSTING FIX: Using memoized unique keys - VERSION 2025-09-10 */}
-                        {countryCodesWithUniqueKeys.map((country, index) => {
-                          console.log(`🔑 RENDERING COUNTRY ${index}: ${country.uniqueKey} for ${country.country}`);
-                          return (
-                            <SelectItem 
-                              key={country.uniqueKey}
-                              value={country.code}
-                              className="hover:!bg-primary hover:!text-black cursor-pointer transition-colors duration-200 focus:!bg-primary focus:!text-black"
-                            >
+                        {/* Simplified: Using country code as key since all West African countries have unique codes */}
+                        {countryCodes.map((country) => (
+                          <SelectItem 
+                            key={country.code}
+                            value={country.code}
+                            className="hover:!bg-primary hover:!text-black cursor-pointer transition-colors duration-200 focus:!bg-primary focus:!text-black"
+                          >
                             <div className="flex items-center space-x-2">
                               <span className="hover:!text-black">{country.flag}</span>
                               <span className="text-sm hover:!text-black">{country.code}</span>
                               <span className="text-xs text-white hover:!text-black">{country.country}</span>
                             </div>
                           </SelectItem>
-                          );
-                        })}
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   
                   {/* Phone Number Input - Takes 2 columns on desktop, full width on mobile */}
                   <div className="relative sm:col-span-2">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Phone className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="phone"
                       type="tel"
@@ -682,7 +678,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-white">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
@@ -698,7 +694,7 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-white">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={uiState.showPassword ? "text" : "password"}
@@ -789,6 +785,6 @@ const AuthModal = ({ isOpen, onClose, mode, role }) => {
 
 /**
  * @exports AuthModal
- * @description Default export of the AuthModal component
+ * @description Default export of the AuthModal component with React.memo for performance optimization
  */
-export default AuthModal;
+export default memo(AuthModal);
