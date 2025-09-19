@@ -1,15 +1,93 @@
+/**
+ * @fileoverview Welcome User Page Component
+ * @description A welcome page displayed after successful user registration that shows a personalized
+ * greeting message and automatically redirects users to the login page after a countdown timer.
+ * This page provides a smooth transition from signup completion to the login flow.
+ * 
+ * @features
+ * - Personalized welcome message with user's name
+ * - 30-second countdown timer with automatic redirect
+ * - Stable username display that doesn't flicker during redirect
+ * - Multiple fallback mechanisms for displaying user names
+ * - Dark theme styling consistent with authentication pages
+ * - Automatic cleanup of temporary signup data from localStorage
+ * - Comprehensive debugging for user data structure analysis
+ * 
+ * @state
+ * @param {number} countdown - Countdown timer value (starts at 30 seconds)
+ * @param {string} displayName - Stable display name for the user (prevents flickering)
+ * 
+ * @dependencies
+ * @param {Object} user - User data from useAuth hook
+ * @param {boolean} loading - Loading state from useAuth hook
+ * @param {function} navigate - React Router navigation function
+ * 
+ * @userDataFallbacks
+ * The component uses multiple fallback mechanisms to display the user's name:
+ * 1. user.firstName - Primary user data property
+ * 2. user.first_name - Alternative user data property (snake_case)
+ * 3. localStorage.getItem('signup_firstName') - Temporary signup data
+ * 4. user.email.split('@')[0] - Extract name from email address
+ * 5. 'User' - Default fallback value
+ * 
+ * @lifecycle
+ * 1. Component mounts and initializes with 30-second countdown
+ * 2. Sets display name using available user data or fallbacks
+ * 3. Starts countdown timer that decrements every second
+ * 4. Cleans up temporary signup data from localStorage
+ * 5. Redirects to login page when countdown reaches 0
+ * 
+ * @styling
+ * - Dark theme with green accent colors
+ * - Responsive design for mobile and desktop
+ * - Animated elements with fade-in and slide-up effects
+ * - Glass morphism design elements
+ * 
+ * @author Vire Workplace HR App
+ * @version 2.0.0
+ * @since 2024
+ * @updated 2025-09-19 - Added stable username display and improved fallback logic
+ */
+
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * WelcomeUserPage Component
+ * 
+ * @description Main welcome page component that displays a personalized greeting
+ * and handles automatic redirection to the login page after a 30-second countdown.
+ * 
+ * @returns {JSX.Element} The complete welcome page UI with countdown timer
+ * 
+ * @example
+ * // Rendered after successful user registration
+ * <WelcomeUserPage />
+ */
 const WelcomeUserPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(30);
   const [displayName, setDisplayName] = useState('User');
 
-  // Set display name once and keep it stable
+  /**
+   * Set display name once and keep it stable
+   * 
+   * @description Establishes the user's display name using multiple fallback mechanisms
+   * and ensures it remains stable throughout the component lifecycle to prevent flickering
+   * during the redirect process.
+   * 
+   * @dependencies {Object} user - User data from authentication context
+   * 
+   * @fallbackChain
+   * 1. user.firstName - Primary user data property
+   * 2. user.first_name - Alternative user data property (snake_case)
+   * 3. localStorage.getItem('signup_firstName') - Temporary signup data
+   * 4. user.email.split('@')[0] - Extract name from email address
+   * 5. 'User' - Default fallback value
+   */
   useEffect(() => {
     if (user) {
       console.log('User data in WelcomeUserPage:', user);
@@ -30,7 +108,15 @@ const WelcomeUserPage = () => {
     }
   }, [user]);
 
-  // Set display name from localStorage if user data is not available yet
+  /**
+   * Set display name from localStorage if user data is not available yet
+   * 
+   * @description Provides an additional fallback mechanism to set the display name
+   * from localStorage when user data is not immediately available, ensuring the
+   * welcome message shows the correct name even during loading states.
+   * 
+   * @dependencies {string} displayName - Current display name state
+   */
   useEffect(() => {
     const signupFirstName = localStorage.getItem('signup_firstName');
     if (signupFirstName && displayName === 'User') {
@@ -38,7 +124,15 @@ const WelcomeUserPage = () => {
     }
   }, [displayName]);
 
-  // Clean up signup firstName from localStorage after displaying welcome message
+  /**
+   * Clean up signup firstName from localStorage after displaying welcome message
+   * 
+   * @description Removes temporary signup data from localStorage after a short delay
+   * to prevent data persistence beyond the welcome page. This ensures clean state
+   * management and prevents potential data conflicts in future sessions.
+   * 
+   * @cleanupDelay {number} 1000ms - Delay before removing localStorage data
+   */
   useEffect(() => {
     const signupFirstName = localStorage.getItem('signup_firstName');
     if (signupFirstName) {
@@ -51,14 +145,31 @@ const WelcomeUserPage = () => {
     }
   }, []);
 
-  // Force dark theme for authentication pages
+  /**
+   * Force dark theme for authentication pages
+   * 
+   * @description Applies dark theme styling to the document root to ensure
+   * consistent visual appearance across all authentication-related pages.
+   * This creates a cohesive user experience during the signup/login flow.
+   */
   useEffect(() => {
     document.documentElement.classList.remove('light')
     document.documentElement.classList.add('dark')
     document.documentElement.style.colorScheme = 'dark'
   }, [])
 
-  // 5-second countdown timer
+  /**
+   * 30-second countdown timer with automatic redirect
+   * 
+   * @description Implements a countdown timer that decrements every second and
+   * automatically redirects the user to the login page when it reaches zero.
+   * This provides a smooth transition from the welcome page to the login flow.
+   * 
+   * @countdownDuration {number} 30 - Countdown duration in seconds
+   * @redirectTarget {string} "/" - Target route for redirection (login page)
+   * 
+   * @dependencies {function} navigate - React Router navigation function
+   */
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -148,4 +259,9 @@ const WelcomeUserPage = () => {
   );
 };
 
+/**
+ * @exports WelcomeUserPage
+ * @description Default export of the WelcomeUserPage component with comprehensive
+ * JSDoc documentation for improved code maintainability and developer experience.
+ */
 export default WelcomeUserPage;
