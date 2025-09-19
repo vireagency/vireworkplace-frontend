@@ -81,12 +81,34 @@ export default function CheckOut() {
     ];
   };
 
-  // Check if current time is after 5:10 PM (17:10)
+  // Check if current time is after 5:00 PM (17:00) for overtime
   const isCurrentTimeOvertime = () => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-    return currentHour > 17 || (currentHour === 17 && currentMinute >= 10);
+    return currentHour > 17 || (currentHour === 17 && currentMinute > 0);
+  };
+
+  // Calculate overtime hours based on check-in time
+  const calculateOvertimeHours = (checkinTime) => {
+    if (!checkinTime) return 0;
+    
+    const now = new Date();
+    const checkin = new Date(checkinTime);
+    const workStartTime = new Date(checkin);
+    workStartTime.setHours(9, 0, 0, 0); // 9:00 AM
+    
+    const workEndTime = new Date(checkin);
+    workEndTime.setHours(17, 0, 0, 0); // 5:00 PM
+    
+    // If current time is after 5:00 PM, calculate overtime
+    if (now > workEndTime) {
+      const overtimeMs = now.getTime() - workEndTime.getTime();
+      const overtimeHours = overtimeMs / (1000 * 60 * 60); // Convert to hours
+      return Math.round(overtimeHours * 10) / 10; // Round to 1 decimal place
+    }
+    
+    return 0;
   };
 
   // Get authentication token from various sources
@@ -228,16 +250,51 @@ export default function CheckOut() {
           const result = await response.json();
           console.log("Attendance status API response:", result);
 
-          if (result.data && result.data.hasCheckedOut) {
-            setHasAlreadyCheckedOut(true);
-            setShowMainDialog(false);
-            setShowAlreadyCheckedOutDialog(true);
-            // Store in localStorage to prevent future API calls
-            const todayKey = getTodayKey();
-            const todayDateString = getTodayDateString();
-            localStorage.setItem(`checkout_${todayKey}`, "true");
-            localStorage.setItem(`checkout_${todayDateString}`, "true");
+          if (result.data) {
+            // Check if user has already checked out
+            if (result.data.hasCheckedOut) {
+              setHasAlreadyCheckedOut(true);
+              setShowMainDialog(false);
+              setShowAlreadyCheckedOutDialog(true);
+              // Store in localStorage to prevent future API calls
+              const todayKey = getTodayKey();
+              const todayDateString = getTodayDateString();
+              localStorage.setItem(`checkout_${todayKey}`, "true");
+              localStorage.setItem(`checkout_${todayDateString}`, "true");
+              setIsCheckingStatus(false);
+              return;
+            }
+
+            // Check if user has checked in
+            if (result.data.hasCheckedIn) {
+              console.log("✅ User has checked in, can proceed with checkout");
+              // Update localStorage with API check-in data if available
+              if (result.data.checkInTime) {
+                const todayKey = getTodayKey();
+                const todayDateString = getTodayDateString();
+                const checkinInfo = {
+                  date: todayDateString,
+                  dateKey: todayKey,
+                  timestamp: result.data.checkInTime,
+                  workingLocation: result.data.workingLocation || "unknown",
+                  apiData: result.data,
+                  completed: true
+                };
+                localStorage.setItem(`checkin_${todayDateString}`, JSON.stringify(checkinInfo));
+                localStorage.setItem(`checkin_${todayKey}`, JSON.stringify(checkinInfo));
+              }
+            } else {
+              console.log("❌ User has not checked in today");
+              setError("No check-in record found for today. Please check in first.");
+              setShowMainDialog(false);
+              setShowErrorDialog(true);
+              setIsCheckingStatus(false);
+              return;
+            }
           }
+        } else if (response.status === 401 || response.status === 403) {
+          clearTokens();
+          throw new Error("Session expired. Please log in again.");
         } else {
           console.warn("Attendance status API returned:", response.status);
           // Continue with normal flow - the checkout API will handle validation
@@ -540,6 +597,10 @@ export default function CheckOut() {
       const data = await response.json();
       console.log("Checkout API response data:", data);
 
+      if (data.success !== true) {
+        throw new Error("Unexpected response format");
+      }
+
       // Check if the response indicates overtime
       if (
         data.attendanceData &&
@@ -547,6 +608,14 @@ export default function CheckOut() {
         data.attendanceData.overtimeHours > 0
       ) {
         setIsOvertime(true);
+        console.log("Overtime detected from API:", data.attendanceData.overtimeHours, "hours");
+      }
+
+      // Also check current time for overtime
+      const currentTimeOvertime = isCurrentTimeOvertime();
+      if (currentTimeOvertime) {
+        setIsOvertime(true);
+        console.log("Overtime detected from current time");
       }
 
       return data;
@@ -890,25 +959,33 @@ export default function CheckOut() {
       {/* Overtime Warning Dialog */}
       {showOvertimeDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-500 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
             <div className="p-8 space-y-6 text-center">
               <div className="flex justify-center">
                 <AlertTriangle className="w-10 h-10 text-yellow-500 stroke-2 stroke-black" />
               </div>
               <div className="space-y-3">
                 <h3 className="text-xl font-bold text-black">
-                  Overtime Warning
+                  Overtime Detected
                 </h3>
                 <p className="text-black text-sm leading-relaxed">
-                  You checked out at late hours. HR has been informed
+                  You checked out after 5:00 PM. Your overtime has been recorded and HR has been notified.
                 </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                  <div className="text-sm text-yellow-800">
+                    <div className="font-medium">Check-out Time: {currentTime}</div>
+                    <div className="text-xs mt-1">
+                      Standard work hours: 9:00 AM - 5:00 PM
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="pt-2">
                 <Button
                   onClick={handleOvertimeClose}
-                  className="w-full bg-red-400 hover:bg-red-500 text-white rounded-lg py-2 font-medium"
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg py-2 font-medium"
                 >
-                  Close
+                  Acknowledged
                 </Button>
               </div>
             </div>

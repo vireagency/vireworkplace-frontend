@@ -219,20 +219,39 @@ export default function CheckIn() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize user data
+  // Initialize user data and check attendance status
   useEffect(() => {
-    if (user) {
-      setUserData({
-        firstName: user.firstName || (user.name ? user.name.split(" ")[0] : ""),
-        lastName:
-          user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
-        email: user.email || "",
-        profileImage: user.profileImage || user.avatar || user.photoUrl || null,
-      });
-      setLoadingUser(false);
-    } else {
-      fetchUserData();
-    }
+    const initializeComponent = async () => {
+      if (user) {
+        setUserData({
+          firstName: user.firstName || (user.name ? user.name.split(" ")[0] : ""),
+          lastName:
+            user.lastName || (user.name ? user.name.split(" ")[1] || "" : ""),
+          email: user.email || "",
+          profileImage: user.profileImage || user.avatar || user.photoUrl || null,
+        });
+        setLoadingUser(false);
+      } else {
+        await fetchUserData();
+      }
+
+      // Check attendance status after user data is loaded
+      try {
+        const statusData = await checkAttendanceStatus();
+        if (statusData && statusData.data && statusData.data.hasCheckedIn) {
+          console.log("User is already checked in, redirecting to dashboard");
+          toast.info("You are already checked in for today!");
+          setTimeout(() => {
+            navigate("/staff/dashboard");
+          }, 1000);
+        }
+      } catch (error) {
+        console.warn("Could not check attendance status:", error);
+        // Continue with normal flow
+      }
+    };
+
+    initializeComponent();
   }, [user]);
 
   // Check location permission status
@@ -414,6 +433,9 @@ export default function CheckIn() {
         const data = await response.json();
         console.log("Attendance status:", data);
         return data;
+      } else if (response.status === 401 || response.status === 403) {
+        clearTokens();
+        throw new Error("Session expired. Please log in again.");
       } else {
         console.warn("Could not fetch attendance status:", response.status);
         return null;
@@ -493,34 +515,44 @@ export default function CheckIn() {
 
     // Log the response for debugging
     console.log("Check-in response:", data);
-    console.log(
-      "Check-in successful! Storing in localStorage for debugging..."
-    );
 
-    // Store check-in info in localStorage for debugging
+    if (data.success !== true) {
+      throw new Error("Unexpected response format");
+    }
+
+    // Store check-in info in localStorage for synchronization with checkout
     const today = new Date().toDateString();
+    const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const now = new Date();
+    
     const checkinInfo = {
       date: today,
+      dateKey: todayKey,
       timestamp: now.toISOString(),
       timezoneOffset: now.getTimezoneOffset(),
       workingLocation: workingLocation,
       latitude: lat,
       longitude: lng,
       response: data,
+      attendanceData: data.attendanceData,
+      late: data.late || false,
+      user: data.user,
+      completed: true
     };
+
+    // Store with multiple keys for better compatibility with checkout
     localStorage.setItem(`checkin_${today}`, JSON.stringify(checkinInfo));
+    localStorage.setItem(`checkin_${todayKey}`, JSON.stringify(checkinInfo));
+    localStorage.setItem(`checkin_info_${today}`, JSON.stringify(checkinInfo));
+    localStorage.setItem(`checkin_info_${todayKey}`, JSON.stringify(checkinInfo));
 
     console.log("=== CHECKIN DEBUG INFO ===");
     console.log("Check-in date (toDateString):", today);
+    console.log("Check-in date (YYYY-MM-DD):", todayKey);
     console.log("Check-in date (ISO):", now.toISOString());
     console.log("Check-in timezone offset:", now.getTimezoneOffset());
     console.log("Check-in info stored:", checkinInfo);
     console.log("=== END DEBUG INFO ===");
-
-    if (data.success !== true) {
-      throw new Error("Unexpected response format");
-    }
 
     return data;
   };
@@ -531,21 +563,6 @@ export default function CheckIn() {
     setError("");
 
     try {
-      // First, check current attendance status
-      console.log("Checking current attendance status...");
-      const statusData = await checkAttendanceStatus();
-
-      if (statusData && statusData.data && statusData.data.hasCheckedIn) {
-        // User is already checked in
-        console.log("User is already checked in, redirecting to dashboard");
-        toast.info("You are already checked in for today!");
-        setShowDialog(false);
-        setTimeout(() => {
-          navigate("/staff/dashboard");
-        }, 1000);
-        return;
-      }
-
       // Proceed with check-in
       if (workLocation === "office") {
         // Get and validate location for office check-in
