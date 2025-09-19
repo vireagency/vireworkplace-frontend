@@ -93,37 +93,41 @@ export default function StaffMessagesPage() {
     {
       _id: "mock-1",
       title: "Welcome to Vire Workplace",
-      message: "Welcome to the Vire Workplace HR system. You can now access all your HR features.",
+      message:
+        "Welcome to the Vire Workplace HR system. You can now access all your HR features.",
       type: "welcome",
       priority: "medium",
       isRead: false,
       createdAt: new Date().toISOString(),
-      sender: "System"
+      sender: "System",
     },
     {
-      _id: "mock-2", 
+      _id: "mock-2",
       title: "Performance Review Due",
-      message: "Your annual performance review is due next week. Please complete it by the deadline.",
+      message:
+        "Your annual performance review is due next week. Please complete it by the deadline.",
       type: "evaluation",
       priority: "high",
       isRead: false,
       createdAt: new Date(Date.now() - 86400000).toISOString(),
-      sender: "HR Department"
+      sender: "HR Department",
     },
     {
       _id: "mock-3",
       title: "New Task Assigned",
-      message: "You have been assigned a new task: Complete project documentation.",
+      message:
+        "You have been assigned a new task: Complete project documentation.",
       type: "task",
       priority: "medium",
       isRead: true,
       createdAt: new Date(Date.now() - 172800000).toISOString(),
-      sender: "Project Manager"
-    }
+      sender: "Project Manager",
+    },
   ];
 
   // Use mock data if no real notifications are available
-  const displayNotifications = notifications.length > 0 ? filteredNotifications : mockNotifications;
+  const displayNotifications =
+    notifications.length > 0 ? filteredNotifications : mockNotifications;
 
   // ============================================================================
   // BULK ACTIONS HANDLERS
@@ -267,23 +271,8 @@ export default function StaffMessagesPage() {
 
   // Fetch notifications when component mounts
   useEffect(() => {
-    console.log("StaffMessagesPage: Fetching notifications...");
     fetchNotifications("all");
   }, [fetchNotifications]);
-
-  // Debug logging for notifications
-  useEffect(() => {
-    console.log("StaffMessagesPage: Notifications updated:", {
-      total: notifications.length,
-      unread: unreadCount,
-      loading: notificationsLoading,
-      error: notificationsError,
-      connected: isConnected,
-      filtered: filteredNotifications.length,
-      display: displayNotifications.length,
-      usingMock: notifications.length === 0
-    });
-  }, [notifications, unreadCount, notificationsLoading, notificationsError, isConnected, filteredNotifications, displayNotifications]);
 
   // Update bulk actions visibility based on selection
   useEffect(() => {

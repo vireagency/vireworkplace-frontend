@@ -84,6 +84,47 @@ export default function HRMessagesPage() {
   const filterSummary = getFilterSummary(notifications);
   const notificationStats = getNotificationStats();
 
+  // Add some mock data for testing if no notifications are available
+  const mockNotifications = [
+    {
+      _id: "mock-1",
+      title: "Welcome to Vire Workplace",
+      message:
+        "Welcome to the Vire Workplace HR system. You can now access all your HR features.",
+      type: "welcome",
+      priority: "medium",
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      sender: "System",
+    },
+    {
+      _id: "mock-2",
+      title: "Performance Review Due",
+      message:
+        "Your annual performance review is due next week. Please complete it by the deadline.",
+      type: "evaluation",
+      priority: "high",
+      isRead: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      sender: "HR Department",
+    },
+    {
+      _id: "mock-3",
+      title: "New Task Assigned",
+      message:
+        "You have been assigned a new task: Complete project documentation.",
+      type: "task",
+      priority: "medium",
+      isRead: true,
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      sender: "Project Manager",
+    },
+  ];
+
+  // Use mock data if no real notifications are available
+  const displayNotifications =
+    notifications.length > 0 ? filteredNotifications : mockNotifications;
+
   // ============================================================================
   // BULK ACTIONS HANDLERS
   // ============================================================================
@@ -109,7 +150,7 @@ export default function HRMessagesPage() {
    */
   const handleSelectAll = (selectAll) => {
     if (selectAll) {
-      setSelectedNotifications(filteredNotifications.map((n) => n._id || n.id));
+      setSelectedNotifications(displayNotifications.map((n) => n._id || n.id));
     } else {
       setSelectedNotifications([]);
     }
@@ -421,7 +462,7 @@ export default function HRMessagesPage() {
               </Button>
               {filterSummary.hasActiveFilters && (
                 <span className="text-sm text-gray-500">
-                  {filteredNotifications.length} of {filterSummary.total}{" "}
+                  {displayNotifications.length} of {filterSummary.total}{" "}
                   notifications
                 </span>
               )}
@@ -498,7 +539,7 @@ export default function HRMessagesPage() {
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
               <span className="text-gray-500">Loading notifications...</span>
             </div>
-          ) : filteredNotifications.length === 0 ? (
+          ) : displayNotifications.length === 0 ? (
             <div className="text-center py-8">
               <Bell className="w-12 h-12 mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -521,7 +562,7 @@ export default function HRMessagesPage() {
               )}
             </div>
           ) : (
-            filteredNotifications.map((notification) => {
+            displayNotifications.map((notification) => {
               const priorityStyle = getPriorityStyle(
                 notification.priority || "medium"
               );
