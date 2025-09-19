@@ -476,7 +476,7 @@ const AttendanceApp = () => {
           workingLocation: record.workingLocation,
           icon: (
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <LogOut className="h-4 w-4 text-blue-600" />
+              <LogOut className="h-4 w-4 text-green-600" />
             </div>
           ),
           label: "Checked Out",
@@ -685,7 +685,7 @@ const AttendanceApp = () => {
               ) : (
                 <Button
                   onClick={() => setShowCheckOutDialog(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  className="bg-green-600 hover:bg-green-600-700 text-white font-medium"
                   disabled={checkingOut}
                 >
                   {checkingOut ? (
@@ -787,8 +787,8 @@ const AttendanceApp = () => {
               {attendanceData.checkOutTime && (
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <LogOut className="w-4 h-4 text-blue-600" />
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <LogOut className="w-4 h-4 text-green-600" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -922,7 +922,7 @@ const AttendanceApp = () => {
             </div>
 
             {workingLocation === "office" && (
-              <div className="text-sm text-blue-600 flex items-center gap-1 bg-blue-50 p-3 rounded-lg">
+              <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 p-3 rounded-lg">
                 <MapPin className="h-4 w-4" />
                 Location will be verified for office check-in
               </div>
@@ -989,7 +989,7 @@ const AttendanceApp = () => {
             <Button
               onClick={handleCheckOut}
               disabled={checkingOut}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-green-600 hover:green-700"
             >
               {checkingOut ? (
                 <div className="flex items-center gap-2">

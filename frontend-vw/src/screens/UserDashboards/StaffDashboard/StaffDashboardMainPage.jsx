@@ -243,6 +243,11 @@ export default function StaffDashboardMainPage() {
     navigate("/staff/employees");
   };
 
+  // Function to handle navigation to Tasks page
+  const handleSeeAllTasks = () => {
+    navigate("/staff/tasks");
+  };
+
   // Dynamically update the sidebar config with counts
   const dynamicSidebarConfig = {
     ...staffDashboardConfig,
@@ -601,7 +606,7 @@ export default function StaffDashboardMainPage() {
                 </p>
                 <div className="text-center">
                   <button
-                    onClick={handleSeeAllEmployees}
+                    onClick={handleSeeAllTasks}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
                   >
                     View All Tasks &gt;

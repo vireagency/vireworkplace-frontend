@@ -244,7 +244,7 @@ export default function StaffProfileSettings() {
     { id: "employment", label: "Employment Details", icon: IconId },
     { id: "qualifications", label: "Qualifications", icon: IconCertificate },
     { id: "documents", label: "Documents", icon: IconFileText },
-    { id: "health", label: "Health Info", icon: IconShield },
+    // { id: "health", label: "Health Info", icon: IconShield },
   ];
 
   return (
