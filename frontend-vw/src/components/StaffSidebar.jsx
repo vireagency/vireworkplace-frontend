@@ -176,7 +176,7 @@ export function StaffSidebar({
     user: {
       name: user ? `${user.firstName} ${user.lastName}` : "Loading...",
       email: user?.email || "loading@example.com",
-      avatar: getUserAvatarUrl(user),
+      avatar: getUserAvatarUrl(user) || "/staff.png",
     },
   };
 

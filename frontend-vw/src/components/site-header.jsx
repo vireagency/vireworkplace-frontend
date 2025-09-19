@@ -414,6 +414,15 @@ export function SiteHeader() {
     return getInitials(user);
   };
 
+  // Debug logging for user data
+  useEffect(() => {
+    if (user) {
+      console.log("User data in site-header:", user);
+      console.log("Avatar URL:", getStableAvatarUrl(user));
+      console.log("User initials:", getUserInitials());
+    }
+  }, [user]);
+
   return (
     // ============================================================================
     // HEADER CONTAINER
@@ -672,9 +681,12 @@ export function SiteHeader() {
                 className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
               >
                 <AvatarImage
-                  src={getStableAvatarUrl(user)}
+                  src={getStableAvatarUrl(user) || "/staff.png"}
                   alt={user ? `${user.firstName} ${user.lastName}` : "User"}
                   className="object-cover w-full h-full"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
                 />
                 <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm hover:bg-green-500/10 rounded-full">
                   {/* Display user initials or fallback */}
@@ -689,8 +701,11 @@ export function SiteHeader() {
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-full">
                     <AvatarImage
-                      src={getStableAvatarUrl(user)}
+                      src={getStableAvatarUrl(user) || "/staff.png"}
                       alt={user ? `${user.firstName} ${user.lastName}` : "User"}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
                     />
                     <AvatarFallback className="bg-gray-200 text-gray-700 font-medium text-sm rounded-full">
                       {getUserInitials()}
