@@ -101,12 +101,7 @@ const AttendanceApp = () => {
 
   // API configuration
   const getAttendanceApiBaseUrl = () => {
-    const baseUrl = getApiUrl();
-    const cleanBaseUrl = baseUrl
-      ? baseUrl.replace(/\/+$/, "")
-      : "http://localhost:6000";
-    const noApiV1 = cleanBaseUrl.replace(/\/api\/v1$/, "");
-    return `${noApiV1}`;
+    return "https://vireworkplace-backend-hpca.onrender.com";
   };
 
   // Create axios instance with correct base URL
@@ -120,8 +115,14 @@ const AttendanceApp = () => {
 
   // Add request interceptor to include auth token
   apiClient.interceptors.request.use((config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token =
+      accessToken ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token");
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   });
@@ -167,19 +168,33 @@ const AttendanceApp = () => {
       const response = await apiClient.get("/api/v1/attendance/status");
 
       if (response.data && response.data.success) {
-        setAttendanceStatus(response.data.status || "Inactive");
-        setAttendanceData(
-          response.data.attendanceData || {
-            workDuration: "3h 25m",
-            activities: 3,
-            issues: 2,
-            checkInTime: null,
-            checkOutTime: null,
-          }
-        );
+        const data = response.data;
+        setAttendanceStatus(data.status || "Inactive");
+
+        // Update attendance data with real API data
+        setAttendanceData({
+          workDuration: data.attendanceData?.workDuration || "0h 0m",
+          activities: data.attendanceData?.activities || 0,
+          issues: data.attendanceData?.issues || 0,
+          checkInTime: data.attendanceData?.clockInTime || null,
+          checkOutTime: data.attendanceData?.clockOutTime || null,
+          clockInFormatted: data.attendanceData?.clockInFormatted || null,
+          clockOutFormatted: data.attendanceData?.clockOutFormatted || null,
+          workingLocation: data.attendanceData?.workingLocation || null,
+          overtimeHours: data.attendanceData?.overtimeHours || 0,
+          late: data.attendanceData?.late || false,
+        });
       }
     } catch (err) {
       console.error("Error fetching attendance status:", err);
+      // Set default data on error
+      setAttendanceData({
+        workDuration: "0h 0m",
+        activities: 0,
+        issues: 0,
+        checkInTime: null,
+        checkOutTime: null,
+      });
       toast.error("Failed to load attendance status");
     } finally {
       setLoading(false);
@@ -257,6 +272,17 @@ const AttendanceApp = () => {
     }
   }, [accessToken, user]);
 
+  // Auto-refresh attendance data every 30 seconds
+  useEffect(() => {
+    if (!accessToken || !user) return;
+
+    const interval = setInterval(() => {
+      fetchAttendanceStatus();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [accessToken, user]);
+
   // Get coordinates when working location changes to office
   useEffect(() => {
     if (workingLocation === "office") {
@@ -297,10 +323,25 @@ const AttendanceApp = () => {
 
       if (response.data && response.data.success) {
         setAttendanceStatus("Active");
-        setAttendanceData(response.data.attendanceData || {});
+
+        // Update attendance data with API response
+        const data = response.data;
+        setAttendanceData({
+          workDuration: data.attendanceData?.workDuration || "0h 0m",
+          activities: data.attendanceData?.activities || 0,
+          issues: data.attendanceData?.issues || 0,
+          checkInTime: data.attendanceData?.clockInTime || null,
+          checkOutTime: data.attendanceData?.clockOutTime || null,
+          clockInFormatted: data.attendanceData?.clockInFormatted || null,
+          clockOutFormatted: data.attendanceData?.clockOutFormatted || null,
+          workingLocation:
+            data.attendanceData?.workingLocation || workingLocation,
+          overtimeHours: data.attendanceData?.overtimeHours || 0,
+          late: data.late || false,
+        });
 
         // Show success message with late status if applicable
-        const message = response.data.late
+        const message = data.late
           ? "Successfully checked in (Late)"
           : "Successfully checked in!";
         toast.success(message);
@@ -338,19 +379,33 @@ const AttendanceApp = () => {
         payload.dailySummary = dailySummary;
       }
 
-      const response = await apiClient.post(
+      const response = await apiClient.patch(
         "/api/v1/attendance/checkout",
         payload
       );
 
       if (response.data && response.data.success) {
         setAttendanceStatus("Inactive");
-        setAttendanceData(response.data.attendanceData || {});
+
+        // Update attendance data with API response
+        const data = response.data;
+        setAttendanceData({
+          workDuration: data.attendanceData?.workDuration || "0h 0m",
+          activities: data.attendanceData?.activities || 0,
+          issues: data.attendanceData?.issues || 0,
+          checkInTime: data.attendanceData?.clockInTime || null,
+          checkOutTime: data.attendanceData?.clockOutTime || null,
+          clockInFormatted: data.attendanceData?.clockInFormatted || null,
+          clockOutFormatted: data.attendanceData?.clockOutFormatted || null,
+          workingLocation: data.attendanceData?.workingLocation || null,
+          overtimeHours: data.attendanceData?.overtimeHours || 0,
+          late: data.attendanceData?.late || false,
+        });
 
         // Show success message with overtime info if applicable
         const message =
-          response.data.attendanceData?.overtimeHours > 0
-            ? `Successfully checked out! Overtime: ${response.data.attendanceData.overtimeHours}h`
+          data.attendanceData?.overtimeHours > 0
+            ? `Successfully checked out! Overtime: ${data.attendanceData.overtimeHours}h`
             : "Successfully checked out!";
         toast.success(message);
 
@@ -554,14 +609,28 @@ const AttendanceApp = () => {
                   Track your attendance patterns and performance
                 </p>
               </div>
-              <Badge variant="outline" className="text-sm font-medium">
-                Today
-              </Badge>
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant={
+                    attendanceStatus === "Active" ? "default" : "secondary"
+                  }
+                  className={`text-sm font-medium ${
+                    attendanceStatus === "Active"
+                      ? "bg-green-100 text-green-800 border-green-200"
+                      : "bg-gray-100 text-gray-800 border-gray-200"
+                  }`}
+                >
+                  {attendanceStatus === "Active" ? "Active" : "Inactive"}
+                </Badge>
+                <Badge variant="outline" className="text-sm font-medium">
+                  Today
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            {/* Summary Cards - Minimal design */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Summary Cards - Responsive design */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Work Time Card */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -584,13 +653,77 @@ const AttendanceApp = () => {
               {/* Issues Card */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <AlertTriangle className="w-5 h-5 text-gray-600" />
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900 mb-1">
-                  {attendanceData.issues || 2}
+                  {attendanceData.issues || 0}
                 </div>
                 <div className="text-sm text-gray-600">Issues</div>
               </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              {attendanceStatus === "Inactive" ? (
+                <Button
+                  onClick={() => setShowCheckInDialog(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                  disabled={checkingIn}
+                >
+                  {checkingIn ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Checking In...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <LogIn className="w-4 h-4" />
+                      Check In
+                    </div>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setShowCheckOutDialog(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  disabled={checkingOut}
+                >
+                  {checkingOut ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Checking Out...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <LogOut className="w-4 h-4" />
+                      Check Out
+                    </div>
+                  )}
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  fetchAttendanceStatus();
+                  fetchAttendanceHistory();
+                  fetchAttendanceStats();
+                }}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Refreshing...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Refresh
+                  </div>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -607,58 +740,97 @@ const AttendanceApp = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Check-in Entry */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-medium text-gray-900">
-                        Checked In at 09:05 AM
-                      </span>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Reason: Traffic delay
-                      </p>
+              {attendanceData.checkInTime ? (
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Late
-                    </Badge>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-gray-900">
+                          Checked In at{" "}
+                          {attendanceData.clockInFormatted ||
+                            new Date(
+                              attendanceData.checkInTime
+                            ).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                        </span>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Location:{" "}
+                          {attendanceData.workingLocation === "office"
+                            ? "Office"
+                            : "Remote"}
+                        </p>
+                      </div>
+                      {attendanceData.late && (
+                        <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Late
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p>No check-in recorded for today</p>
+                </div>
+              )}
 
-              {/* Check-out Entry */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-sm">C</span>
+              {attendanceData.checkOutTime && (
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <LogOut className="w-4 h-4 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-gray-900">
+                          Checked Out at{" "}
+                          {attendanceData.clockOutFormatted ||
+                            new Date(
+                              attendanceData.checkOutTime
+                            ).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                        </span>
+                        {attendanceData.overtimeHours > 0 && (
+                          <p className="text-sm text-orange-600 mt-1">
+                            Overtime: {attendanceData.overtimeHours}h
+                          </p>
+                        )}
+                      </div>
+                      {attendanceData.overtimeHours > 0 && (
+                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Overtime
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-gray-900">
-                    Checked Out at 12:30 pm
-                  </span>
-                </div>
-              </div>
+              )}
 
-              {/* Check-in Entry */}
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-sm">C</span>
-                  </div>
+              {!attendanceData.checkInTime && !attendanceData.checkOutTime && (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p>No attendance records for today</p>
+                  <p className="text-sm mt-1">
+                    Check in to start tracking your time
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-gray-900">
-                    Checked In at 01:25 pm
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -671,7 +843,7 @@ const AttendanceApp = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Working Hours Column */}
               <div>
                 <h3 className="font-medium text-gray-900 mb-3">
