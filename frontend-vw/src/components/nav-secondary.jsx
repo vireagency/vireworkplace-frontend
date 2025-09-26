@@ -202,7 +202,7 @@ export function NavSecondary({
 
                         <button
                           onClick={() =>
-                            navigate("/human-resource-manager/settings")
+                            navigate("/human-resource-manager/settings/password")
                           }
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
@@ -222,7 +222,7 @@ export function NavSecondary({
 
                         <button
                           onClick={() =>
-                            navigate("/human-resource-manager/settings")
+                            navigate("/human-resource-manager/settings/notifications")
                           }
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
@@ -298,7 +298,7 @@ export function NavSecondary({
                              ================================================================ */}
 
                         <button
-                          onClick={() => navigate("/staff/settings")}
+                          onClick={() => navigate("/staff/settings/password")}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconLock size={16} />
@@ -316,7 +316,7 @@ export function NavSecondary({
                              ================================================================ */}
 
                         <button
-                          onClick={() => navigate("/staff/settings")}
+                          onClick={() => navigate("/staff/settings/notifications")}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />
