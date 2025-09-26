@@ -2,7 +2,7 @@
  * @fileoverview Main Application Component for Vire Workplace HR Application
  * @description This is the root component that sets up all necessary providers and defines the application routing structure
  * @author Vire Development Team
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2024
  *
  * Features:
