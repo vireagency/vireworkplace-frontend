@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,6 +17,27 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
 import {
@@ -28,11 +50,66 @@ import {
   IconMail,
   IconClock,
   IconEdit,
+  IconPlus,
+  IconId,
+  IconCertificate,
+  IconFileText,
+  IconSchool,
+  IconBuilding,
+  IconAward,
+  IconBrain,
+  IconChevronRight,
+  IconChevronDown,
+  IconTrash,
+  IconX,
+  IconMapPin,
 } from "@tabler/icons-react";
+import { Eye, EyeOff, Lock, Shield, Key } from "lucide-react";
+
+// StatusBadge component moved outside to prevent recreation on every render
+const StatusBadge = ({ status }) => {
+  const statusConfig = {
+    Active: {
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-700",
+      dotColor: "bg-green-500",
+      text: "Active",
+    },
+    "In-active": {
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
+      textColor: "text-orange-700",
+      dotColor: "bg-orange-500",
+      text: "In-active",
+    },
+    Closed: {
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
+      textColor: "text-red-700",
+      dotColor: "bg-red-500",
+      text: "Closed",
+    },
+  };
+
+  const config = statusConfig[status] || statusConfig["Active"];
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}
+    >
+      <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
+      <span className={`text-sm font-medium ${config.textColor}`}>
+        {config.text}
+      </span>
+    </div>
+  );
+};
 
 export default function StaffSettingsPage() {
   const { sidebarConfig } = useStandardizedSidebar();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
+  const sidebarCounts = useSidebarCounts();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -47,14 +124,317 @@ export default function StaffSettingsPage() {
     showOnProfile: true,
   });
 
+  // Password state (from StaffPasswordSettings)
+  const [passwordState, setPasswordState] = useState({
+    isLoading: false,
+    error: null,
+    success: false,
+    passwordVisibility: {
+      currentPassword: false,
+      newPassword: false,
+      confirmPassword: false,
+    },
+    formData: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Notification state (from StaffNotificationSettings)
+  const [notificationState, setNotificationState] = useState({
+    expandedCategories: {},
+    isLoading: false,
+    error: null,
+    notificationSettings: {
+      performanceManagement: {
+        toggles: {
+          reviewReminders: false,
+          reviewDueDate: false,
+          feedbackReceived: false,
+          goalUpdates: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      taskManagement: {
+        toggles: {
+          taskAssignments: false,
+          taskUpdates: false,
+          taskDeadlines: false,
+          taskCompletions: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      employeeInformation: {
+        toggles: {
+          profileUpdates: false,
+          newEmployeeOnboarding: false,
+          employeeStatusChanges: false,
+        },
+        enabled: 0,
+        total: 3,
+      },
+      systemAlerts: {
+        toggles: {
+          systemMaintenance: true,
+        },
+        enabled: 1,
+        total: 1,
+      },
+      deliveryMethods: {
+        toggles: {
+          emailNotifications: true,
+          pushNotifications: true,
+          smsNotifications: false,
+        },
+        enabled: 2,
+        total: 3,
+      },
+      globalSettings: {
+        toggles: {
+          allNotifications: false,
+          quietHours: true,
+        },
+        enabled: 1,
+        total: 2,
+      },
+    },
+  });
+
   // Handle tab navigation - just change the active tab, no routing
   const handleTabClick = (tab) => {
     setActiveTab(tab);
   };
 
+  // Password handlers (from StaffPasswordSettings)
+  const togglePasswordVisibility = useCallback((field) => {
+    setPasswordState((prev) => ({
+      ...prev,
+      passwordVisibility: {
+        ...prev.passwordVisibility,
+        [field]: !prev.passwordVisibility[field],
+      },
+    }));
+  }, []);
+
+  const handlePasswordInputChange = useCallback((field, value) => {
+    setPasswordState((prev) => ({
+      ...prev,
+      formData: {
+        ...prev.formData,
+        [field]: value,
+      },
+    }));
+  }, []);
+
+  const handlePasswordSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    setPasswordState((prev) => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      success: false,
+    }));
+
+    try {
+      // Validate passwords match
+      if (passwordState.formData.newPassword !== passwordState.formData.confirmPassword) {
+        throw new Error("New password and confirm password do not match");
+      }
+
+      // Validate password strength (basic validation)
+      if (passwordState.formData.newPassword.length < 8) {
+        throw new Error("New password must be at least 8 characters long");
+      }
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      setPasswordState((prev) => ({
+        ...prev,
+        isLoading: false,
+        success: true,
+        formData: {
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        },
+      }));
+    } catch (error) {
+      setPasswordState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+      }));
+    }
+  }, [passwordState.formData]);
+
+  // Notification handlers (from StaffNotificationSettings)
+  const toggleCategory = useCallback((category) => {
+    setNotificationState((prev) => ({
+      ...prev,
+      expandedCategories: {
+        ...prev.expandedCategories,
+        [category]: !prev.expandedCategories[category],
+      },
+    }));
+  }, []);
+
+  const toggleIndividualSetting = useCallback((category, setting) => {
+    setNotificationState((prev) => {
+      const categorySettings = prev.notificationSettings[category];
+      const updatedToggles = {
+        ...categorySettings.toggles,
+        [setting]: !categorySettings.toggles[setting],
+      };
+      
+      const enabledCount = Object.values(updatedToggles).filter(Boolean).length;
+      
+      return {
+        ...prev,
+        notificationSettings: {
+          ...prev.notificationSettings,
+          [category]: {
+            ...categorySettings,
+            toggles: updatedToggles,
+            enabled: enabledCount,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const enableAll = useCallback((category) => {
+    setNotificationState((prev) => {
+      const categorySettings = prev.notificationSettings[category];
+      const updatedToggles = Object.keys(categorySettings.toggles).reduce((acc, key) => {
+        acc[key] = true;
+        return acc;
+      }, {});
+      
+      return {
+        ...prev,
+        notificationSettings: {
+          ...prev.notificationSettings,
+          [category]: {
+            ...categorySettings,
+            toggles: updatedToggles,
+            enabled: categorySettings.total,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const disableAll = useCallback((category) => {
+    setNotificationState((prev) => {
+      const categorySettings = prev.notificationSettings[category];
+      const updatedToggles = Object.keys(categorySettings.toggles).reduce((acc, key) => {
+        acc[key] = false;
+        return acc;
+      }, {});
+      
+      return {
+        ...prev,
+        notificationSettings: {
+          ...prev.notificationSettings,
+          [category]: {
+            ...categorySettings,
+            toggles: updatedToggles,
+            enabled: 0,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const handleSavePreferences = useCallback(async () => {
+    setNotificationState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log("Saving notification preferences:", notificationState.notificationSettings);
+    } catch (error) {
+      setNotificationState((prev) => ({ ...prev, error: error.message }));
+    } finally {
+      setNotificationState((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [notificationState.notificationSettings]);
+
+  // Memoized notification categories
+  const notificationCategories = useMemo(
+    () => [
+      { key: "performanceManagement", name: "Performance Management" },
+      { key: "taskManagement", name: "Task Management" },
+      { key: "employeeInformation", name: "Employee Information" },
+      { key: "systemAlerts", name: "System Alerts" },
+      { key: "deliveryMethods", name: "Delivery Methods" },
+      { key: "globalSettings", name: "Global Settings" },
+    ],
+    []
+  );
+
+  // Dynamically update the sidebar config with counts
+  const dynamicSidebarConfig = {
+    ...staffDashboardConfig,
+    analytics:
+      staffDashboardConfig.analytics?.map((item) => {
+        if (item.title === "Evaluations") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.evaluations > 0
+                ? sidebarCounts.evaluations
+                : undefined,
+          };
+        }
+        return item;
+      }) || [],
+    productivity:
+      staffDashboardConfig.productivity?.map((item) => {
+        if (item.title === "Tasks") {
+          return {
+            ...item,
+            badge: sidebarCounts.tasks > 0 ? sidebarCounts.tasks : undefined,
+          };
+        }
+        if (item.title === "Attendance") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.attendance > 0
+                ? sidebarCounts.attendance
+                : undefined,
+          };
+        }
+        return item;
+      }) || [],
+    company:
+      staffDashboardConfig.company?.map((item) => {
+        if (item.title === "Messages") {
+          return {
+            ...item,
+            badge:
+              sidebarCounts.messages > 0 ? sidebarCounts.messages : undefined,
+          };
+        }
+        return item;
+      }) || [],
+  };
+
   return (
     <StaffDashboardLayout
-      sidebarConfig={sidebarConfig}
+      sidebarConfig={dynamicSidebarConfig}
+      itemCounts={{
+        tasks: sidebarCounts.tasks,
+        evaluations: sidebarCounts.evaluations,
+        attendance: sidebarCounts.attendance,
+        messages: sidebarCounts.messages,
+      }}
+      isLoading={sidebarCounts.loading}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
@@ -129,7 +509,9 @@ export default function StaffSettingsPage() {
                   {/* Profile Details */}
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-gray-800 mb-1">
-                      {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
+                      {user
+                        ? `${user.firstName} ${user.lastName}`
+                        : "Loading..."}
                     </h3>
                     <p className="text-gray-600 mb-2">
                       {user?.jobRole || user?.role || "Loading..."}
@@ -272,7 +654,10 @@ export default function StaffSettingsPage() {
                         <Select
                           value={profileData.department}
                           onValueChange={(value) =>
-                            setProfileData({ ...profileData, department: value })
+                            setProfileData({
+                              ...profileData,
+                              department: value,
+                            })
                           }
                         >
                           <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600">
@@ -303,7 +688,10 @@ export default function StaffSettingsPage() {
                         })
                       }
                     />
-                    <Label htmlFor="showOnProfile" className="text-sm font-semibold text-gray-800">
+                    <Label
+                      htmlFor="showOnProfile"
+                      className="text-sm font-semibold text-gray-800"
+                    >
                       Show this on my profile
                     </Label>
                   </div>
@@ -352,6 +740,7 @@ export default function StaffSettingsPage() {
                       {user?.jobRole || user?.role || "Loading..."}
                     </p>
                     <div className="flex items-center space-x-4">
+                      <StatusBadge status={user?.attendanceStatus || "Active"} />
                       <div className="flex items-center space-x-1">
                         <span className="text-gray-700 text-sm">
                           Work ID: {user?.workId || "N/A"}
@@ -369,7 +758,7 @@ export default function StaffSettingsPage() {
                     Change password
                   </h2>
 
-                  <form className="space-y-6">
+                  <form onSubmit={handlePasswordSubmit} className="space-y-6">
                     {/* Current Password */}
                     <div className="space-y-2">
                       <Label
@@ -381,18 +770,54 @@ export default function StaffSettingsPage() {
                       <div className="relative">
                         <Input
                           id="currentPassword"
-                          type="password"
+                          type={
+                            passwordState.passwordVisibility.currentPassword
+                              ? "text"
+                              : "password"
+                          }
+                          value={passwordState.formData.currentPassword}
+                          onChange={(e) =>
+                            handlePasswordInputChange("currentPassword", e.target.value)
+                          }
                           className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
                           placeholder="Enter your current password"
                           required
                         />
                         <button
                           type="button"
+                          onClick={() => togglePasswordVisibility("currentPassword")}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                         >
-                          <IconEdit className="h-4 w-4" />
+                          {passwordState.passwordVisibility.currentPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
+
+                      {/* Password Match Indicator */}
+                      {passwordState.formData.newPassword &&
+                        passwordState.formData.confirmPassword && (
+                          <div className="flex items-center space-x-2 mt-2">
+                            {passwordState.formData.newPassword ===
+                            passwordState.formData.confirmPassword ? (
+                              <>
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-sm text-green-600">
+                                  Passwords match
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                <span className="text-sm text-red-600">
+                                  Passwords do not match
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
                     </div>
 
                     {/* New Password */}
@@ -406,18 +831,57 @@ export default function StaffSettingsPage() {
                       <div className="relative">
                         <Input
                           id="newPassword"
-                          type="password"
+                          type={
+                            passwordState.passwordVisibility.newPassword
+                              ? "text"
+                              : "password"
+                          }
+                          value={passwordState.formData.newPassword}
+                          onChange={(e) =>
+                            handlePasswordInputChange("newPassword", e.target.value)
+                          }
                           className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
                           placeholder="Enter your new password"
                           required
                         />
                         <button
                           type="button"
+                          onClick={() => togglePasswordVisibility("newPassword")}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                         >
-                          <IconEdit className="h-4 w-4" />
+                          {passwordState.passwordVisibility.newPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
+
+                      {/* Password Strength Indicator */}
+                      {passwordState.formData.newPassword && (
+                        <div className="mt-2">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-sm text-gray-600">
+                              Password strength:
+                            </span>
+                            <div className="flex space-x-1">
+                              {[1, 2, 3, 4].map((level) => (
+                                <div
+                                  key={level}
+                                  className={`w-2 h-2 rounded-full ${
+                                    passwordState.formData.newPassword.length >= level * 2
+                                      ? "bg-green-500"
+                                      : "bg-gray-200"
+                                  }`}
+                                ></div>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Use at least 8 characters with a mix of letters, numbers, and symbols
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Confirm New Password */}
@@ -431,27 +895,57 @@ export default function StaffSettingsPage() {
                       <div className="relative">
                         <Input
                           id="confirmPassword"
-                          type="password"
+                          type={
+                            passwordState.passwordVisibility.confirmPassword
+                              ? "text"
+                              : "password"
+                          }
+                          value={passwordState.formData.confirmPassword}
+                          onChange={(e) =>
+                            handlePasswordInputChange("confirmPassword", e.target.value)
+                          }
                           className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
                           placeholder="Confirm your new password"
                           required
                         />
                         <button
                           type="button"
+                          onClick={() => togglePasswordVisibility("confirmPassword")}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                         >
-                          <IconEdit className="h-4 w-4" />
+                          {passwordState.passwordVisibility.confirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </div>
+
+                    {/* Error Message */}
+                    {passwordState.error && (
+                      <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                        <p className="text-sm text-red-600">{passwordState.error}</p>
+                      </div>
+                    )}
+
+                    {/* Success Message */}
+                    {passwordState.success && (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <p className="text-sm text-green-600">
+                          Password updated successfully!
+                        </p>
+                      </div>
+                    )}
 
                     {/* Submit Button */}
                     <div className="flex justify-end pt-4">
                       <Button
                         type="submit"
-                        className="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded-md font-medium transition-colors duration-200"
+                        disabled={passwordState.isLoading}
+                        className="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded-md font-medium transition-colors duration-200 disabled:opacity-50"
                       >
-                        Update Password
+                        {passwordState.isLoading ? "Updating..." : "Update Password"}
                       </Button>
                     </div>
                   </form>
@@ -493,6 +987,7 @@ export default function StaffSettingsPage() {
                       {user?.jobRole || user?.role || "Loading..."}
                     </p>
                     <div className="flex items-center space-x-4">
+                      <StatusBadge status={user?.attendanceStatus || "Active"} />
                       <div className="flex items-center space-x-1">
                         <span className="text-gray-700 text-sm">
                           Work ID: {user?.workId || "N/A"}
@@ -519,185 +1014,571 @@ export default function StaffSettingsPage() {
 
                   {/* Notification Categories */}
                   <div className="space-y-4 mb-8">
-                    {/* Performance Management */}
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-800">
-                            Performance Management
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            2/3 enabled
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Enable All
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Disable All
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    {notificationCategories.map((category) => {
+                      const isExpanded = notificationState.expandedCategories[category.key];
+                      const settings = notificationState.notificationSettings[category.key];
 
-                    {/* Task Management */}
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-800">
-                            Task Management
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            1/2 enabled
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Enable All
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Disable All
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                      return (
+                        <div
+                          key={category.key}
+                          className="bg-white border border-gray-200 rounded-lg"
+                        >
+                          {/* Category Header */}
+                          <div className="flex items-center justify-between p-4">
+                            <div className="flex items-center space-x-3">
+                              <button
+                                onClick={() => toggleCategory(category.key)}
+                                className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors duration-200"
+                              >
+                                {isExpanded ? (
+                                  <IconChevronDown className="w-4 h-4" />
+                                ) : (
+                                  <IconChevronRight className="w-4 h-4" />
+                                )}
+                              </button>
+                              <span className="font-medium text-gray-800">
+                                {category.name}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                {settings.enabled}/{settings.total} enabled
+                              </span>
+                            </div>
 
-                    {/* Employee Information */}
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-800">
-                            Employee Information
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            0/2 enabled
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Enable All
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Disable All
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                onClick={() => enableAll(category.key)}
+                                size="sm"
+                                className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
+                              >
+                                Enable All
+                              </Button>
+                              <Button
+                                onClick={() => disableAll(category.key)}
+                                size="sm"
+                                variant="outline"
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
+                              >
+                                Disable All
+                              </Button>
+                            </div>
+                          </div>
 
-                    {/* System Alerts */}
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-800">
-                            System Alerts
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            1/1 enabled
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Enable All
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Disable All
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Expanded Content */}
+                          {isExpanded && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <div className="pt-4">
+                                {/* Performance Management specific notifications */}
+                                {category.key === "performanceManagement" && (
+                                  <div className="space-y-3">
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          New Review Assigned
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Receive notifications when a new performance
+                                          review is assigned to you.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .performanceManagement.toggles
+                                              .reviewReminders
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "performanceManagement",
+                                              "reviewReminders"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
 
-                    {/* Delivery Methods */}
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-800">
-                            Delivery Methods
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            2/3 enabled
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Enable All
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Disable All
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Review Due Date
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Get reminded when your performance review is due.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .performanceManagement.toggles
+                                              .reviewDueDate
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "performanceManagement",
+                                              "reviewDueDate"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
 
-                    {/* Global Settings */}
-                    <div className="bg-white border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-medium text-gray-800">
-                            Global Settings
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            1/2 enabled
-                          </span>
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Feedback Received
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Be notified when you receive new feedback.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .performanceManagement.toggles
+                                              .feedbackReceived
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "performanceManagement",
+                                              "feedbackReceived"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Goal Updates
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Stay informed about goal progress and updates.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .performanceManagement.toggles
+                                              .goalUpdates
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "performanceManagement",
+                                              "goalUpdates"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Task Management specific notifications */}
+                                {category.key === "taskManagement" && (
+                                  <div className="space-y-3">
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Task Assignments
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Get notified when new tasks are assigned to you.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .taskManagement.toggles
+                                              .taskAssignments
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "taskManagement",
+                                              "taskAssignments"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Task Updates
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Receive updates when tasks are modified.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .taskManagement.toggles
+                                              .taskUpdates
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "taskManagement",
+                                              "taskUpdates"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Task Deadlines
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Get reminded about upcoming task deadlines.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .taskManagement.toggles
+                                              .taskDeadlines
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "taskManagement",
+                                              "taskDeadlines"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Task Completions
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Be notified when tasks are completed.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .taskManagement.toggles
+                                              .taskCompletions
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "taskManagement",
+                                              "taskCompletions"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Employee Information specific notifications */}
+                                {category.key === "employeeInformation" && (
+                                  <div className="space-y-3">
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Profile Updates
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Get notified when your profile information is updated.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .employeeInformation.toggles
+                                              .profileUpdates
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "employeeInformation",
+                                              "profileUpdates"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          New Employee Onboarding
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Be informed about new team members joining.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .employeeInformation.toggles
+                                              .newEmployeeOnboarding
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "employeeInformation",
+                                              "newEmployeeOnboarding"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Employee Status Changes
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Stay updated on employee status changes.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .employeeInformation.toggles
+                                              .employeeStatusChanges
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "employeeInformation",
+                                              "employeeStatusChanges"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* System Alerts specific notifications */}
+                                {category.key === "systemAlerts" && (
+                                  <div className="space-y-3">
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          System Maintenance
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Receive notifications about scheduled system maintenance.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .systemAlerts.toggles
+                                              .systemMaintenance
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "systemAlerts",
+                                              "systemMaintenance"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Delivery Methods specific notifications */}
+                                {category.key === "deliveryMethods" && (
+                                  <div className="space-y-3">
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Email Notifications
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Receive notifications via email.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .deliveryMethods.toggles
+                                              .emailNotifications
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "deliveryMethods",
+                                              "emailNotifications"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Push Notifications
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Receive push notifications in your browser.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .deliveryMethods.toggles
+                                              .pushNotifications
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "deliveryMethods",
+                                              "pushNotifications"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          SMS Notifications
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Receive notifications via SMS.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .deliveryMethods.toggles
+                                              .smsNotifications
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "deliveryMethods",
+                                              "smsNotifications"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Global Settings specific notifications */}
+                                {category.key === "globalSettings" && (
+                                  <div className="space-y-3">
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          All Notifications
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Enable or disable all notifications at once.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .globalSettings.toggles
+                                              .allNotifications
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "globalSettings",
+                                              "allNotifications"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-800 mb-1">
+                                          Quiet Hours
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          Enable quiet hours to reduce notifications during specific times.
+                                        </p>
+                                      </div>
+                                      <div className="ml-4">
+                                        <Switch
+                                          checked={
+                                            notificationState.notificationSettings
+                                              .globalSettings.toggles
+                                              .quietHours
+                                          }
+                                          onCheckedChange={() =>
+                                            toggleIndividualSetting(
+                                              "globalSettings",
+                                              "quietHours"
+                                            )
+                                          }
+                                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Enable All
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
-                          >
-                            Disable All
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
+
+                  {/* Error Message */}
+                  {notificationState.error && (
+                    <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                      <p className="text-sm text-red-600">{notificationState.error}</p>
+                    </div>
+                  )}
 
                   {/* Save Button */}
                   <div className="flex justify-end">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded-md font-medium transition-colors duration-200">
-                      Save Preferences
+                    <Button
+                      onClick={handleSavePreferences}
+                      disabled={notificationState.isLoading}
+                      className="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded-md font-medium transition-colors duration-200 disabled:opacity-50"
+                    >
+                      {notificationState.isLoading ? "Saving..." : "Save Preferences"}
                     </Button>
                   </div>
                 </div>
