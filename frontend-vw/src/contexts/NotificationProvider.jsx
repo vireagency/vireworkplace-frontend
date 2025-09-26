@@ -12,18 +12,18 @@ import { toast } from "sonner";
 
 // Notification System Configuration
 const NOTIFICATION_CONFIG = {
-  API_BASE: typeof __NOTIFICATION_API_BASE__ !== 'undefined' ? __NOTIFICATION_API_BASE__ : 'https://vireworkplace-backend-hpca.onrender.com/api/v1',
-  SOCKET_URL: typeof __SOCKET_IO_URL__ !== 'undefined' ? __SOCKET_IO_URL__ : 'https://vireworkplace-backend-hpca.onrender.com',
-  ENDPOINTS: typeof __NOTIFICATION_ENDPOINTS__ !== 'undefined' ? __NOTIFICATION_ENDPOINTS__ : {
-    FETCH_NOTIFICATIONS: '/notifications',
-    MARK_AS_READ: '/notifications',
-    DELETE_NOTIFICATION: '/notifications',
+  API_BASE: import.meta.env.VITE_NOTIFICATION_API_BASE || "https://vireworkplace-backend-hpca.onrender.com/api/v1",
+  SOCKET_URL: import.meta.env.VITE_SOCKET_IO_URL || "https://vireworkplace-backend-hpca.onrender.com",
+  ENDPOINTS: {
+    FETCH_NOTIFICATIONS: "/notifications",
+    MARK_AS_READ: "/notifications",
+    DELETE_NOTIFICATION: "/notifications",
     SOCKET_EVENTS: {
-      CONNECT: 'connect',
-      DISCONNECT: 'disconnect',
-      NOTIFICATION_NEW: 'notification:new',
-      NOTIFICATION_UPDATE: 'notification:update'
-    }
+      CONNECT: "connect",
+      DISCONNECT: "disconnect",
+      NOTIFICATION_NEW: "notification:new",
+      NOTIFICATION_UPDATE: "notification:update",
+    },
   },
   RECONNECTION_ATTEMPTS: 5,
   RECONNECTION_DELAY: 1000,
