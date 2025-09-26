@@ -19,7 +19,7 @@
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
-    "postinstall": "echo 'Dependencies installed successfully' && chmod +x build.sh || true"
+    "postinstall": "echo Dependencies installed successfully"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
