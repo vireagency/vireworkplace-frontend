@@ -12,8 +12,12 @@ import { toast } from "sonner";
 
 // Notification System Configuration
 const NOTIFICATION_CONFIG = {
-  API_BASE: import.meta.env.VITE_NOTIFICATION_API_BASE || "https://vireworkplace-backend-hpca.onrender.com/api/v1",
-  SOCKET_URL: import.meta.env.VITE_SOCKET_IO_URL || "https://vireworkplace-backend-hpca.onrender.com",
+  API_BASE:
+    import.meta.env.VITE_NOTIFICATION_API_BASE ||
+    "https://vireworkplace-backend-hpca.onrender.com/api/v1",
+  SOCKET_URL:
+    import.meta.env.VITE_SOCKET_IO_URL ||
+    "https://vireworkplace-backend-hpca.onrender.com",
   ENDPOINTS: {
     FETCH_NOTIFICATIONS: "/notifications",
     MARK_AS_READ: "/notifications",

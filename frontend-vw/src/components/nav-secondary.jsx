@@ -170,9 +170,9 @@ export function NavSecondary({
                              ================================================================ */}
                         
                         <button 
-                          onClick={() => navigate('/human-resource-manager/settings/profile')}
+                          onClick={() => navigate('/human-resource-manager/settings')}
                           className={`w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer flex items-center space-x-2 ${
-                            location.pathname === '/human-resource-manager/settings/profile' 
+                            location.pathname === '/human-resource-manager/settings' 
                               ? 'bg-green-500 text-white hover:bg-green-500'  // Active state
                               : 'hover:bg-green-500 hover:text-white'         // Hover state
                           }`}
@@ -192,7 +192,7 @@ export function NavSecondary({
                              ================================================================ */}
                         
                         <button 
-                          onClick={() => navigate('/human-resource-manager/settings/password')}
+                          onClick={() => navigate('/human-resource-manager/settings')}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconLock size={16} />
@@ -210,7 +210,7 @@ export function NavSecondary({
                              ================================================================ */}
                         
                         <button 
-                          onClick={() => navigate('/human-resource-manager/settings/notifications')}
+                          onClick={() => navigate('/human-resource-manager/settings')}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />
@@ -258,9 +258,9 @@ export function NavSecondary({
                              ================================================================ */}
                         
                         <button 
-                          onClick={() => navigate('/staff/settings/profile')}
+                          onClick={() => navigate('/staff/settings')}
                           className={`w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer flex items-center space-x-2 ${
-                            location.pathname === '/staff/settings/profile' 
+                            location.pathname === '/staff/settings' 
                               ? 'bg-green-500 text-white hover:bg-green-500'  // Active state
                               : 'hover:bg-green-500 hover:text-white'         // Hover state
                           }`}
@@ -280,7 +280,7 @@ export function NavSecondary({
                              ================================================================ */}
                         
                         <button 
-                          onClick={() => navigate('/staff/settings/password')}
+                          onClick={() => navigate('/staff/settings')}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconLock size={16} />
@@ -298,7 +298,7 @@ export function NavSecondary({
                              ================================================================ */}
                         
                         <button 
-                          onClick={() => navigate('/staff/settings/notifications')}
+                          onClick={() => navigate('/staff/settings')}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />
