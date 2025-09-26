@@ -406,8 +406,7 @@ export const NotificationProvider = ({ children }) => {
       deleteNotification,
       markAllAsRead,
 
-      // Connection status
-      isConnected,
+      // Connection management
       reconnect: () => {
         if (socket) {
           socket.disconnect();
