@@ -309,31 +309,29 @@ export const NavUser = React.memo(function NavUser({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("View profile clicked, user:", user);
 
-                  // Small delay to ensure dropdown closes properly before navigation
-                  setTimeout(() => {
-                    // Navigate to profile based on user role
-                    const role = user?.role?.toLowerCase();
-                    console.log("User role for profile:", role);
+                  console.log("View Profile clicked - User:", user);
+                  console.log("User role:", user?.role);
 
-                    if (role === "staff") {
-                      console.log("Navigating to staff profile");
-                      navigate("/staff/settings/profile");
-                    } else if (
-                      role === "hr" ||
-                      role === "human resource manager"
-                    ) {
-                      console.log("Navigating to HR profile");
-                      navigate("/human-resource-manager/settings/profile");
-                    } else if (role === "admin") {
-                      console.log("Navigating to admin profile");
-                      navigate("/admin/settings/profile");
-                    } else {
-                      console.log("Unknown role, defaulting to staff profile");
-                      navigate("/staff/settings/profile");
-                    }
-                  }, 100);
+                  // Navigate to profile based on user role
+                  const role = user?.role?.toLowerCase();
+
+                  if (role === "staff") {
+                    console.log("Navigating to staff profile");
+                    navigate("/staff/settings/profile");
+                  } else if (
+                    role === "hr" ||
+                    role === "human resource manager"
+                  ) {
+                    console.log("Navigating to HR profile");
+                    navigate("/human-resource-manager/settings/profile");
+                  } else if (role === "admin") {
+                    console.log("Navigating to admin profile");
+                    navigate("/admin/settings/profile");
+                  } else {
+                    console.log("Unknown role, defaulting to staff profile");
+                    navigate("/staff/settings/profile");
+                  }
                 }}
               >
                 <IconUserCircle />
@@ -346,31 +344,29 @@ export const NavUser = React.memo(function NavUser({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("Settings clicked, user:", user);
 
-                  // Small delay to ensure dropdown closes properly before navigation
-                  setTimeout(() => {
-                    // Navigate to settings based on user role
-                    const role = user?.role?.toLowerCase();
-                    console.log("User role for settings:", role);
+                  console.log("Settings clicked - User:", user);
+                  console.log("User role:", user?.role);
 
-                    if (role === "staff") {
-                      console.log("Navigating to staff settings");
-                      navigate("/staff/settings");
-                    } else if (
-                      role === "hr" ||
-                      role === "human resource manager"
-                    ) {
-                      console.log("Navigating to HR settings");
-                      navigate("/human-resource-manager/settings");
-                    } else if (role === "admin") {
-                      console.log("Navigating to admin settings");
-                      navigate("/admin/settings");
-                    } else {
-                      console.log("Unknown role, defaulting to staff settings");
-                      navigate("/staff/settings");
-                    }
-                  }, 100);
+                  // Navigate to settings based on user role
+                  const role = user?.role?.toLowerCase();
+
+                  if (role === "staff") {
+                    console.log("Navigating to staff settings");
+                    navigate("/staff/settings");
+                  } else if (
+                    role === "hr" ||
+                    role === "human resource manager"
+                  ) {
+                    console.log("Navigating to HR settings");
+                    navigate("/human-resource-manager/settings");
+                  } else if (role === "admin") {
+                    console.log("Navigating to admin settings");
+                    navigate("/admin/settings");
+                  } else {
+                    console.log("Unknown role, defaulting to staff settings");
+                    navigate("/staff/settings");
+                  }
                 }}
               >
                 <IconSettings />

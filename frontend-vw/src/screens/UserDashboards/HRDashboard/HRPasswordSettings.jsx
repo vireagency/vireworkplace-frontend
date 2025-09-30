@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { HRDashboardLayout } from "@/components/dashboard/DashboardLayout";
+import HRDashboardLayout from "@/components/dashboard/HRDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -1,46 +1,41 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
-import { SiteHeader } from "@/components/site-header"
+import { AppSidebar } from "@/components/app-sidebar";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { DataTable } from "@/components/data-table";
+import { SectionCards } from "@/components/section-cards";
+import { SiteHeader } from "@/components/site-header";
 
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-import { useEffect } from "react"
+import { useEffect } from "react";
 
-export default function HRDashboardLayout({ 
+export default function HRDashboardLayout({
   children,
   sidebarConfig,
   showSectionCards = true,
   showChart = true,
   showDataTable = false,
   dataTableData = null,
-  className = "min-h-screen bg-white"
+  className = "min-h-screen bg-white",
 }) {
   useEffect(() => {
-    document.documentElement.classList.remove('dark')
-    document.documentElement.classList.add('light')
-    document.documentElement.style.colorScheme = 'light'
-    
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.add("light");
+    document.documentElement.style.colorScheme = "light";
+
     return () => {
-      document.documentElement.classList.remove('light')
-      document.documentElement.classList.add('dark')
-      document.documentElement.style.colorScheme = 'dark'
-    }
-  }, [])
+      document.documentElement.classList.remove("light");
+      document.documentElement.classList.add("dark");
+      document.documentElement.style.colorScheme = "dark";
+    };
+  }, []);
 
   return (
     <div className={className}>
       <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          }
-        }
+        style={{
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        }}
       >
         <AppSidebar variant="inset" config={sidebarConfig} />
         <SidebarInset>
@@ -55,12 +50,14 @@ export default function HRDashboardLayout({
                     <ChartAreaInteractive />
                   </div>
                 )}
-                {showDataTable && dataTableData && <DataTable data={dataTableData} />}
+                {showDataTable && dataTableData && (
+                  <DataTable data={dataTableData} />
+                )}
               </div>
             </div>
           </div>
         </SidebarInset>
       </SidebarProvider>
     </div>
-  )
+  );
 }

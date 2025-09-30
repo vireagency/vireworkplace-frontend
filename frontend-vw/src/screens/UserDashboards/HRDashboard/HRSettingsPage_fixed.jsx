@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 // HRSettingsPage - Unified settings page for HR Manager with horizontal tab navigation
-import { HRDashboardLayout } from "@/components/dashboard/DashboardLayout";
+import HRDashboardLayout from "@/components/dashboard/HRDashboardLayout";
 import { hrDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +102,145 @@ export default function HRSettingsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [profileSubTab, setProfileSubTab] = useState("personal");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [isEducationOpen, setIsEducationOpen] = useState(false);
+  const [showEducationModal, setShowEducationModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEducationId, setEditingEducationId] = useState(null);
+  const [isExperienceOpen, setIsExperienceOpen] = useState(false);
+  const [showExperienceModal, setShowExperienceModal] = useState(false);
+  const [isExperienceEditMode, setIsExperienceEditMode] = useState(false);
+  const [editingExperienceId, setEditingExperienceId] = useState(null);
+  const [isLicensesOpen, setIsLicensesOpen] = useState(false);
+  const [showLicensesModal, setShowLicensesModal] = useState(false);
+  const [isLicensesEditMode, setIsLicensesEditMode] = useState(false);
+  const [editingLicensesId, setEditingLicensesId] = useState(null);
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
+  const [educationForm, setEducationForm] = useState({
+    institution: "",
+    description: "",
+    duration: "",
+  });
+  const [experienceForm, setExperienceForm] = useState({
+    jobTitle: "",
+    organization: "",
+    description: "",
+    location: "",
+    skills: "",
+    duration: "",
+  });
+  const [licensesForm, setLicensesForm] = useState({
+    certificationName: "",
+    organization: "",
+    description: "",
+    issueDate: "",
+  });
+  const [skillsForm, setSkillsForm] = useState({
+    skillName: "",
+  });
+  const [educationEntries, setEducationEntries] = useState([
+    {
+      id: 1,
+      institution: "University of Ghana, Legon",
+      description: "Mathematics",
+      duration: "2018-2022",
+    },
+    {
+      id: 2,
+      institution: "University of Hong-Kong",
+      description: "Associate Diploma (Software Engineering)",
+      duration: "2020-2021",
+    },
+  ]);
+  const [experienceEntries, setExperienceEntries] = useState([
+    {
+      id: 1,
+      jobTitle: "HR Manager",
+      organization: "VIRE Workplace",
+      employmentType: "Full-Time",
+      location: "Accra, Ghana",
+      duration: "2025 - present",
+      skills:
+        "Human Resources · Employee Relations · Performance Management · Recruitment · Training & Development",
+    },
+    {
+      id: 2,
+      jobTitle: "Senior HR Specialist",
+      organization: "Tech Solutions Ltd",
+      employmentType: "Contract",
+      location: "Accra, Ghana",
+      duration: "2023 - 2025",
+      skills:
+        "HR Policies · Compliance · Benefits Administration · Employee Engagement",
+    },
+  ]);
+  const [licensesEntries, setLicensesEntries] = useState([
+    {
+      id: 1,
+      organization: "SHRM",
+      certificationName: "Senior Certified Professional (SHRM-SCP)",
+      issueDate: "Issued July, 2022",
+    },
+    {
+      id: 2,
+      organization: "CIPD",
+      certificationName: "Chartered Member (Chartered MCIPD)",
+      issueDate: "Issued January, 2023",
+    },
+  ]);
+  const [skillsEntries, setSkillsEntries] = useState([
+    "Human Resources Management",
+    "Employee Relations",
+    "Performance Management",
+    "Recruitment",
+    "Training & Development",
+    "HR Policies",
+    "Compliance",
+  ]);
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || "",
+    username: user?.email?.split("@")[0] ? `@${user.email.split("@")[0]}` : "",
+    dateOfBirth: user?.dateOfBirth || "",
+    maritalStatus: user?.maritalStatus || "",
+    lastName: user?.lastName || "",
+    nationality: user?.nationality || "Ghanaian",
+    gender: user?.gender || "",
+    personalPronouns: user?.personalPronouns || "",
+  });
+
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      // Parse date of birth if it exists
+      let parsedDate = null;
+      if (user.dateOfBirth) {
+        // Handle both ISO string format and simple date format
+        if (user.dateOfBirth.includes("T")) {
+          // ISO format: "2002-03-27T00:00:00.000Z"
+          parsedDate = new Date(user.dateOfBirth);
+        } else {
+          // Simple format: "2002-03-27"
+          parsedDate = new Date(user.dateOfBirth);
+        }
+      }
+
+      setSelectedDate(parsedDate);
+      setFormData({
+        firstName: user.firstName || "",
+        username: user.email?.split("@")[0]
+          ? `@${user.email.split("@")[0]}`
+          : "",
+        dateOfBirth: user.dateOfBirth || "",
+        maritalStatus: user.maritalStatus || "",
+        lastName: user.lastName || "",
+        nationality: user.nationality || "Ghanaian",
+        gender: user.gender || "",
+        personalPronouns: user.personalPronouns || "",
+      });
+    }
+  }, [user]);
 
   // Password state (from HRPasswordSettings)
   const [passwordState, setPasswordState] = useState({
@@ -529,9 +668,285 @@ export default function HRSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Personal Information
                   </h2>
-                  <p className="text-gray-600">
-                    This is the personal information section content.
-                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="firstName"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          First Name
+                        </Label>
+                        <Input
+                          id="firstName"
+                          value={formData.firstName}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              firstName: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="username"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Username
+                        </Label>
+                        <Input
+                          id="username"
+                          value={formData.username}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              username: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="dateOfBirth"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Date of Birth
+                        </Label>
+                        <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              id="dateOfBirth"
+                              className="w-full justify-between font-normal bg-white border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer"
+                            >
+                              {selectedDate
+                                ? selectedDate.toLocaleDateString()
+                                : "Select date"}
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto overflow-hidden p-0 bg-popover border border-border rounded-md shadow-md"
+                            align="start"
+                          >
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              captionLayout="dropdown"
+                              onSelect={(date) => {
+                                setSelectedDate(date);
+                                setFormData({
+                                  ...formData,
+                                  dateOfBirth: date
+                                    ? date.toISOString().split("T")[0]
+                                    : "",
+                                });
+                                setDateOpen(false);
+                              }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="maritalStatus"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Marital Status
+                        </Label>
+                        <Select
+                          value={formData.maritalStatus}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, maritalStatus: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue placeholder="Select marital status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="Single"
+                              className="cursor-pointer"
+                            >
+                              Single
+                            </SelectItem>
+                            <SelectItem
+                              value="Married"
+                              className="cursor-pointer"
+                            >
+                              Married
+                            </SelectItem>
+                            <SelectItem
+                              value="Divorced"
+                              className="cursor-pointer"
+                            >
+                              Divorced
+                            </SelectItem>
+                            <SelectItem
+                              value="Widowed"
+                              className="cursor-pointer"
+                            >
+                              Widowed
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="lastName"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Last Name
+                        </Label>
+                        <Input
+                          id="lastName"
+                          value={formData.lastName}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              lastName: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="nationality"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Nationality
+                        </Label>
+                        <Input
+                          id="nationality"
+                          value={formData.nationality}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              nationality: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="gender"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Gender
+                        </Label>
+                        <Select
+                          value={formData.gender}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, gender: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male" className="cursor-pointer">
+                              Male
+                            </SelectItem>
+                            <SelectItem
+                              value="Female"
+                              className="cursor-pointer"
+                            >
+                              Female
+                            </SelectItem>
+                            <SelectItem
+                              value="Other"
+                              className="cursor-pointer"
+                            >
+                              Other
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="personalPronouns"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Personal Pronouns
+                        </Label>
+                        <Select
+                          value={formData.personalPronouns}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              personalPronouns: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue placeholder="Select pronouns" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="he/him"
+                              className="cursor-pointer"
+                            >
+                              he/him
+                            </SelectItem>
+                            <SelectItem
+                              value="she/her"
+                              className="cursor-pointer"
+                            >
+                              she/her
+                            </SelectItem>
+                            <SelectItem
+                              value="they/them"
+                              className="cursor-pointer"
+                            >
+                              they/them
+                            </SelectItem>
+                            <SelectItem
+                              value="other"
+                              className="cursor-pointer"
+                            >
+                              other
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -541,9 +956,104 @@ export default function HRSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Contact Information
                   </h2>
-                  <p className="text-gray-600">
-                    This is the contact information section content.
-                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="email"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Email
+                        </Label>
+                        <Input
+                          id="email"
+                          value="hr.manager@vireworkplace.com"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="address"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Address
+                        </Label>
+                        <Input
+                          id="address"
+                          value="New site, Adenta"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="region"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Region/State
+                        </Label>
+                        <Input
+                          id="region"
+                          value="Greater Accra"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="phone"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Phone Number
+                        </Label>
+                        <Input
+                          id="phone"
+                          value="(+233) 0248940734"
+                          className="bg-white border-blue-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="city"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          City
+                        </Label>
+                        <Input
+                          id="city"
+                          value="Accra"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="postalCode"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Postal Code
+                        </Label>
+                        <Input
+                          id="postalCode"
+                          value="GP-2448"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -565,9 +1075,184 @@ export default function HRSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Employment Details
                   </h2>
-                  <p className="text-gray-600">
-                    This is the employment details section content.
-                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_employeeId"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Employee ID
+                        </Label>
+                        <Input
+                          id="emp_employeeId"
+                          value="VIRE-HR-001"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_department"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Department
+                        </Label>
+                        <Input
+                          id="emp_department"
+                          value="Human Resources"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_type"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Employment Type
+                        </Label>
+                        <Select defaultValue="Full Time">
+                          <SelectTrigger
+                            id="emp_type"
+                            className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="Full Time"
+                              className="cursor-pointer"
+                            >
+                              Full Time
+                            </SelectItem>
+                            <SelectItem
+                              value="Part Time"
+                              className="cursor-pointer"
+                            >
+                              Part Time
+                            </SelectItem>
+                            <SelectItem
+                              value="Contract"
+                              className="cursor-pointer"
+                            >
+                              Contract
+                            </SelectItem>
+                            <SelectItem
+                              value="Internship"
+                              className="cursor-pointer"
+                            >
+                              Internship
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_location"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Location/Branch
+                        </Label>
+                        <Input
+                          id="emp_location"
+                          placeholder="(Optional)"
+                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_jobTitle"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Job Title
+                        </Label>
+                        <Input
+                          id="emp_jobTitle"
+                          value="Human Resources Manager"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_dateHired"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Date Hired
+                        </Label>
+                        <Input
+                          id="emp_dateHired"
+                          value="15 - 01 - 2024"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_supervisor"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Supervisor
+                        </Label>
+                        <Input
+                          id="emp_supervisor"
+                          value="CEO - Nana Gyamfi Addae"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_status"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Status
+                        </Label>
+                        <Select defaultValue="Active">
+                          <SelectTrigger
+                            id="emp_status"
+                            className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="Active"
+                              className="cursor-pointer"
+                            >
+                              Active
+                            </SelectItem>
+                            <SelectItem
+                              value="Inactive"
+                              className="cursor-pointer"
+                            >
+                              Inactive
+                            </SelectItem>
+                            <SelectItem
+                              value="On Leave"
+                              className="cursor-pointer"
+                            >
+                              On Leave
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
+                      Save
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -577,9 +1262,124 @@ export default function HRSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Qualifications
                   </h2>
-                  <p className="text-gray-600">
-                    This is the qualifications section content.
-                  </p>
+
+                  {/* Qualification Cards */}
+                  <div className="space-y-4">
+                    {/* Education Card */}
+                    <Collapsible
+                      open={isEducationOpen}
+                      onOpenChange={setIsEducationOpen}
+                    >
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Education Header */}
+                        <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <IconSchool className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-800">
+                                Education
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            {isEducationOpen ? (
+                              <IconChevronDown className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <IconChevronRight className="w-5 h-5 text-gray-400" />
+                            )}
+                            <button
+                              className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isEducationOpen) {
+                                  setIsEducationOpen(true);
+                                }
+                                setIsEditMode(false);
+                                setEditingEducationId(null);
+                                setEducationForm({
+                                  institution: "",
+                                  description: "",
+                                  duration: "",
+                                });
+                                setShowEducationModal(true);
+                              }}
+                            >
+                              + Add
+                            </button>
+                          </div>
+                        </CollapsibleTrigger>
+
+                        {/* Expanded Education Content */}
+                        <CollapsibleContent>
+                          <div className="border-t border-gray-200 p-4 bg-gray-50">
+                            <div className="space-y-3">
+                              {educationEntries.map((entry) => (
+                                <div
+                                  key={entry.id}
+                                  className="bg-white border border-gray-200 rounded-lg p-4"
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h4 className="font-bold text-gray-800 text-base mb-2">
+                                        {entry.institution}
+                                      </h4>
+                                      <div className="flex items-center space-x-2 mb-1">
+                                        <IconSchool className="w-4 h-4 text-gray-600" />
+                                        <span className="text-gray-700 text-sm">
+                                          {entry.description}
+                                        </span>
+                                      </div>
+                                      <p className="text-gray-500 text-sm">
+                                        {entry.duration}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center space-x-2 ml-4">
+                                      <button
+                                        className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                        onClick={() => {
+                                          setIsEditMode(true);
+                                          setEditingEducationId(entry.id);
+                                          setEducationForm({
+                                            institution: entry.institution,
+                                            description: entry.description,
+                                            duration: entry.duration,
+                                          });
+                                          setShowEducationModal(true);
+                                        }}
+                                      >
+                                        <IconEdit className="w-4 h-4 text-blue-600" />
+                                      </button>
+                                      <button
+                                        className="p-1 hover:bg-red-50 rounded transition-colors"
+                                        onClick={() => {
+                                          setEducationEntries((prev) =>
+                                            prev.filter(
+                                              (item) => item.id !== entry.id
+                                            )
+                                          );
+                                        }}
+                                      >
+                                        <IconTrash className="w-4 h-4 text-red-600" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-8">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -589,9 +1389,22 @@ export default function HRSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Documents
                   </h2>
-                  <p className="text-gray-600">
-                    This is the documents section content.
-                  </p>
+                  <div className="space-y-4">
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-gray-800">
+                          Upload Documents
+                        </h3>
+                        <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-medium">
+                          + Upload
+                        </Button>
+                      </div>
+                      <p className="text-gray-600 text-sm">
+                        Upload your important documents like ID, certificates,
+                        and other relevant files.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -601,9 +1414,102 @@ export default function HRSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Health Information
                   </h2>
-                  <p className="text-gray-600">
-                    This is the health information section content.
-                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="bloodType"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Blood Type
+                        </Label>
+                        <Select defaultValue="O+">
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A+" className="cursor-pointer">
+                              A+
+                            </SelectItem>
+                            <SelectItem value="A-" className="cursor-pointer">
+                              A-
+                            </SelectItem>
+                            <SelectItem value="B+" className="cursor-pointer">
+                              B+
+                            </SelectItem>
+                            <SelectItem value="B-" className="cursor-pointer">
+                              B-
+                            </SelectItem>
+                            <SelectItem value="AB+" className="cursor-pointer">
+                              AB+
+                            </SelectItem>
+                            <SelectItem value="AB-" className="cursor-pointer">
+                              AB-
+                            </SelectItem>
+                            <SelectItem value="O+" className="cursor-pointer">
+                              O+
+                            </SelectItem>
+                            <SelectItem value="O-" className="cursor-pointer">
+                              O-
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="allergies"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Allergies
+                        </Label>
+                        <Input
+                          id="allergies"
+                          placeholder="List any allergies"
+                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="medicalConditions"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Medical Conditions
+                        </Label>
+                        <Input
+                          id="medicalConditions"
+                          placeholder="List any medical conditions"
+                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emergencyNotes"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Emergency Notes
+                        </Label>
+                        <Input
+                          id="emergencyNotes"
+                          placeholder="Any additional emergency information"
+                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
                 </div>
               )}
             </>

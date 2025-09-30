@@ -250,6 +250,7 @@ export function AppSidebar({
   // Create user data object from API response for navigation components
   const userData = {
     user: {
+      ...user, // Include all user properties including role
       name: user ? `${user.firstName} ${user.lastName}` : "Loading...", // User's full name or loading state
       email: user?.email || "loading@example.com", // User's email or placeholder
       avatar: getSidebarAvatarUrl(user), // User's profile image or null

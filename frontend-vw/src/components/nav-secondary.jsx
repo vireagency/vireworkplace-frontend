@@ -144,7 +144,11 @@ export function NavSecondary({
             if (isHR && isSettings) {
               return (
                 <SidebarMenuItem key={item.title}>
-                  <Popover>
+                  <Popover
+                    onOpenChange={(open) =>
+                      console.log("HR Settings popover open:", open)
+                    }
+                  >
                     {/* Popover trigger button */}
                     <PopoverTrigger asChild>
                       <SidebarMenuButton
@@ -176,9 +180,19 @@ export function NavSecondary({
                              ================================================================ */}
 
                         <button
-                          onClick={() =>
-                            navigate("/human-resource-manager/settings/profile")
-                          }
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("HR Profile settings clicked");
+
+                            // Small delay to ensure popover closes properly before navigation
+                            setTimeout(() => {
+                              console.log("Navigating to HR profile settings");
+                              navigate(
+                                "/human-resource-manager/settings/profile"
+                              );
+                            }, 100);
+                          }}
                           className={`w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer flex items-center space-x-2 ${
                             location.pathname ===
                             "/human-resource-manager/settings/profile"
@@ -201,9 +215,19 @@ export function NavSecondary({
                              ================================================================ */}
 
                         <button
-                          onClick={() =>
-                            navigate("/human-resource-manager/settings/password")
-                          }
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("HR Password settings clicked");
+
+                            // Small delay to ensure popover closes properly before navigation
+                            setTimeout(() => {
+                              console.log("Navigating to HR password settings");
+                              navigate(
+                                "/human-resource-manager/settings/password"
+                              );
+                            }, 100);
+                          }}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconLock size={16} />
@@ -221,9 +245,21 @@ export function NavSecondary({
                              ================================================================ */}
 
                         <button
-                          onClick={() =>
-                            navigate("/human-resource-manager/settings/notifications")
-                          }
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("HR Notifications settings clicked");
+
+                            // Small delay to ensure popover closes properly before navigation
+                            setTimeout(() => {
+                              console.log(
+                                "Navigating to HR notifications settings"
+                              );
+                              navigate(
+                                "/human-resource-manager/settings/notifications"
+                              );
+                            }, 100);
+                          }}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />
@@ -316,7 +352,9 @@ export function NavSecondary({
                              ================================================================ */}
 
                         <button
-                          onClick={() => navigate("/staff/settings/notifications")}
+                          onClick={() =>
+                            navigate("/staff/settings/notifications")
+                          }
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />

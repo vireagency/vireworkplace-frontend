@@ -85,11 +85,22 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          console.log("Token expired or invalid, logging out user");
-          toast.error("Session expired. Please log in again.");
-          signOut();
-          // Redirect to landing page
-          window.location.href = "/";
+          console.log("401 error detected, but not logging out automatically");
+          console.log("Error URL:", error.config?.url);
+          console.log("Error details:", error.response?.data);
+
+          // Only logout on specific 401 errors, not all of them
+          const url = error.config?.url || "";
+          const shouldLogout = url.includes("/auth/") || url.includes("/login");
+
+          if (shouldLogout) {
+            console.log("Token expired or invalid, logging out user");
+            console.log("But temporarily disabled for debugging");
+            // toast.error("Session expired. Please log in again.");
+            // signOut();
+            // // Redirect to landing page
+            // window.location.href = "/";
+          }
         }
         return Promise.reject(error);
       }
@@ -105,14 +116,20 @@ export const AuthProvider = ({ children }) => {
     const checkTokenExpiration = () => {
       if (accessToken && isTokenExpired(accessToken)) {
         console.log("Token expired, logging out user");
-        toast.error("Session expired. Please log in again.");
-        signOut();
-        window.location.href = "/";
+        console.log("Access token:", accessToken.substring(0, 20) + "...");
+        console.log("Token expiration check triggered");
+        console.log("But temporarily disabled for debugging");
+        // toast.error("Session expired. Please log in again.");
+        // signOut();
+        // window.location.href = "/";
       }
     };
 
-    // Check immediately
-    checkTokenExpiration();
+    // Don't check immediately on mount to prevent logout during navigation
+    // Only check on initial load or accessToken change
+    if (!accessToken) {
+      return;
+    }
 
     // Check every 5 minutes
     const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000);
@@ -220,6 +237,13 @@ export const AuthProvider = ({ children }) => {
    * @returns {void}
    */
   const signOut = () => {
+    console.log("=== SIGNOUT TRIGGERED ===");
+    console.log("SignOut called at:", new Date().toISOString());
+    console.log("Current URL:", window.location.href);
+    console.log("Current path:", window.location.pathname);
+    console.log("Stack trace:", new Error().stack);
+    console.log("=== SIGNOUT TRIGGERED END ===");
+
     setAccessToken(null);
     setUser(null);
     localStorage.removeItem("access_token");

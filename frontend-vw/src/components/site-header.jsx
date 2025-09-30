@@ -735,31 +735,22 @@ export function SiteHeader() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("View profile clicked, user:", user);
 
-                  // Small delay to ensure dropdown closes properly before navigation
-                  setTimeout(() => {
-                    // Navigate to profile based on user role
-                    const role = user?.role?.toLowerCase();
-                    console.log("User role for profile:", role);
+                  // Navigate to profile based on user role
+                  const role = user?.role?.toLowerCase();
 
-                    if (role === "staff") {
-                      console.log("Navigating to staff profile");
-                      navigate("/staff/settings/profile");
-                    } else if (
-                      role === "hr" ||
-                      role === "human resource manager"
-                    ) {
-                      console.log("Navigating to HR profile");
-                      navigate("/human-resource-manager/settings/profile");
-                    } else if (role === "admin") {
-                      console.log("Navigating to admin profile");
-                      navigate("/admin/settings/profile");
-                    } else {
-                      console.log("Unknown role, defaulting to staff profile");
-                      navigate("/staff/settings/profile");
-                    }
-                  }, 100);
+                  if (role === "staff") {
+                    navigate("/staff/settings/profile");
+                  } else if (
+                    role === "hr" ||
+                    role === "human resource manager"
+                  ) {
+                    navigate("/human-resource-manager/settings/profile");
+                  } else if (role === "admin") {
+                    navigate("/admin/settings/profile");
+                  } else {
+                    navigate("/staff/settings/profile");
+                  }
                 }}
               >
                 <IconUser className="mr-2 h-4 w-4" />
@@ -771,31 +762,22 @@ export function SiteHeader() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("Settings clicked, user:", user);
 
-                  // Small delay to ensure dropdown closes properly before navigation
-                  setTimeout(() => {
-                    // Navigate to settings based on user role
-                    const role = user?.role?.toLowerCase();
-                    console.log("User role for settings:", role);
+                  // Navigate to settings based on user role
+                  const role = user?.role?.toLowerCase();
 
-                    if (role === "staff") {
-                      console.log("Navigating to staff settings");
-                      navigate("/staff/settings");
-                    } else if (
-                      role === "hr" ||
-                      role === "human resource manager"
-                    ) {
-                      console.log("Navigating to HR settings");
-                      navigate("/human-resource-manager/settings");
-                    } else if (role === "admin") {
-                      console.log("Navigating to admin settings");
-                      navigate("/admin/settings");
-                    } else {
-                      console.log("Unknown role, defaulting to staff settings");
-                      navigate("/staff/settings");
-                    }
-                  }, 100);
+                  if (role === "staff") {
+                    navigate("/staff/settings");
+                  } else if (
+                    role === "hr" ||
+                    role === "human resource manager"
+                  ) {
+                    navigate("/human-resource-manager/settings");
+                  } else if (role === "admin") {
+                    navigate("/admin/settings");
+                  } else {
+                    navigate("/staff/settings");
+                  }
                 }}
               >
                 <IconSettings className="mr-2 h-4 w-4" />

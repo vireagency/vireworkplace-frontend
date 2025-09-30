@@ -1,6 +1,6 @@
 /**
- * @fileoverview Staff Sidebar Component for Vire Workplace HR App
- * @description Custom sidebar component for staff dashboard with proper navigation and counts
+ * @fileoverview HR Sidebar Component for Vire Workplace HR App
+ * @description Custom sidebar component for HR dashboard with proper navigation and counts
  * @author Vire Development Team
  * @version 1.0.0
  * @since 2024
@@ -25,37 +25,22 @@ import { useAuth } from "@/hooks/useAuth";
 import { getSidebarAvatarUrl } from "@/utils/avatarUtils";
 import { NavUser } from "@/components/nav-user";
 import { NavSecondary } from "@/components/nav-secondary";
-import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
-import { Button } from "@/components/ui/button";
-import { IconPlus } from "@tabler/icons-react";
-import AttendanceModal from "@/components/AttendanceModal";
-import { ActionButtonsSection } from "@/components/action-buttons-section";
-import { ActionButton } from "@/components/ui/action-button";
-import { staffActionButtons } from "@/config/actionButtonConfigs";
-// import { useAttendanceStatus } from "@/hooks/useAttendanceStatus";
 
 /**
- * StaffSidebar Component
- * @description Custom sidebar for staff dashboard with proper navigation structure
+ * HRSidebar Component
+ * @description Custom sidebar for HR dashboard with proper navigation structure
  * @component
  * @param {Object} props - Component props
  * @param {Object} [props.config] - Navigation configuration
  * @param {Function} [props.onNavigate] - Navigation handler
  * @param {...any} props - Additional props passed to the Sidebar component
- * @returns {JSX.Element} The staff sidebar component
+ * @returns {JSX.Element} The HR sidebar component
  */
-const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
+const HRSidebarComponent = ({ config, onNavigate, ...props }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { counts, loading: sidebarLoading } = useStaffSidebar();
-  // const { attendanceStatus } = useAttendanceStatus();
   const [isNavigating, setIsNavigating] = useState(false);
-  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-
-  // Debug logging for counts
-  console.log("StaffSidebar - Received counts:", counts);
-  console.log("StaffSidebar - Sidebar loading:", sidebarLoading);
 
   // Handle navigation with proper state management
   const handleNavigation = useCallback(
@@ -94,55 +79,12 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
     [location.pathname]
   );
 
-  // Get item count for badges from shared context
-  const getItemCount = useCallback(
-    (itemTitle) => {
-      // Map item titles to count keys
-      const titleMapping = {
-        Evaluations: "evaluations",
-        Tasks: "tasks",
-        Attendance: "attendance",
-        Messages: "messages",
-        Reports: "reports",
-      };
-
-      const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
-      const count = counts[countKey] || 0;
-
-      // Debug logging for badge counts
-      console.log(`Badge for ${itemTitle} (key: ${countKey}):`, count);
-
-      return count;
-    },
-    [counts]
-  );
-
-  // Handle attendance modal
-  const handleAttendanceClick = useCallback(() => {
-    setShowAttendanceModal(true);
+  // Get item count for badges
+  const getItemCount = useCallback((itemTitle) => {
+    // For now, return 0 for all items
+    // This can be enhanced later with actual count data
+    return 0;
   }, []);
-
-  const handleAttendanceModalClose = useCallback(() => {
-    setShowAttendanceModal(false);
-  }, []);
-
-  const handleAttendanceSuccess = useCallback(() => {
-    // Refresh sidebar counts after successful check-in/check-out
-    // The context will automatically refresh counts
-    console.log(
-      "Attendance action successful, sidebar counts will be refreshed"
-    );
-  }, []);
-
-  // Get staff action buttons with custom styling
-  const staffActionButtonsWithHandlers = staffActionButtons.map((button) => ({
-    ...button,
-    onClick:
-      button.text === "Check-In" ? handleAttendanceClick : button.onClick,
-    // Override styling to match staff theme
-    className:
-      "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600 min-w-6 max-w-45 duration-200 ease-linear flex items-center justify-center",
-  }));
 
   // Render navigation item
   const renderNavItem = useCallback(
@@ -154,14 +96,13 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       return (
         <SidebarMenuItem key={item.url}>
           <SidebarMenuButton
-            tooltip={item.title}
             onClick={() => handleNavigation(item.url, item)}
             className={cn(
               "cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 transition-all duration-200",
               isActive ? "text-[#00DB12] bg-green-50" : "",
               isNavigating && "opacity-50 pointer-events-none"
             )}
-            disabled={isNavigating || sidebarLoading}
+            disabled={isNavigating}
           >
             {Icon && <Icon />}
             <span>{item.title}</span>
@@ -182,7 +123,7 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
         </SidebarMenuItem>
       );
     },
-    [isActiveItem, getItemCount, handleNavigation, isNavigating, sidebarLoading]
+    [isActiveItem, getItemCount, handleNavigation, isNavigating]
   );
 
   // Render navigation section
@@ -240,39 +181,15 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent className="flex flex-col gap-2">
-            {/* Quick Actions Section - Using ActionButtonsSection like HR Dashboard */}
-            {staffActionButtonsWithHandlers &&
-              staffActionButtonsWithHandlers.length > 0 && (
-                <ActionButtonsSection
-                  actionButtons={staffActionButtonsWithHandlers}
-                  title="Quick Actions"
-                />
-              )}
-
-            {/* Fallback Action Buttons - Staff themed */}
-            {(!staffActionButtonsWithHandlers ||
-              staffActionButtonsWithHandlers.length === 0) && (
-              <SidebarMenu>
-                <SidebarMenuItem className="flex items-center gap-2">
-                  {/* Check-in action button with staff styling */}
-                  <ActionButton
-                    icon={IconPlus}
-                    text="Check-In"
-                    tooltip="Check-In"
-                    variant="primary"
-                    onClick={handleAttendanceClick}
-                    className="bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600 min-w-6 max-w-45 duration-200 ease-linear flex items-center justify-center"
-                  />
-                </SidebarMenuItem>
-              </SidebarMenu>
-            )}
-
-            {/* Main Navigation */}
+            {/* Main Section */}
             {config.navMain && renderSection("navMain", config.navMain, "Main")}
 
             {/* Analytics Section */}
             {config.analytics &&
               renderSection("analytics", config.analytics, "Analytics")}
+
+            {/* Teams Section */}
+            {config.teams && renderSection("teams", config.teams, "Teams")}
 
             {/* Productivity Section */}
             {config.productivity &&
@@ -303,18 +220,11 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       <SidebarFooter>
         <NavUser user={userData.user} />
       </SidebarFooter>
-
-      {/* Attendance Modal */}
-      <AttendanceModal
-        isOpen={showAttendanceModal}
-        onClose={handleAttendanceModalClose}
-        onSuccess={handleAttendanceSuccess}
-      />
     </Sidebar>
   );
 };
 
 // Memoize the component to prevent unnecessary re-renders
-export const StaffSidebar = memo(StaffSidebarComponent);
+export const HRSidebar = memo(HRSidebarComponent);
 
-export default StaffSidebar;
+export default HRSidebar;

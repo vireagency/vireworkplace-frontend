@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 // HRSettingsPage - Unified settings page for HR Manager with horizontal tab navigation
-import { HRDashboardLayout } from "@/components/dashboard/DashboardLayout";
+import HRDashboardLayout from "@/components/dashboard/HRDashboardLayout";
 import { hrDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
