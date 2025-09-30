@@ -191,8 +191,6 @@
     animation: scaleIn 0.3s ease-out;
   }
 
-
-
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -225,8 +223,6 @@
       transform: scale(1);
     }
   }
-
-
 }
 
 @layer components {
@@ -257,6 +253,104 @@
     color: var(--warning-text) !important;
     border: 1px solid var(--warning-border) !important;
   }
+}
 
+/* ============================================================================
+   MOBILE RESPONSIVENESS IMPROVEMENTS
+   ============================================================================ */
 
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Improve touch targets */
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for mobile forms */
+  .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+
+  /* Improve table readability on mobile */
+  table {
+    font-size: 0.875rem;
+  }
+
+  /* Better modal sizing on mobile */
+  .fixed.inset-0 {
+    padding: 0.5rem;
+  }
+
+  /* Improve card padding on mobile */
+  .p-6 {
+    padding: 1rem;
+  }
+
+  /* Better button spacing */
+  .flex.items-center.gap-4 {
+    gap: 0.75rem;
+  }
+}
+
+/* Tablet improvements */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Better grid layouts for tablets */
+  .grid-cols-1.md\\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Improve spacing */
+  .gap-6 {
+    gap: 1.5rem;
+  }
+}
+
+/* Improve text readability on small screens */
+@media (max-width: 768px) {
+  /* Ensure minimum font sizes */
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  /* Better line heights for mobile */
+  .text-base {
+    line-height: 1.5;
+  }
+}
+
+/* Improve form elements on mobile */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Better input spacing */
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+}
+
+/* Improve sidebar behavior on mobile */
+@media (max-width: 768px) {
+  /* Ensure sidebar doesn't interfere with content */
+  [data-sidebar="sidebar"] {
+    z-index: 50;
+  }
+
+  /* Better mobile navigation */
+  .sidebar-trigger {
+    padding: 0.75rem;
+  }
 }

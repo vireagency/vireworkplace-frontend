@@ -7,24 +7,24 @@
  */
 
 // Client-side directive for Next.js compatibility
-"use client"
+"use client";
 
 // React core library for component creation and hooks
-import * as React from "react"
+import * as React from "react";
 
 // ============================================================================
 // CHART COMPONENT IMPORTS
 // ============================================================================
 
 // Recharts library components for data visualization
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 // ============================================================================
 // HOOK IMPORTS
 // ============================================================================
 
 // Custom hook for detecting mobile devices
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // ============================================================================
 // UI COMPONENT IMPORTS
@@ -32,31 +32,35 @@ import { useIsMobile } from "@/hooks/use-mobile"
 
 // Card components for layout and structure
 import {
-  Card,                // Main card container
-  CardAction,          // Card action area for controls
-  CardContent,         // Card content area
-  CardDescription,     // Card description text
-  CardHeader,          // Card header section
-  CardTitle,           // Card title text
-} from "@/components/ui/card"
+  Card, // Main card container
+  CardAction, // Card action area for controls
+  CardContent, // Card content area
+  CardDescription, // Card description text
+  CardHeader, // Card header section
+  CardTitle, // Card title text
+} from "@/components/ui/card";
 
 // Chart-specific UI components
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 // Form control components
 import {
-  Select,              // Dropdown select component
-  SelectContent,       // Select dropdown content
-  SelectItem,          // Individual select option
-  SelectTrigger,       // Select trigger button
-  SelectValue,         // Select value display
-} from "@/components/ui/select"
+  Select, // Dropdown select component
+  SelectContent, // Select dropdown content
+  SelectItem, // Individual select option
+  SelectTrigger, // Select trigger button
+  SelectValue, // Select value display
+} from "@/components/ui/select";
 
 // Toggle group for time range selection
 import {
-  ToggleGroup,         // Toggle group container
-  ToggleGroupItem,     // Individual toggle button
-} from "@/components/ui/toggle-group"
+  ToggleGroup, // Toggle group container
+  ToggleGroupItem, // Individual toggle button
+} from "@/components/ui/toggle-group";
 
 // ============================================================================
 // COMPONENT DESCRIPTION
@@ -66,7 +70,7 @@ import {
  * Component description for documentation and storybook
  * @type {string}
  */
-export const description = "An interactive area chart"
+export const description = "An interactive area chart";
 
 // ============================================================================
 // CHART DATA
@@ -76,7 +80,7 @@ export const description = "An interactive area chart"
  * Sample chart data for visitor analytics
  * @description Contains daily visitor data for desktop and mobile platforms
  * @type {Array<{date: string, desktop: number, mobile: number}>}
- * 
+ *
  * Data Structure:
  * - date: ISO date string (YYYY-MM-DD)
  * - desktop: Number of desktop visitors
@@ -174,7 +178,7 @@ const chartData = [
   { date: "2024-06-28", desktop: 149, mobile: 200 },
   { date: "2024-06-29", desktop: 103, mobile: 160 },
   { date: "2024-06-30", desktop: 446, mobile: 400 },
-]
+];
 
 // ============================================================================
 // CHART CONFIGURATION
@@ -188,21 +192,21 @@ const chartData = [
 const chartConfig = {
   // Overall visitors configuration
   visitors: {
-    label: "Visitors",                // Main chart label
+    label: "Visitors", // Main chart label
   },
 
   // Desktop platform configuration
   desktop: {
-    label: "Desktop",                 // Desktop data label
-    color: "var(--primary)",         // Desktop line and fill color
+    label: "Desktop", // Desktop data label
+    color: "var(--primary)", // Desktop line and fill color
   },
 
   // Mobile platform configuration
   mobile: {
-    label: "Mobile",                  // Mobile data label
-    color: "var(--primary)",         // Mobile line and fill color
-  }
-}
+    label: "Mobile", // Mobile data label
+    color: "var(--primary)", // Mobile line and fill color
+  },
+};
 
 // ============================================================================
 // MAIN COMPONENT
@@ -213,7 +217,7 @@ const chartConfig = {
  * @description Interactive area chart with time range filtering and responsive design
  * @component
  * @returns {JSX.Element} The interactive area chart component
- * 
+ *
  * Features:
  * - Responsive area chart visualization
  * - Time range filtering (7 days, 30 days, 90 days)
@@ -226,74 +230,73 @@ export function ChartAreaInteractive() {
   // ========================================================================
   // HOOKS AND STATE
   // ========================================================================
-  
+
   // Detect if user is on a mobile device
-  const isMobile = useIsMobile()
-  
+  const isMobile = useIsMobile();
+
   // State for selected time range (90d, 30d, or 7d)
-  const [timeRange, setTimeRange] = React.useState("90d")
+  const [timeRange, setTimeRange] = React.useState("90d");
 
   // ========================================================================
   // EFFECTS
   // ========================================================================
-  
+
   /**
    * Effect to automatically set mobile-friendly time range
    * @description Sets time range to 7 days on mobile devices for better UX
    */
   React.useEffect(() => {
     if (isMobile) {
-      setTimeRange("7d")              // Default to 7 days on mobile
+      setTimeRange("7d"); // Default to 7 days on mobile
     }
-  }, [isMobile])
+  }, [isMobile]);
 
   // ========================================================================
   // DATA FILTERING
   // ========================================================================
-  
+
   /**
    * Filter chart data based on selected time range
    * @description Filters data to show only the selected number of days
    * @type {Array<{date: string, desktop: number, mobile: number}>}
    */
   const filteredData = chartData.filter((item) => {
-    const date = new Date(item.date)                           // Convert date string to Date object
-    const referenceDate = new Date("2024-06-30")              // Reference date for calculations
-    let daysToSubtract = 90                                    // Default to 90 days
-    
+    const date = new Date(item.date); // Convert date string to Date object
+    const referenceDate = new Date("2024-06-30"); // Reference date for calculations
+    let daysToSubtract = 90; // Default to 90 days
+
     // Adjust days based on selected time range
     if (timeRange === "30d") {
-      daysToSubtract = 30                                      // 30 days
+      daysToSubtract = 30; // 30 days
     } else if (timeRange === "7d") {
-      daysToSubtract = 7                                       // 7 days
+      daysToSubtract = 7; // 7 days
     }
-    
+
     // Calculate start date by subtracting days from reference
-    const startDate = new Date(referenceDate)
-    startDate.setDate(startDate.getDate() - daysToSubtract)
-    
+    const startDate = new Date(referenceDate);
+    startDate.setDate(startDate.getDate() - daysToSubtract);
+
     // Return true if date is within the selected range
-    return date >= startDate
-  })
+    return date >= startDate;
+  });
 
   return (
     // ============================================================================
     // CHART CARD CONTAINER
     // ============================================================================
-    
+
     <Card className="@container/card">
-      
       {/* ========================================================================
            CARD HEADER
            ========================================================================
            
            Contains title, description, and time range controls
            ======================================================================== */}
-      
-      <CardHeader>
+
+      <CardHeader className="px-2 sm:px-6">
         {/* Chart title */}
         <CardTitle>Total Visitors</CardTitle>
-        
+
         {/* Responsive description text */}
         <CardDescription>
           {/* Full description for larger screens */}
@@ -303,23 +306,23 @@ export function ChartAreaInteractive() {
           {/* Condensed description for smaller screens */}
           <span className="@[540px]/card:hidden">Last 3 months</span>
         </CardDescription>
-        
+
         {/* Time range selection controls */}
         <CardAction>
-          
           {/* ====================================================================
                DESKTOP TOGGLE GROUP
                ====================================================================
                
                Toggle buttons for desktop users (hidden on mobile)
                ==================================================================== */}
-          
+
           <ToggleGroup
-            type="single"                    // Single selection mode
-            value={timeRange}                // Current selected value
-            onValueChange={setTimeRange}     // Change handler
-            variant="outline"                // Outline button style
-            className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex">
+            type="single" // Single selection mode
+            value={timeRange} // Current selected value
+            onValueChange={setTimeRange} // Change handler
+            variant="outline" // Outline button style
+            className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
+          >
             {/* 90 days option */}
             <ToggleGroupItem value="90d">Last 3 months</ToggleGroupItem>
             {/* 30 days option */}
@@ -327,23 +330,24 @@ export function ChartAreaInteractive() {
             {/* 7 days option */}
             <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
           </ToggleGroup>
-          
+
           {/* ====================================================================
                MOBILE SELECT DROPDOWN
                ====================================================================
                
                Dropdown select for mobile users (hidden on desktop)
                ==================================================================== */}
-          
+
           <Select value={timeRange} onValueChange={setTimeRange}>
             {/* Select trigger button */}
             <SelectTrigger
               className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden cursor-pointer"
               size="sm"
-              aria-label="Select a value">
+              aria-label="Select a value"
+            >
               <SelectValue placeholder="Last 3 months" />
             </SelectTrigger>
-            
+
             {/* Select dropdown content */}
             <SelectContent className="rounded-xl">
               {/* 90 days option */}
@@ -362,111 +366,128 @@ export function ChartAreaInteractive() {
           </Select>
         </CardAction>
       </CardHeader>
-      
+
       {/* ========================================================================
            CARD CONTENT
            ========================================================================
            
            Contains the actual chart visualization
            ======================================================================== */}
-      
+
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        
         {/* Chart container with responsive height */}
-        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-          
+        <ChartContainer
+          config={chartConfig}
+          className="aspect-auto h-[200px] sm:h-[250px] w-full"
+        >
           {/* ====================================================================
                AREA CHART COMPONENT
                ====================================================================
                
                Main chart visualization using Recharts
                ==================================================================== */}
-          
+
           <AreaChart data={filteredData}>
-            
             {/* ================================================================
                  CHART DEFINITIONS
                  ================================================================
                  
                  Define gradients and styling for chart areas
                  ================================================================ */}
-            
             <defs>
               {/* Desktop area gradient */}
               <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-desktop)" stopOpacity={1.0} />
-                <stop offset="95%" stopColor="var(--color-desktop)" stopOpacity={0.1} />
+                <stop
+                  offset="5%"
+                  stopColor="var(--color-desktop)"
+                  stopOpacity={1.0}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--color-desktop)"
+                  stopOpacity={0.1}
+                />
               </linearGradient>
-              
+
               {/* Mobile area gradient */}
               <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-mobile)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-mobile)" stopOpacity={0.1} />
+                <stop
+                  offset="5%"
+                  stopColor="var(--color-mobile)"
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--color-mobile)"
+                  stopOpacity={0.1}
+                />
               </linearGradient>
             </defs>
-            
             {/* ================================================================
                  CHART ELEMENTS
                  ================================================================
                  
                  Grid, axes, tooltips, and data areas
                  ================================================================ */}
-            
             {/* Background grid (vertical lines hidden for cleaner look) */}
             <CartesianGrid vertical={false} />
-            
             {/* X-axis with custom formatting */}
             <XAxis
-              dataKey="date"                    // Data key for x-axis values
-              tickLine={false}                  // Hide tick lines
-              axisLine={false}                  // Hide axis line
-              tickMargin={8}                    // Margin for tick labels
-              minTickGap={32}                   // Minimum gap between ticks
-              tickFormatter={(value) => {       // Custom date formatting
-                const date = new Date(value)
+              dataKey="date" // Data key for x-axis values
+              tickLine={false} // Hide tick lines
+              axisLine={false} // Hide axis line
+              tickMargin={8} // Margin for tick labels
+              minTickGap={32} // Minimum gap between ticks
+              tickFormatter={(value) => {
+                // Custom date formatting
+                const date = new Date(value);
                 return date.toLocaleDateString("en-US", {
-                  month: "short",               // Abbreviated month
-                  day: "numeric",               // Numeric day
+                  month: "short", // Abbreviated month
+                  day: "numeric", // Numeric day
                 });
-              }} />
-            
+              }}
+            />
             {/* Interactive tooltip */}
             <ChartTooltip
-              cursor={false}                    // Hide cursor line
+              cursor={false} // Hide cursor line
               defaultIndex={isMobile ? -1 : 10} // Default tooltip position
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value) => {   // Custom tooltip date formatting
+                  labelFormatter={(value) => {
+                    // Custom tooltip date formatting
                     return new Date(value).toLocaleDateString("en-US", {
-                      month: "short",           // Abbreviated month
-                      day: "numeric",           // Numeric day
+                      month: "short", // Abbreviated month
+                      day: "numeric", // Numeric day
                     });
                   }}
-                  indicator="dot" />            // Dot indicator for tooltip
-              } />
-            
+                  indicator="dot"
+                /> // Dot indicator for tooltip
+              }
+            />
             {/* ================================================================
                  DATA AREAS
                  ================================================================
                  
                  Stacked area charts for mobile and desktop data
                  ================================================================ */}
-            
             {/* Mobile visitors area */}
             <Area
-              dataKey="mobile"                  // Data key for mobile values
-              type="natural"                    // Natural curve interpolation
-              fill="url(#fillMobile)"           // Gradient fill for mobile area
-              stroke="var(--color-mobile)"      // Mobile area stroke color
-              stackId="a" />                    // Stack with desktop data
-            
+              dataKey="mobile" // Data key for mobile values
+              type="natural" // Natural curve interpolation
+              fill="url(#fillMobile)" // Gradient fill for mobile area
+              stroke="var(--color-mobile)" // Mobile area stroke color
+              stackId="a"
+            />{" "}
+            // Stack with desktop data
             {/* Desktop visitors area */}
             <Area
-              dataKey="desktop"                 // Data key for desktop values
-              type="natural"                    // Natural curve interpolation
-              fill="url(#fillDesktop)"          // Gradient fill for desktop area
-              stroke="var(--color-desktop)"     // Desktop area stroke color
-              stackId="a" />                    // Stack with mobile data
+              dataKey="desktop" // Data key for desktop values
+              type="natural" // Natural curve interpolation
+              fill="url(#fillDesktop)" // Gradient fill for desktop area
+              stroke="var(--color-desktop)" // Desktop area stroke color
+              stackId="a"
+            />{" "}
+            // Stack with mobile data
           </AreaChart>
         </ChartContainer>
       </CardContent>

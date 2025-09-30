@@ -299,13 +299,13 @@ export default function HRProfileSettings() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="px-6 py-4">
-          <div className="bg-gray-100 rounded-lg p-1 inline-flex">
+        <div className="px-2 sm:px-6 py-4">
+          <div className="bg-gray-100 rounded-lg p-1 inline-flex flex-wrap gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-1 sm:gap-2 cursor-pointer ${
                   activeTab === tab.id
                     ? "bg-green-500 text-white shadow-sm"
                     : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
@@ -319,7 +319,7 @@ export default function HRProfileSettings() {
         </div>
 
         {/* Main Content */}
-        <div className="px-6 py-8 bg-white">
+        <div className="px-2 sm:px-6 py-4 sm:py-8 bg-white">
           {/* Personal Information Section */}
           {activeTab === "personal" && (
             <div className="mb-6">
@@ -327,7 +327,7 @@ export default function HRProfileSettings() {
                 Personal Information
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -575,7 +575,7 @@ export default function HRProfileSettings() {
               <h2 className="text-lg font-semibold text-gray-800 mb-6">
                 Contact Information
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -682,7 +682,7 @@ export default function HRProfileSettings() {
               <h2 className="text-lg font-semibold text-gray-800 mb-6">
                 Emergency Contact Information
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -803,7 +803,7 @@ export default function HRProfileSettings() {
               <h2 className="text-lg font-semibold text-gray-800 mb-6">
                 Employment Details
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
                   <div className="space-y-2">

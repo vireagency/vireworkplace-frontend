@@ -433,7 +433,7 @@ export function SiteHeader() {
       className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)"
     >
       {/* Main header content container */}
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+      <div className="flex w-full items-center gap-1 px-2 sm:px-4 lg:gap-2 lg:px-6">
         {/* ========================================================================
              LEFT SECTION - SIDEBAR TOGGLE
              ======================================================================== */}
@@ -452,7 +452,10 @@ export function SiteHeader() {
              ======================================================================== */}
 
         {/* Search input container with relative positioning */}
-        <div className="relative flex-1 max-w-md" ref={searchResultsRef}>
+        <div
+          className="relative flex-1 max-w-xs sm:max-w-md"
+          ref={searchResultsRef}
+        >
           {/* Search icon positioned absolutely within the input */}
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 
@@ -460,7 +463,7 @@ export function SiteHeader() {
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search tasks, users, performance..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-transparent border-gray-200 focus:bg-white focus:border-gray-300"
@@ -487,7 +490,7 @@ export function SiteHeader() {
              ======================================================================== */}
 
         {/* Right-aligned container for notifications and user avatar */}
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-2 sm:gap-4">
           {/* Notification Bell Button - All Authenticated Users */}
           {isAuthenticated && (
             <div className="relative" ref={notificationRef}>
@@ -519,7 +522,7 @@ export function SiteHeader() {
 
               {/* Notification Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div className="absolute right-0 top-full mt-2 w-72 sm:w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                   {/* Header */}
                   <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-2">
