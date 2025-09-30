@@ -6,14 +6,20 @@
  * @since 2024
  */
 
-import React, { useState, useRef, useEffect } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { useAuth } from '@/hooks/useAuth'
-import { uploadProfileImage, removeProfileImage } from '@/services/profileImageApi'
-import { IconPlus, IconTrash, IconUpload, IconX } from '@tabler/icons-react'
-import { getUserAvatarUrl, getUserInitials as getInitials } from '@/utils/avatarUtils'
+import React, { useState, useRef, useEffect } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  uploadProfileImage,
+  removeProfileImage,
+} from "@/services/profileImageApi";
+import { IconPlus, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
+import {
+  getUserAvatarUrl,
+  getUserInitials as getInitials,
+} from "@/utils/avatarUtils";
 
 /**
  * ProfileImageUpload Component
@@ -35,47 +41,47 @@ export default function ProfileImageUpload({
   onImageUpdate,
   onImageRemove,
   showActions = true,
-  showSizeHint = true
+  showSizeHint = true,
 }) {
   // ============================================================================
   // HOOKS AND STATE
   // ============================================================================
-  
-  const { user, accessToken, fetchUserProfile, setUser } = useAuth()
-  const fileInputRef = useRef(null)
-  
-  const [isUploading, setIsUploading] = useState(false)
-  const [isRemoving, setIsRemoving] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState(null)
-  const [forceRerender, setForceRerender] = useState(0)
+
+  const { user, accessToken, fetchUserProfile, setUser } = useAuth();
+  const fileInputRef = useRef(null);
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [forceRerender, setForceRerender] = useState(0);
 
   // ============================================================================
   // EFFECTS
   // ============================================================================
-  
+
   /**
    * Clear preview when user avatar is updated
    */
   useEffect(() => {
     if (user?.profileImage && previewUrl) {
-      console.log('User profile image updated, clearing preview')
-      setPreviewUrl(null)
+      console.log("User profile image updated, clearing preview");
+      setPreviewUrl(null);
     }
-  }, [user?.profileImage, previewUrl])
+  }, [user?.profileImage, previewUrl]);
 
   /**
    * Force re-render when user data changes
    */
   useEffect(() => {
     if (user?.profileImage) {
-      setForceRerender(prev => prev + 1)
+      setForceRerender((prev) => prev + 1);
     }
-  }, [user?.profileImage])
+  }, [user?.profileImage]);
 
   // ============================================================================
   // UTILITY FUNCTIONS
   // ============================================================================
-  
+
   /**
    * Resize image to 400x400px while maintaining aspect ratio
    * @param {File} file - Original image file
@@ -85,47 +91,47 @@ export default function ProfileImageUpload({
    */
   const resizeImage = (file, maxSize = 400, quality = 0.9) => {
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-      
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+
       img.onload = () => {
         // Calculate new dimensions while maintaining aspect ratio
-        let { width, height } = img
-        
+        let { width, height } = img;
+
         if (width > height) {
           if (width > maxSize) {
-            height = (height * maxSize) / width
-            width = maxSize
+            height = (height * maxSize) / width;
+            width = maxSize;
           }
         } else {
           if (height > maxSize) {
-            width = (width * maxSize) / height
-            height = maxSize
+            width = (width * maxSize) / height;
+            height = maxSize;
           }
         }
-        
+
         // Set canvas dimensions to create a perfect square
-        canvas.width = maxSize
-        canvas.height = maxSize
-        
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+
         // Fill with white background
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, maxSize, maxSize)
-        
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, maxSize, maxSize);
+
         // Calculate position to center the image and ensure it fills the square
         // Use the larger dimension to ensure the image covers the entire square
-        const scale = Math.max(maxSize / width, maxSize / height)
-        const scaledWidth = width * scale
-        const scaledHeight = height * scale
-        
+        const scale = Math.max(maxSize / width, maxSize / height);
+        const scaledWidth = width * scale;
+        const scaledHeight = height * scale;
+
         // Center the scaled image
-        const x = (maxSize - scaledWidth) / 2
-        const y = (maxSize - scaledHeight) / 2
-        
+        const x = (maxSize - scaledWidth) / 2;
+        const y = (maxSize - scaledHeight) / 2;
+
         // Draw the resized image centered on canvas
-        ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
-        
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
         // Convert canvas to blob
         canvas.toBlob(
           (blob) => {
@@ -133,37 +139,37 @@ export default function ProfileImageUpload({
               // Create new file with resized image
               const resizedFile = new File([blob], file.name, {
                 type: file.type,
-                lastModified: Date.now()
-              })
-              resolve(resizedFile)
+                lastModified: Date.now(),
+              });
+              resolve(resizedFile);
             } else {
-              reject(new Error('Failed to resize image'))
+              reject(new Error("Failed to resize image"));
             }
           },
           file.type,
           quality
-        )
-      }
-      
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = URL.createObjectURL(file)
-    })
-  }
-  
+        );
+      };
+
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   /**
    * Get user initials for fallback
    * @returns {string} User initials
    */
   const getUserInitials = () => {
     if (userName) {
-      const parts = userName.trim().split(/\s+/)
-      const firstInitial = parts[0]?.[0] || ''
-      const lastInitial = parts.length > 1 ? parts[parts.length - 1]?.[0] : ''
-      return `${firstInitial}${lastInitial}`.toUpperCase() || 'U'
+      const parts = userName.trim().split(/\s+/);
+      const firstInitial = parts[0]?.[0] || "";
+      const lastInitial = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
+      return `${firstInitial}${lastInitial}`.toUpperCase() || "U";
     }
-    
-    return getInitials(user)
-  }
+
+    return getInitials(user);
+  };
 
   /**
    * Get current image URL (preview or current)
@@ -172,33 +178,39 @@ export default function ProfileImageUpload({
   const getCurrentImageUrl = () => {
     // Use preview URL if available (during upload)
     if (previewUrl) {
-      return previewUrl
+      return previewUrl;
     }
-    
+
     // Use currentImageUrl prop if provided
     if (currentImageUrl) {
-      return currentImageUrl
+      return currentImageUrl;
     }
-    
-    // Use user's profileImage from API data
+
+    // Use user's profileImage from API data with stable cache busting
     if (user?.profileImage) {
-      return user.profileImage
+      const separator = user.profileImage.includes("?") ? "&" : "?";
+      const cacheKey =
+        user.profileImagePublicId || user.avatarUpdatedAt || user.updatedAt;
+      if (cacheKey) {
+        return `${user.profileImage}${separator}v=${cacheKey}`;
+      }
+      return user.profileImage;
     }
-    
+
     // Fallback to other possible avatar fields
-    const userAvatarUrl = getUserAvatarUrl(user)
-    
-    console.log('getCurrentImageUrl - Debug:', {
+    const userAvatarUrl = getUserAvatarUrl(user);
+
+    console.log("getCurrentImageUrl - Debug:", {
       previewUrl,
       currentImageUrl,
       userProfileImage: user?.profileImage,
       userAvatarUrl,
-      userKeys: user ? Object.keys(user) : 'No user',
-      forceRerender
-    })
-    
-    return userAvatarUrl
-  }
+      userKeys: user ? Object.keys(user) : "No user",
+      forceRerender,
+    });
+
+    return userAvatarUrl;
+  };
 
   /**
    * Fetch fresh profile data from API
@@ -206,212 +218,230 @@ export default function ProfileImageUpload({
    */
   const fetchFreshProfile = async () => {
     try {
-      console.log('Fetching fresh profile data from API...')
-      const result = await fetchUserProfile()
-      
+      console.log("Fetching fresh profile data from API...");
+      const result = await fetchUserProfile();
+
       if (result.success && result.data) {
-        console.log('Fresh profile data fetched:', result.data)
-        
+        console.log("Fresh profile data fetched:", result.data);
+
         // Update user state with fresh data
-        setUser(result.data)
-        
+        setUser(result.data);
+
         // Force re-render
-        setForceRerender(prev => prev + 1)
-        
-        return result
+        setForceRerender((prev) => prev + 1);
+
+        return result;
       } else {
-        console.error('Failed to fetch fresh profile:', result.error)
-        return { success: false, error: result.error }
+        console.error("Failed to fetch fresh profile:", result.error);
+        return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('Error fetching fresh profile:', error)
-      return { success: false, error: error.message }
+      console.error("Error fetching fresh profile:", error);
+      return { success: false, error: error.message };
     }
-  }
+  };
 
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
-  
+
   /**
    * Handle file selection
    * @param {Event} event - File input change event
    */
   const handleFileSelect = async (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Invalid file type. Please upload a valid image file (JPEG, PNG, GIF, or WebP)")
-      return
+      toast.error(
+        "Invalid file type. Please upload a valid image file (JPEG, PNG, GIF, or WebP)"
+      );
+      return;
     }
 
     // Validate file size (max 10MB before resizing)
-    const maxSize = 10 * 1024 * 1024 // 10MB
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      toast.error("File too large. Please upload an image smaller than 10MB")
-      return
+      toast.error("File too large. Please upload an image smaller than 10MB");
+      return;
     }
 
     try {
       // Show loading state
-      setIsUploading(true)
-      
+      setIsUploading(true);
+
       // Resize the image to 400x400px
-      const resizedFile = await resizeImage(file, 400, 0.9)
-      
+      const resizedFile = await resizeImage(file, 400, 0.9);
+
       // Create preview URL from resized image
-      const preview = URL.createObjectURL(resizedFile)
-      setPreviewUrl(preview)
+      const preview = URL.createObjectURL(resizedFile);
+      setPreviewUrl(preview);
 
       // Upload the resized file
-      await handleImageUpload(resizedFile)
-      
+      await handleImageUpload(resizedFile);
     } catch (error) {
-      console.error('Image processing error:', error)
-      toast.error("Failed to process image. Please try again.")
-      setIsUploading(false)
+      console.error("Image processing error:", error);
+      toast.error("Failed to process image. Please try again.");
+      setIsUploading(false);
     }
-  }
+  };
 
   /**
    * Handle image upload
    * @param {File} file - File to upload
    */
   const handleImageUpload = async (file) => {
-    console.log('ProfileImageUpload - Starting upload process')
-    
+    console.log("ProfileImageUpload - Starting upload process");
+
     if (!accessToken) {
-      toast.error("Authentication required. Please log in to upload images")
-      setIsUploading(false)
-      return
+      toast.error("Authentication required. Please log in to upload images");
+      setIsUploading(false);
+      return;
     }
 
     try {
       // Step 1: Upload image to backend
-      console.log('Step 1: Uploading image to backend...')
-      const response = await uploadProfileImage(file, accessToken)
-      
-      console.log('Upload response:', response)
-      
+      console.log("Step 1: Uploading image to backend...");
+      const response = await uploadProfileImage(file, accessToken);
+
+      console.log("Upload response:", response);
+
       if (response.success) {
         // Step 2: Update user state immediately with the new image URL
-        console.log('Step 2: Updating user state immediately...')
+        console.log("Step 2: Updating user state immediately...");
         if (user && response.data?.profileImage) {
           const updatedUser = {
             ...user,
             profileImage: response.data.profileImage,
-            profileImagePublicId: response.data.profileImagePublicId
-          }
-          setUser(updatedUser)
-          localStorage.setItem('user', JSON.stringify(updatedUser))
-          
-          // Force re-render
-          setForceRerender(prev => prev + 1)
+            profileImagePublicId: response.data.profileImagePublicId,
+            avatarUpdatedAt: new Date().toISOString(),
+          };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+
+          // Force re-render with timestamp
+          setForceRerender(Date.now());
         }
-        
+
         // Step 3: Keep preview URL for immediate display
-        console.log('Step 3: Keeping preview for immediate display')
-        
+        console.log("Step 3: Keeping preview for immediate display");
+
         // Show success message
-        toast.success("Profile image updated successfully!")
-        
+        toast.success("Profile image updated successfully!");
+
         // Call callback if provided
         if (onImageUpdate) {
-          onImageUpdate(response.data)
+          onImageUpdate(response.data);
         }
-        
-        // Step 4: Fetch fresh profile data in background (optional)
+
+        // Step 4: Fetch fresh profile data in background to ensure persistence
         setTimeout(async () => {
           try {
-            const profileResult = await fetchFreshProfile()
+            const profileResult = await fetchFreshProfile();
             if (profileResult.success) {
-              console.log('Background profile refresh completed')
+              console.log("Background profile refresh completed");
               // Clear preview since we now have fresh data
-              setPreviewUrl(null)
+              setPreviewUrl(null);
+              // Force another re-render to ensure UI updates
+              setForceRerender(Date.now());
             }
           } catch (error) {
-            console.log('Background profile refresh failed, but image is already displayed')
+            console.log(
+              "Background profile refresh failed, but image is already displayed"
+            );
           }
-        }, 1000)
-        
+        }, 2000);
       } else {
-        throw new Error(response.message || 'Upload failed')
+        throw new Error(response.message || "Upload failed");
       }
     } catch (error) {
-      console.error('Upload error:', error)
-      toast.error(error.message || "Failed to upload image. Please try again.")
-      
+      console.error("Upload error:", error);
+      toast.error(error.message || "Failed to upload image. Please try again.");
+
       // Clear preview on error
-      setPreviewUrl(null)
+      setPreviewUrl(null);
     } finally {
-      setIsUploading(false)
+      setIsUploading(false);
     }
-  }
+  };
 
   /**
    * Handle image removal
    * Note: Remove functionality is not supported by the API
    */
   const handleImageRemove = async () => {
-    toast.error("Profile image removal is not currently supported. Please contact support if you need to remove your image.")
-  }
+    toast.error(
+      "Profile image removal is not currently supported. Please contact support if you need to remove your image."
+    );
+  };
 
   /**
    * Handle upload button click
    */
   const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   /**
    * Handle cancel preview
    */
   const handleCancelPreview = () => {
-    setPreviewUrl(null)
+    setPreviewUrl(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   // ============================================================================
   // RENDER
   // ============================================================================
-  
-  // Create a unique key for the Avatar component to force re-render
-  const avatarKey = `${user?.profileImage || 'no-image'}-${user?.profileImagePublicId || 0}-${forceRerender}-${Date.now()}`
-  
+
+  // Create a stable key for the Avatar component that only changes when the image actually changes
+  const avatarKey = `${user?.profileImage || "no-image"}-${
+    user?.profileImagePublicId || 0
+  }-${user?.avatarUpdatedAt || 0}`;
+
   return (
     <div className="flex flex-col items-center space-y-4">
       {/* Profile Image */}
       <div className="relative">
-        <Avatar 
-          className={`${size} rounded-full overflow-hidden`} 
+        <Avatar
+          className={`${size} rounded-full overflow-hidden`}
           key={avatarKey}
         >
-          <AvatarImage 
-            src={getCurrentImageUrl()} 
+          <AvatarImage
+            src={getCurrentImageUrl()}
             alt={userName || "Profile"}
             className="object-cover w-full h-full"
             onError={(e) => {
-              console.log('Avatar image failed to load:', e.target.src)
-              e.target.style.display = 'none';
+              console.log("Avatar image failed to load:", e.target.src);
+              e.target.style.display = "none";
             }}
             onLoad={() => {
-              console.log('Avatar image loaded successfully:', getCurrentImageUrl())
+              console.log(
+                "Avatar image loaded successfully:",
+                getCurrentImageUrl()
+              );
             }}
           />
           <AvatarFallback className="text-lg bg-gray-200 text-gray-600 rounded-full">
             {getUserInitials()}
           </AvatarFallback>
         </Avatar>
-        
+
         {/* Upload/Update Button Overlay */}
         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-600 transition-colors">
-          <IconPlus 
-            className="w-3 h-3 text-white" 
+          <IconPlus
+            className="w-3 h-3 text-white"
             onClick={handleUploadClick}
           />
         </div>
@@ -439,9 +469,9 @@ export default function ProfileImageUpload({
               </>
             )}
           </Button>
-          
+
           {/* Remove button is hidden since the API doesn't support image removal */}
-          
+
           {previewUrl && (
             <Button
               variant="ghost"
@@ -472,5 +502,5 @@ export default function ProfileImageUpload({
         className="hidden"
       />
     </div>
-  )
+  );
 }

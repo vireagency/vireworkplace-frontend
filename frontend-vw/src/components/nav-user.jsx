@@ -95,7 +95,7 @@ import { useAuth } from "@/hooks/useAuth";
 // Avatar utility functions
 import {
   getUserAvatarUrl,
-  getStableAvatarUrl,
+  getSidebarAvatarUrl,
   getUserInitials,
 } from "@/utils/avatarUtils";
 
@@ -219,7 +219,7 @@ export const NavUser = React.memo(function NavUser({
               {/* User avatar with fallback */}
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage
-                  src={getStableAvatarUrl(user)}
+                  src={getSidebarAvatarUrl(user)}
                   alt={user?.name || "User"}
                   onError={(e) => {
                     e.target.style.display = "none";

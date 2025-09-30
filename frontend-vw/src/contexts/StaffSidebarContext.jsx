@@ -209,6 +209,14 @@ export const StaffSidebarProvider = ({ children }) => {
             fetchMessagesCount(apiClient),
           ]);
 
+        // Debug logging
+        console.log("Sidebar counts fetched:", {
+          tasks: tasksCount,
+          evaluations: evaluationsCount,
+          attendance: attendanceCount,
+          messages: messagesCount,
+        });
+
         dispatch({
           type: SIDEBAR_ACTIONS.SET_COUNTS,
           payload: {

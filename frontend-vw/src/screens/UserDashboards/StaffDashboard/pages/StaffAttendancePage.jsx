@@ -76,7 +76,7 @@ const AttendanceApp = () => {
     checkInTime: null,
     checkOutTime: null,
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [timeline, setTimeline] = useState([]);
@@ -184,9 +184,48 @@ const AttendanceApp = () => {
           overtimeHours: data.attendanceData?.overtimeHours || 0,
           late: data.attendanceData?.late || false,
         });
+
+        // Store in localStorage for persistence
+        localStorage.setItem(
+          "attendanceStatus",
+          JSON.stringify({
+            status: data.status,
+            attendanceData: data.attendanceData,
+            timestamp: Date.now(),
+          })
+        );
       }
     } catch (err) {
       console.error("Error fetching attendance status:", err);
+
+      // Try to load from localStorage as fallback
+      try {
+        const cachedData = localStorage.getItem("attendanceStatus");
+        if (cachedData) {
+          const parsed = JSON.parse(cachedData);
+          // Only use cached data if it's less than 5 minutes old
+          if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+            setAttendanceStatus(parsed.status || "Inactive");
+            setAttendanceData({
+              workDuration: parsed.attendanceData?.workDuration || "0h 0m",
+              activities: parsed.attendanceData?.activities || 0,
+              issues: parsed.attendanceData?.issues || 0,
+              checkInTime: parsed.attendanceData?.clockInTime || null,
+              checkOutTime: parsed.attendanceData?.clockOutTime || null,
+              clockInFormatted: parsed.attendanceData?.clockInFormatted || null,
+              clockOutFormatted:
+                parsed.attendanceData?.clockOutFormatted || null,
+              workingLocation: parsed.attendanceData?.workingLocation || null,
+              overtimeHours: parsed.attendanceData?.overtimeHours || 0,
+              late: parsed.attendanceData?.late || false,
+            });
+            return;
+          }
+        }
+      } catch (cacheError) {
+        console.error("Error loading cached attendance data:", cacheError);
+      }
+
       // Set default data on error
       setAttendanceData({
         workDuration: "0h 0m",
@@ -269,6 +308,13 @@ const AttendanceApp = () => {
       fetchAttendanceHistory();
       fetchAttendanceStats();
       fetchTasks();
+
+      // Set up periodic refresh every 30 seconds to keep data fresh
+      const refreshInterval = setInterval(() => {
+        fetchAttendanceStatus();
+      }, 30000);
+
+      return () => clearInterval(refreshInterval);
     }
   }, [accessToken, user]);
 
@@ -370,14 +416,20 @@ const AttendanceApp = () => {
   };
 
   const handleCheckOut = async () => {
-    setCheckingOut(true);
-    try {
-      const payload = {};
+    console.log("handleCheckOut called with dailySummary:", dailySummary);
 
-      // Add daily summary if provided
-      if (dailySummary.trim()) {
-        payload.dailySummary = dailySummary;
-      }
+    if (!dailySummary.trim()) {
+      toast.error("Please provide a daily summary before checking out.");
+      return;
+    }
+
+    console.log("Starting checkout process...");
+    setCheckingOut(true);
+
+    try {
+      const payload = {
+        dailySummary: dailySummary.trim(),
+      };
 
       const response = await apiClient.patch(
         "/api/v1/attendance/checkout",
@@ -402,12 +454,59 @@ const AttendanceApp = () => {
           late: data.attendanceData?.late || false,
         });
 
-        // Show success message with overtime info if applicable
-        const message =
-          data.attendanceData?.overtimeHours > 0
-            ? `Successfully checked out! Overtime: ${data.attendanceData.overtimeHours}h`
-            : "Successfully checked out!";
-        toast.success(message);
+        // Store checkout status in localStorage for consistency with CheckOut.jsx
+        const today = new Date().toISOString().split("T")[0];
+        const todayDateString = new Date().toDateString();
+
+        localStorage.setItem(`checkout_${today}`, "true");
+        localStorage.setItem(`checkout_${todayDateString}`, "true");
+
+        // Store detailed checkout info
+        const checkoutInfo = {
+          date: today,
+          dateString: todayDateString,
+          timestamp: new Date().toISOString(),
+          dailySummary: dailySummary.trim(),
+          completed: true,
+          apiResponse: data,
+        };
+
+        localStorage.setItem(
+          `checkout_info_${today}`,
+          JSON.stringify(checkoutInfo)
+        );
+        localStorage.setItem(
+          `checkout_info_${todayDateString}`,
+          JSON.stringify(checkoutInfo)
+        );
+
+        console.log(
+          "Checkout successful, stored in localStorage:",
+          checkoutInfo
+        );
+
+        // Check for overtime and show appropriate message
+        const hasOvertimeFromAPI =
+          data.attendanceData &&
+          data.attendanceData.overtimeHours &&
+          data.attendanceData.overtimeHours > 0;
+
+        const currentHour = new Date().getHours();
+        const hasOvertimeFromTime = currentHour > 17; // After 5 PM
+
+        console.log("Overtime check:", {
+          hasOvertimeFromAPI,
+          hasOvertimeFromTime,
+          currentHour,
+          overtimeHours: data.attendanceData?.overtimeHours,
+        });
+
+        if (hasOvertimeFromAPI || hasOvertimeFromTime) {
+          console.log("Overtime detected, showing warning");
+          toast.warning("You've worked overtime today. Great job!");
+        } else {
+          toast.success("Successfully checked out!");
+        }
 
         // Clear daily summary
         setDailySummary("");
@@ -424,6 +523,14 @@ const AttendanceApp = () => {
       }
     } catch (error) {
       console.error("Check-out error:", error);
+
+      // Handle specific error cases like CheckOut.jsx
+      if (error.response?.data?.message === "ALREADY_CHECKED_OUT") {
+        toast.error("You have already checked out for today.");
+        setShowCheckOutDialog(false);
+        return;
+      }
+
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -533,6 +640,30 @@ const AttendanceApp = () => {
       : currentHour < 17
       ? "Good Afternoon"
       : "Good Evening";
+
+  // Show loading state while fetching attendance data
+  if (loading) {
+    return (
+      <StaffDashboardLayout
+        sidebarConfig={sidebarConfig}
+        showSectionCards={false}
+        showChart={false}
+        showDataTable={false}
+      >
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Loading Attendance Data
+            </h3>
+            <p className="text-gray-500">
+              Please wait while we fetch your attendance information...
+            </p>
+          </div>
+        </div>
+      </StaffDashboardLayout>
+    );
+  }
 
   return (
     <StaffDashboardLayout

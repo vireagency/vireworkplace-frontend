@@ -43,7 +43,7 @@ import { IconUser, IconSettings, IconLogout } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getUserAvatarUrl,
-  getStableAvatarUrl,
+  getSidebarAvatarUrl,
   getUserInitials as getInitials,
 } from "@/utils/avatarUtils";
 
@@ -418,7 +418,7 @@ export function SiteHeader() {
   useEffect(() => {
     if (user) {
       console.log("User data in site-header:", user);
-      console.log("Avatar URL:", getStableAvatarUrl(user));
+      console.log("Avatar URL:", getSidebarAvatarUrl(user));
       console.log("User initials:", getUserInitials());
     }
   }, [user]);
@@ -681,7 +681,7 @@ export function SiteHeader() {
                 className="h-8 w-8 rounded-full overflow-hidden hover:text-[#35983D] hover:bg-green-500/10 cursor-pointer"
               >
                 <AvatarImage
-                  src={getStableAvatarUrl(user) || "/staff.png"}
+                  src={getSidebarAvatarUrl(user) || "/staff.png"}
                   alt={user ? `${user.firstName} ${user.lastName}` : "User"}
                   className="object-cover w-full h-full"
                   onError={(e) => {
@@ -701,7 +701,7 @@ export function SiteHeader() {
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-full">
                     <AvatarImage
-                      src={getStableAvatarUrl(user) || "/staff.png"}
+                      src={getSidebarAvatarUrl(user) || "/staff.png"}
                       alt={user ? `${user.firstName} ${user.lastName}` : "User"}
                       onError={(e) => {
                         e.target.style.display = "none";

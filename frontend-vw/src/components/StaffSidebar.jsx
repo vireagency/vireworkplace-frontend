@@ -22,7 +22,7 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { getUserAvatarUrl } from "@/utils/avatarUtils";
+import { getSidebarAvatarUrl } from "@/utils/avatarUtils";
 import { NavUser } from "@/components/nav-user";
 import { NavSecondary } from "@/components/nav-secondary";
 import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
@@ -43,6 +43,10 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
   const { user } = useAuth();
   const { counts, loading: sidebarLoading } = useStaffSidebar();
   const [isNavigating, setIsNavigating] = useState(false);
+
+  // Debug logging for counts
+  console.log("StaffSidebar - Received counts:", counts);
+  console.log("StaffSidebar - Sidebar loading:", sidebarLoading);
 
   // Handle navigation with proper state management
   const handleNavigation = useCallback(
@@ -94,7 +98,12 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       };
 
       const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
-      return counts[countKey] || 0;
+      const count = counts[countKey] || 0;
+
+      // Debug logging for badge counts
+      console.log(`Badge for ${itemTitle} (key: ${countKey}):`, count);
+
+      return count;
     },
     [counts]
   );
@@ -124,13 +133,13 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
               <Badge
                 variant="secondary"
                 className={cn(
-                  "ml-auto h-6 px-2 text-sm font-bold",
+                  "ml-auto h-6 px-2 text-sm font-bold min-w-[24px] flex items-center justify-center",
                   isActive
-                    ? "bg-green-100 text-green-800 border-green-200"
-                    : "bg-blue-100 text-blue-800 border-blue-200"
+                    ? "bg-green-500 text-white border-green-500"
+                    : "bg-red-500 text-white border-red-500"
                 )}
               >
-                {itemCount}
+                {itemCount > 99 ? "99+" : itemCount}
               </Badge>
             )}
           </SidebarMenuButton>
@@ -164,7 +173,7 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
     user: {
       name: user ? `${user.firstName} ${user.lastName}` : "Loading...",
       email: user?.email || "loading@example.com",
-      avatar: getUserAvatarUrl(user) || "/staff.png",
+      avatar: getSidebarAvatarUrl(user) || "/staff.png",
     },
   };
 

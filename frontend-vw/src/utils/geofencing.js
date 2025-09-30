@@ -9,7 +9,7 @@
 export const OFFICE_CONFIG = {
   lat: 5.767477,
   lng: -0.180019,
-  radius: 100, // meters
+  radius: 50, // meters - stricter radius for better security
 };
 
 /**

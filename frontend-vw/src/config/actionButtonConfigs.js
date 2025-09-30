@@ -1,9 +1,9 @@
 /**
  * Action Button Configuration File
- * 
+ *
  * Contains configurations for action buttons used across different dashboards.
  * Each dashboard can have its own set of action buttons with different icons and text.
- * 
+ *
  * Configuration Structure:
  * - actionButtons: Array of action button configurations
  * - Each button has: icon, text, tooltip, variant, and onClick handler
@@ -30,7 +30,7 @@ import {
 
 /**
  * HR Dashboard Action Buttons
- * 
+ *
  * Action buttons specific to Human Resource Managers.
  * Focuses on employee management, recruitment, and HR operations.
  */
@@ -40,16 +40,17 @@ const hrActionButtons = [
     text: "Check-In",
     tooltip: "Employee Check-In",
     variant: "primary",
-    className: "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
+    className:
+      "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
     onClick: () => console.log("Check-In clicked"),
   },
 ];
 
 /**
  * Staff Dashboard Action Buttons
- * 
+ *
  * Action buttons specific to Staff members.
- * Focuses on check-in functionality as the primary action.
+ * Focuses on check-in/check-out functionality as the primary action.
  */
 const staffActionButtons = [
   {
@@ -57,14 +58,15 @@ const staffActionButtons = [
     text: "Check-In",
     tooltip: "Check-In",
     variant: "primary",
-    className: "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
+    className:
+      "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
     onClick: () => console.log("Check-In clicked"),
   },
 ];
 
 /**
  * Admin Dashboard Action Buttons
- * 
+ *
  * Action buttons specific to System Administrators.
  * Focuses on system management, user administration, and system health.
  */
@@ -108,7 +110,7 @@ const adminActionButtons = [
 
 /**
  * Default Action Buttons
- * 
+ *
  * Generic action buttons that can be used across any dashboard.
  */
 const defaultActionButtons = [

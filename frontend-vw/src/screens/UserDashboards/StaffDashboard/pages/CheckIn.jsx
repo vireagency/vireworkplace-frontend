@@ -24,7 +24,7 @@ import axios from "axios";
 const OFFICE = {
   lat: 5.767477,
   lng: -0.180019,
-  radius: 500, // meters - increased for better coverage
+  radius: 50, // meters - stricter radius for better security
 };
 
 // API Configuration
@@ -375,10 +375,36 @@ export default function CheckIn() {
             );
 
             if (!withinRange) {
-              // Don't show error to user, just log it and continue
-              console.warn(`User is ${Math.round(distance)}m from office (max: ${OFFICE.radius}m), but allowing check-in`);
-              toast.info(`Location detected: ${Math.round(distance)}m from office`);
-              // Don't reject, just continue with the location data
+              // Show error and prevent check-in
+              console.warn(
+                `User is ${Math.round(distance)}m from office (max: ${
+                  OFFICE.radius
+                }m), check-in blocked`
+              );
+              toast.error(
+                `You are ${Math.round(
+                  distance
+                )}m from office. You must be within ${
+                  OFFICE.radius
+                }m to check in.`
+              );
+              setLocationError(
+                `You are ${Math.round(
+                  distance
+                )}m from office. You must be within ${
+                  OFFICE.radius
+                }m to check in.`
+              );
+              reject(
+                new Error(
+                  `Location validation failed: You are ${Math.round(
+                    distance
+                  )}m from office. You must be within ${
+                    OFFICE.radius
+                  }m to check in.`
+                )
+              );
+              return;
             } else {
               toast.success(
                 `Location verified! You're ${Math.round(
@@ -612,24 +638,12 @@ export default function CheckIn() {
           const userLocation = await getCurrentLocation();
           await submitCheckIn("office", userLocation.lat, userLocation.lng);
         } catch (locationError) {
-          // If location fails, try with less strict settings
-          console.warn("Primary location failed, trying fallback:", locationError);
-          
-          try {
-            const position = await new Promise((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: false,
-                timeout: 5000,
-                maximumAge: 300000,
-              });
-            });
-
-            await submitCheckIn("office", position.coords.latitude, position.coords.longitude);
-          } catch (fallbackError) {
-            // Last resort: use office coordinates
-            console.warn("Fallback location failed, using office coordinates:", fallbackError);
-            await submitCheckIn("office", OFFICE.lat, OFFICE.lng);
-          }
+          // If location validation fails, don't allow check-in
+          console.error("Location validation failed:", locationError);
+          throw new Error(
+            locationError.message ||
+              "Location validation failed. Please ensure you are at the office location."
+          );
         }
       } else {
         // Remote check-in
@@ -843,15 +857,22 @@ export default function CheckIn() {
               )}
 
               {/* Location Error - Only show for permission issues, not distance */}
-              {workLocation === "office" && locationError && permissionStatus === "denied" && (
-                <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium mb-1">Location Permission Required</div>
-                    <div>Please enable location permissions in your browser settings</div>
+              {workLocation === "office" &&
+                locationError &&
+                permissionStatus === "denied" && (
+                  <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium mb-1">
+                        Location Permission Required
+                      </div>
+                      <div>
+                        Please enable location permissions in your browser
+                        settings
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Office Distance Info */}
               {workLocation === "office" &&
