@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import axios from "axios";
 
 // Layout Components
@@ -58,16 +59,17 @@ import {
   TrendingUp,
   Award,
   Target,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
-const AttendanceApp = () => {
+const StaffAttendancePage = () => {
   const { user, accessToken } = useAuth();
   const navigate = useNavigate();
   const { sidebarConfig } = useStandardizedSidebar();
 
   // State management
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState("");
   const [attendanceStatus, setAttendanceStatus] = useState("Inactive");
   const [attendanceData, setAttendanceData] = useState({
     workDuration: "0h 0m",
@@ -98,6 +100,19 @@ const AttendanceApp = () => {
   const [dailySummary, setDailySummary] = useState("");
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
   const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
+
+  // CheckOut.jsx modal states
+  const [showMainDialog, setShowMainDialog] = useState(false);
+  const [showOvertimeDialog, setShowOvertimeDialog] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [showAlreadyCheckedOutDialog, setShowAlreadyCheckedOutDialog] =
+    useState(false);
+  const [isOvertime, setIsOvertime] = useState(false);
+  const [hasAlreadyCheckedOut, setHasAlreadyCheckedOut] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [showForceCheckoutDialog, setShowForceCheckoutDialog] = useState(false);
+  const [backendSyncIssue, setBackendSyncIssue] = useState(false);
 
   // API configuration
   const getAttendanceApiBaseUrl = () => {
@@ -133,6 +148,136 @@ const AttendanceApp = () => {
       navigate("/login");
     }
   }, [accessToken, user, navigate]);
+
+  // Utility functions for consistent date handling (from CheckOut.jsx)
+  const getTodayKey = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getTodayDateString = () => {
+    return new Date().toDateString();
+  };
+
+  // Get all possible localStorage keys that check-in might have used (from CheckOut.jsx)
+  const getAllPossibleCheckinKeys = () => {
+    const todayKey = getTodayKey();
+    const todayDateString = getTodayDateString();
+    const now = new Date();
+
+    // Additional date formats for better compatibility
+    const isoDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const localDateString = now.toLocaleDateString(); // MM/DD/YYYY or DD/MM/YYYY
+
+    return [
+      `checkin_${todayKey}`, // YYYY-MM-DD format
+      `checkin_${todayDateString}`, // Full date string format (primary one used by check-in)
+      `checkin_${isoDate}`, // ISO date format
+      `checkin_${localDateString}`, // Local date format
+      // Additional fallback keys
+      `checkin_info_${todayKey}`,
+      `checkin_info_${todayDateString}`,
+      `attendance_${todayKey}`,
+      `attendance_${todayDateString}`,
+    ];
+  };
+
+  // Enhanced function to find check-in data with better logging (from CheckOut.jsx)
+  const findCheckinData = () => {
+    const allCheckinKeys = getAllPossibleCheckinKeys();
+
+    console.log("=== SEARCHING FOR CHECKIN DATA ===");
+    console.log("Today YYYY-MM-DD:", getTodayKey());
+    console.log("Today DateString:", getTodayDateString());
+    console.log("All possible keys:", allCheckinKeys);
+
+    // Check all possible keys
+    for (const key of allCheckinKeys) {
+      const data = localStorage.getItem(key);
+      if (data) {
+        console.log(`✅ Found check-in data with key: ${key}`);
+        try {
+          const parsed = JSON.parse(data);
+          console.log("Check-in data:", parsed);
+          return { key, data: parsed };
+        } catch (e) {
+          console.log(`❌ Failed to parse check-in data for key ${key}:`, e);
+          // If it's not JSON, treat as simple string
+          console.log(`✅ Found simple check-in flag with key: ${key}`);
+          return { key, data: true };
+        }
+      }
+    }
+
+    console.log("❌ No check-in data found with any key");
+    console.log("=== END CHECKIN SEARCH ===");
+    return null;
+  };
+
+  // Check if current time is after 5:00 PM (17:00) for overtime (from CheckOut.jsx)
+  const isCurrentTimeOvertime = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    return currentHour > 17 || (currentHour === 17 && currentMinute > 0);
+  };
+
+  // Get all possible checkout keys (from CheckOut.jsx)
+  const getAllPossibleCheckoutKeys = () => {
+    const todayKey = getTodayKey();
+    const todayDateString = getTodayDateString();
+
+    return [
+      `checkout_${todayKey}`,
+      `checkout_${todayDateString}`,
+      `checkout_${todayKey}_completed`,
+      `checkout_${todayDateString}_completed`,
+      `checkout_info_${todayKey}`,
+      `checkout_info_${todayDateString}`,
+    ];
+  };
+
+  // Check if user has already checked out today (from CheckOut.jsx)
+  const checkIfAlreadyCheckedOut = () => {
+    const checkoutKeys = getAllPossibleCheckoutKeys();
+
+    console.log("=== CHECKING CHECKOUT STATUS ===");
+    console.log(
+      "Checking localStorage for checkout status with keys:",
+      checkoutKeys
+    );
+
+    for (const key of checkoutKeys) {
+      const hasCheckedOut = localStorage.getItem(key);
+      if (hasCheckedOut === "true" || hasCheckedOut) {
+        console.log(`User has already checked out today (found key: ${key})`);
+        return true;
+      }
+    }
+
+    // Also check for any checkout info stored as JSON
+    for (const key of checkoutKeys) {
+      const checkoutInfo = localStorage.getItem(key);
+      if (checkoutInfo) {
+        try {
+          const parsed = JSON.parse(checkoutInfo);
+          if (parsed && (parsed.completed || parsed.timestamp)) {
+            console.log(
+              `User has already checked out today (found info: ${key})`
+            );
+            return true;
+          }
+        } catch (e) {
+          console.warn("Error parsing checkout info:", e);
+        }
+      }
+    }
+
+    return false;
+  };
 
   // Get current location
   const getCurrentLocation = () => {
@@ -301,9 +446,91 @@ const AttendanceApp = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Update time display for CheckOut modal (from CheckOut.jsx)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }) + " GMT"
+      );
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get user initials for avatar fallback (from CheckOut.jsx)
+  const getUserInitials = () => {
+    const safe = (s) => (typeof s === "string" ? s : "");
+    const email = safe(user?.email);
+
+    const initialsFromEmail = () => {
+      if (!email) return "U";
+      const local = email.split("@")[0];
+      const parts = local.split(/[._-]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return local.slice(0, 2).toUpperCase() || "U";
+    };
+
+    const firstName = safe(user?.firstName);
+    const lastName = safe(user?.lastName);
+    if (firstName || lastName) {
+      const fi = firstName ? firstName.trim().charAt(0).toUpperCase() : "";
+      const li = lastName ? lastName.trim().charAt(0).toUpperCase() : "";
+      return fi + li || fi || initialsFromEmail();
+    }
+
+    const name = safe(user?.name || user?.fullName);
+    if (name) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2)
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      if (parts[0]?.length >= 2) return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return initialsFromEmail();
+  };
+
+  // Get profile image URL with proper fallback (from CheckOut.jsx)
+  const getProfileImageUrl = () => {
+    const url =
+      user?.profileImage ||
+      user?.profilePicture ||
+      user?.avatar ||
+      user?.avatarUrl ||
+      user?.photoUrl ||
+      user?.image ||
+      user?.picture ||
+      null;
+
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `https://vireworkplace-backend-hpca.onrender.com${url}`;
+  };
+
+  // Handle profile image load error (from CheckOut.jsx)
+  const handleImageError = (e) => {
+    console.log("Profile image failed to load, using fallback");
+    e.target.style.display = "none";
+  };
+
   // Initial data fetch
   useEffect(() => {
     if (accessToken && user) {
+      // Check if user has already checked out today before showing checkout button
+      const alreadyCheckedOut = checkIfAlreadyCheckedOut();
+      if (alreadyCheckedOut) {
+        console.log(
+          "User has already checked out today, updating attendance status"
+        );
+        setAttendanceStatus("Inactive");
+      }
+
       fetchAttendanceStatus();
       fetchAttendanceHistory();
       fetchAttendanceStats();
@@ -415,6 +642,91 @@ const AttendanceApp = () => {
     }
   };
 
+  // CheckOut.jsx handler functions
+  const handleCancel = () => {
+    setShowMainDialog(false);
+  };
+
+  const handleOvertimeClose = () => {
+    setShowOvertimeDialog(false);
+    // Navigate back to dashboard after overtime acknowledgment
+    navigate("/staff/dashboard");
+  };
+
+  const handleTryAgain = () => {
+    setShowErrorDialog(false);
+    setShowMainDialog(true);
+  };
+
+  const handleDiscard = () => {
+    setShowErrorDialog(false);
+  };
+
+  const handleAlreadyCheckedOutClose = () => {
+    setShowAlreadyCheckedOutDialog(false);
+    // Navigate back to dashboard
+    navigate("/staff/dashboard");
+  };
+
+  const handleForceCheckout = () => {
+    console.log("Force checkout initiated");
+
+    const todayKey = getTodayKey();
+    const todayDateString = getTodayDateString();
+
+    // Store checkout status in localStorage with multiple keys
+    localStorage.setItem(`checkout_${todayKey}`, "true");
+    localStorage.setItem(`checkout_${todayDateString}`, "true");
+
+    // Store detailed checkout info
+    const checkoutInfo = {
+      date: todayKey,
+      dateString: todayDateString,
+      timestamp: new Date().toISOString(),
+      dailySummary: dailySummary,
+      forceCheckout: true,
+      completed: true,
+      reason: "Backend sync issue - checkout completed locally",
+    };
+
+    localStorage.setItem(
+      `checkout_info_${todayKey}`,
+      JSON.stringify(checkoutInfo)
+    );
+    localStorage.setItem(
+      `checkout_info_${todayDateString}`,
+      JSON.stringify(checkoutInfo)
+    );
+
+    console.log(
+      "Force checkout completed, stored in localStorage:",
+      checkoutInfo
+    );
+
+    setShowForceCheckoutDialog(false);
+
+    // Check for overtime and show appropriate dialog
+    const hasOvertimeFromTime = isCurrentTimeOvertime();
+
+    if (hasOvertimeFromTime) {
+      console.log("Showing overtime warning dialog (force checkout)");
+      setShowOvertimeDialog(true);
+    } else {
+      console.log("Normal checkout, showing success toast (force checkout)");
+      setShowSuccessToast(true);
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        // Navigate back to dashboard after success toast
+        navigate("/staff/dashboard");
+      }, 2000);
+    }
+  };
+
+  const handleForceCheckoutClose = () => {
+    setShowForceCheckoutDialog(false);
+    setBackendSyncIssue(false);
+  };
+
   const handleCheckOut = async () => {
     console.log("handleCheckOut called with dailySummary:", dailySummary);
 
@@ -426,10 +738,29 @@ const AttendanceApp = () => {
     console.log("Starting checkout process...");
     setCheckingOut(true);
 
+    // Enhanced check-in finder (from CheckOut.jsx)
+    const checkinData = findCheckinData();
+
+    if (!checkinData) {
+      console.log("No check-in info found in localStorage");
+      toast.error("No check-in record found for today. Please check in first.");
+      setCheckingOut(false);
+      setShowCheckOutDialog(false);
+      return;
+    }
+
+    console.log("Check-in info found, proceeding with checkout");
+
     try {
       const payload = {
         dailySummary: dailySummary.trim(),
       };
+
+      console.log("Making checkout API call:", {
+        url: "/api/v1/attendance/checkout",
+        method: "PATCH",
+        body: payload,
+      });
 
       const response = await apiClient.patch(
         "/api/v1/attendance/checkout",
@@ -454,16 +785,17 @@ const AttendanceApp = () => {
           late: data.attendanceData?.late || false,
         });
 
-        // Store checkout status in localStorage for consistency with CheckOut.jsx
-        const today = new Date().toISOString().split("T")[0];
-        const todayDateString = new Date().toDateString();
+        // Store checkout status with all possible keys for consistency (from CheckOut.jsx)
+        const todayKey = getTodayKey();
+        const todayDateString = getTodayDateString();
 
-        localStorage.setItem(`checkout_${today}`, "true");
+        // Store with multiple keys for better compatibility
+        localStorage.setItem(`checkout_${todayKey}`, "true");
         localStorage.setItem(`checkout_${todayDateString}`, "true");
 
         // Store detailed checkout info
         const checkoutInfo = {
-          date: today,
+          date: todayKey,
           dateString: todayDateString,
           timestamp: new Date().toISOString(),
           dailySummary: dailySummary.trim(),
@@ -472,7 +804,7 @@ const AttendanceApp = () => {
         };
 
         localStorage.setItem(
-          `checkout_info_${today}`,
+          `checkout_info_${todayKey}`,
           JSON.stringify(checkoutInfo)
         );
         localStorage.setItem(
@@ -485,32 +817,39 @@ const AttendanceApp = () => {
           checkoutInfo
         );
 
-        // Check for overtime and show appropriate message
+        // Check for overtime and show appropriate message (from CheckOut.jsx)
         const hasOvertimeFromAPI =
           data.attendanceData &&
           data.attendanceData.overtimeHours &&
           data.attendanceData.overtimeHours > 0;
 
-        const currentHour = new Date().getHours();
-        const hasOvertimeFromTime = currentHour > 17; // After 5 PM
+        const hasOvertimeFromTime = isCurrentTimeOvertime();
 
         console.log("Overtime check:", {
           hasOvertimeFromAPI,
           hasOvertimeFromTime,
-          currentHour,
+          currentTime: new Date().toLocaleTimeString(),
           overtimeHours: data.attendanceData?.overtimeHours,
         });
 
+        setShowMainDialog(false);
+
+        // Check for overtime and show appropriate dialog (from CheckOut.jsx)
         if (hasOvertimeFromAPI || hasOvertimeFromTime) {
-          console.log("Overtime detected, showing warning");
-          toast.warning("You've worked overtime today. Great job!");
+          console.log("Showing overtime warning dialog");
+          setShowOvertimeDialog(true);
         } else {
-          toast.success("Successfully checked out!");
+          console.log("Normal checkout, showing success toast");
+          setShowSuccessToast(true);
+          setTimeout(() => {
+            setShowSuccessToast(false);
+            // Navigate back to dashboard after success toast
+            navigate("/staff/dashboard");
+          }, 2000);
         }
 
         // Clear daily summary
         setDailySummary("");
-        setShowCheckOutDialog(false);
 
         // Refresh data
         await Promise.all([
@@ -526,16 +865,28 @@ const AttendanceApp = () => {
 
       // Handle specific error cases like CheckOut.jsx
       if (error.response?.data?.message === "ALREADY_CHECKED_OUT") {
-        toast.error("You have already checked out for today.");
-        setShowCheckOutDialog(false);
+        console.log("User has already checked out (from API error)");
+        setShowMainDialog(false);
+        setShowAlreadyCheckedOutDialog(true);
         return;
       }
 
-      const errorMessage =
+      // Handle backend sync issue (from CheckOut.jsx)
+      if (error.response?.status === 404 && checkinData) {
+        console.log("Backend sync issue detected");
+        setBackendSyncIssue(true);
+        setShowMainDialog(false);
+        setShowForceCheckoutDialog(true);
+        return;
+      }
+
+      setError(
         error.response?.data?.message ||
-        error.message ||
-        "Check-out failed. Please try again.";
-      toast.error(errorMessage);
+          error.message ||
+          "Check-out failed. Please try again."
+      );
+      setShowMainDialog(false);
+      setShowErrorDialog(true);
     } finally {
       setCheckingOut(false);
     }
@@ -633,7 +984,7 @@ const AttendanceApp = () => {
   };
 
   const timelineData = generateTimeline();
-  const currentHour = currentTime.getHours();
+  const currentHour = new Date().getHours();
   const greeting =
     currentHour < 12
       ? "Good Morning"
@@ -760,7 +1111,15 @@ const AttendanceApp = () => {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => setShowCheckOutDialog(true)}
+                  onClick={() => {
+                    // Check if user has already checked out today
+                    if (checkIfAlreadyCheckedOut()) {
+                      setShowMainDialog(false);
+                      setShowAlreadyCheckedOutDialog(true);
+                      return;
+                    }
+                    setShowMainDialog(true);
+                  }}
                   className="bg-green-600 hover:bg-green-600-700 text-white font-medium"
                   disabled={checkingOut}
                 >
@@ -1031,56 +1390,260 @@ const AttendanceApp = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Check-out Dialog */}
-      <Dialog open={showCheckOutDialog} onOpenChange={setShowCheckOutDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Check Out</DialogTitle>
-            <DialogDescription>
-              Provide a summary of your day before checking out (optional).
-            </DialogDescription>
-          </DialogHeader>
+      {/* CheckOut.jsx Modal Components */}
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="dailySummary">Daily Summary (Optional)</Label>
-              <Textarea
-                id="dailySummary"
-                value={dailySummary}
-                onChange={(e) => setDailySummary(e.target.value)}
-                placeholder="Describe what you accomplished today..."
-                rows={4}
-              />
+      {/* Main Check-Out Dialog */}
+      {showMainDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 space-y-6">
+              {/* Header Section - Avatar and Time */}
+              <div className="flex items-center justify-between">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage
+                    src={getProfileImageUrl()}
+                    alt={`${user?.firstName || "User"} ${user?.lastName || ""}`}
+                    onError={handleImageError}
+                  />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-medium">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-slate-600 flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    Closing Time:
+                  </div>
+                  <div className="text-lg font-bold text-slate-900">
+                    {currentTime}
+                  </div>
+                </div>
+              </div>
+
+              {/* Day Report Section */}
+              <div className="space-y-4">
+                <div className="text-sm font-medium text-slate-700">
+                  Provide your daily summary. What tasks did you complete today?
+                  <span className="text-red-500 ml-1">*</span>
+                </div>
+                <Textarea
+                  placeholder="Write your daily summary here..."
+                  value={dailySummary}
+                  onChange={(e) => setDailySummary(e.target.value)}
+                  className="min-h-[120px] resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  disabled={checkingOut}
+                  required
+                />
+                {dailySummary.length > 0 && (
+                  <div className="text-xs text-slate-500 text-right">
+                    {dailySummary.length} characters
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons Section */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                  disabled={checkingOut}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCheckOut}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium relative overflow-hidden"
+                  disabled={checkingOut || !dailySummary.trim()}
+                >
+                  {checkingOut ? (
+                    <div className="flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        </div>
+                        <span className="text-sm">Checking Out...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    "Check Out"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowCheckOutDialog(false)}
-              disabled={checkingOut}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCheckOut}
-              disabled={checkingOut}
-              className="bg-green-600 hover:green-700"
-            >
-              {checkingOut ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Checking Out...
+      {/* Overtime Warning Dialog */}
+      {showOvertimeDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-500 bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div className="p-8 space-y-6 text-center">
+              <div className="flex justify-center">
+                <AlertTriangle className="w-10 h-10 text-yellow-500 stroke-2 stroke-black" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-xl font-bold text-black">
+                  Overtime Detected
+                </h3>
+                <p className="text-black text-sm leading-relaxed">
+                  You checked out after 5:00 PM. Your overtime has been recorded
+                  and HR has been notified.
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                  <div className="text-sm text-yellow-800">
+                    <div className="font-medium">
+                      Check-out Time: {currentTime}
+                    </div>
+                    <div className="text-xs mt-1">
+                      Standard work hours: 9:00 AM - 5:00 PM
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                "Check Out"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              </div>
+              <div className="pt-2">
+                <Button
+                  onClick={handleOvertimeClose}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg py-2 font-medium"
+                >
+                  Acknowledged
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Dialog Section */}
+      {showErrorDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+            <div className="p-6 space-y-4 text-center">
+              <div className="flex justify-center">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-slate-900">
+                  Check-out Failed
+                </h3>
+                <p className="text-slate-500 mt-1 text-sm">
+                  {error || "Something went wrong. Please try again."}
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleDiscard}
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleTryAgain}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Already Checked Out Dialog Section */}
+      {showAlreadyCheckedOutDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+            <div className="p-6 space-y-4 text-center">
+              <div className="flex justify-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-500" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-slate-900">
+                  Already Checked Out
+                </h3>
+                <p className="text-slate-500 mt-1 text-sm">
+                  You have already checked out for today. You can only check out
+                  once per day.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button
+                  onClick={handleAlreadyCheckedOutClose}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium"
+                >
+                  Go to Dashboard
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Force Checkout Dialog - For Backend Sync Issues */}
+      {showForceCheckoutDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 space-y-4 text-center">
+              <div className="flex justify-center">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-orange-500" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-slate-900">
+                  Backend Sync Issue Detected
+                </h3>
+                <p className="text-slate-500 mt-1 text-sm">
+                  Your check-in record exists but the system cannot sync with
+                  the server. You can complete your checkout locally to maintain
+                  your work record.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleForceCheckoutClose}
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleForceCheckout}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                >
+                  Force Checkout
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast Section */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 bg-white border border-slate-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 transform transition-all duration-300 ease-in-out">
+          <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-3 h-3 text-white" />
+          </div>
+          <span className="font-medium text-slate-900">
+            You've successfully checked out!
+          </span>
+          <button
+            onClick={() => setShowSuccessToast(false)}
+            className="ml-2 hover:bg-slate-100 rounded p-1 transition-colors"
+          >
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
+      )}
     </StaffDashboardLayout>
   );
 };
 
-export default AttendanceApp;
+export default StaffAttendancePage;

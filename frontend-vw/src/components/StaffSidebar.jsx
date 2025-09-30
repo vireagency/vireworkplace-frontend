@@ -28,6 +28,10 @@ import { NavSecondary } from "@/components/nav-secondary";
 import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
 import { Button } from "@/components/ui/button";
 import { IconPlus } from "@tabler/icons-react";
+import AttendanceModal from "@/components/AttendanceModal";
+import { ActionButtonsSection } from "@/components/action-buttons-section";
+import { ActionButton } from "@/components/ui/action-button";
+import { staffActionButtons } from "@/config/actionButtonConfigs";
 // import { useAttendanceStatus } from "@/hooks/useAttendanceStatus";
 
 /**
@@ -47,6 +51,7 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
   const { counts, loading: sidebarLoading } = useStaffSidebar();
   // const { attendanceStatus } = useAttendanceStatus();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
 
   // Debug logging for counts
   console.log("StaffSidebar - Received counts:", counts);
@@ -112,10 +117,32 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
     [counts]
   );
 
-  // Quick check-in handler
-  const handleQuickCheckIn = useCallback(() => {
-    navigate("/staff/checkin");
-  }, [navigate]);
+  // Handle attendance modal
+  const handleAttendanceClick = useCallback(() => {
+    setShowAttendanceModal(true);
+  }, []);
+
+  const handleAttendanceModalClose = useCallback(() => {
+    setShowAttendanceModal(false);
+  }, []);
+
+  const handleAttendanceSuccess = useCallback(() => {
+    // Refresh sidebar counts after successful check-in/check-out
+    // The context will automatically refresh counts
+    console.log(
+      "Attendance action successful, sidebar counts will be refreshed"
+    );
+  }, []);
+
+  // Get staff action buttons with custom styling
+  const staffActionButtonsWithHandlers = staffActionButtons.map((button) => ({
+    ...button,
+    onClick:
+      button.text === "Check-In" ? handleAttendanceClick : button.onClick,
+    // Override styling to match staff theme
+    className:
+      "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600 min-w-6 max-w-45 duration-200 ease-linear flex items-center justify-center",
+  }));
 
   // Render navigation item
   const renderNavItem = useCallback(
@@ -211,23 +238,33 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       {/* Sidebar Content */}
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="flex flex-col gap-4">
-            {/* Quick Actions Section */}
-            <div>
-              <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Quick Actions
-              </h3>
-              <div className="px-3 py-2">
-                <Button
-                  onClick={handleQuickCheckIn}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium text-sm"
-                  disabled={sidebarLoading}
-                >
-                  <IconPlus className="w-4 h-4 mr-2" />
-                  Check-In
-                </Button>
-              </div>
-            </div>
+          <SidebarGroupContent className="flex flex-col gap-2">
+            {/* Quick Actions Section - Using ActionButtonsSection like HR Dashboard */}
+            {staffActionButtonsWithHandlers &&
+              staffActionButtonsWithHandlers.length > 0 && (
+                <ActionButtonsSection
+                  actionButtons={staffActionButtonsWithHandlers}
+                  title="Quick Actions"
+                />
+              )}
+
+            {/* Fallback Action Buttons - Staff themed */}
+            {(!staffActionButtonsWithHandlers ||
+              staffActionButtonsWithHandlers.length === 0) && (
+              <SidebarMenu>
+                <SidebarMenuItem className="flex items-center gap-2">
+                  {/* Check-in action button with staff styling */}
+                  <ActionButton
+                    icon={IconPlus}
+                    text="Check-In"
+                    tooltip="Check-In"
+                    variant="primary"
+                    onClick={handleAttendanceClick}
+                    className="bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600 min-w-6 max-w-45 duration-200 ease-linear flex items-center justify-center"
+                  />
+                </SidebarMenuItem>
+              </SidebarMenu>
+            )}
 
             {/* Main Navigation */}
             {config.navMain && renderSection("navMain", config.navMain, "Main")}
@@ -265,6 +302,13 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       <SidebarFooter>
         <NavUser user={userData.user} />
       </SidebarFooter>
+
+      {/* Attendance Modal */}
+      <AttendanceModal
+        isOpen={showAttendanceModal}
+        onClose={handleAttendanceModalClose}
+        onSuccess={handleAttendanceSuccess}
+      />
     </Sidebar>
   );
 };

@@ -42,7 +42,9 @@ const hrActionButtons = [
     variant: "primary",
     className:
       "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
-    onClick: () => console.log("Check-In clicked"),
+    onClick: () => {
+      // This will be overridden by nav-main.jsx to show the modal
+    },
   },
 ];
 
@@ -60,7 +62,9 @@ const staffActionButtons = [
     variant: "primary",
     className:
       "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
-    onClick: () => console.log("Check-In clicked"),
+    onClick: () => {
+      // This will be overridden by nav-main.jsx to show the modal
+    },
   },
 ];
 

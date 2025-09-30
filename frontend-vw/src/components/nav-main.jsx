@@ -20,6 +20,9 @@ import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react";
 // React Router hooks for navigation and location
 import { useLocation, useNavigate } from "react-router-dom";
 
+// React hooks for state management
+import { useState, useCallback } from "react";
+
 // ============================================================================
 // UI COMPONENT IMPORTS
 // ============================================================================
@@ -32,6 +35,9 @@ import { ActionButton } from "@/components/ui/action-button";
 
 // Action buttons section component for grouped actions
 import { ActionButtonsSection } from "@/components/action-buttons-section";
+
+// Attendance modal component
+import AttendanceModal from "@/components/AttendanceModal";
 
 // Sidebar components for navigation structure
 import {
@@ -85,6 +91,9 @@ export function NavMain({
   // Navigation function for programmatic routing
   const navigate = useNavigate();
 
+  // State for attendance modal
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
@@ -100,6 +109,19 @@ export function NavMain({
       navigate(url);
     }
   };
+
+  // Handle attendance modal
+  const handleAttendanceClick = useCallback(() => {
+    setShowAttendanceModal(true);
+  }, []);
+
+  const handleAttendanceModalClose = useCallback(() => {
+    setShowAttendanceModal(false);
+  }, []);
+
+  const handleAttendanceSuccess = useCallback(() => {
+    console.log("Attendance action successful from HR sidebar");
+  }, []);
 
   return (
     // ============================================================================
@@ -117,7 +139,13 @@ export function NavMain({
 
         {actionButtons && actionButtons.length > 0 && (
           <ActionButtonsSection
-            actionButtons={actionButtons}
+            actionButtons={actionButtons.map((button) => ({
+              ...button,
+              onClick:
+                button.text === "Check-In"
+                  ? handleAttendanceClick
+                  : button.onClick,
+            }))}
             title="Quick Actions"
           />
         )}
@@ -138,6 +166,7 @@ export function NavMain({
                 text="Check-In" // Button text
                 tooltip="Check-In" // Tooltip text
                 variant="primary" // Primary button style
+                onClick={handleAttendanceClick}
               />
 
               {/* Inbox button */}
@@ -188,6 +217,13 @@ export function NavMain({
             );
           })}
         </SidebarMenu>
+
+        {/* Attendance Modal */}
+        <AttendanceModal
+          isOpen={showAttendanceModal}
+          onClose={handleAttendanceModalClose}
+          onSuccess={handleAttendanceSuccess}
+        />
       </SidebarGroupContent>
     </SidebarGroup>
   );
