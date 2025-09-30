@@ -26,6 +26,9 @@ import { getSidebarAvatarUrl } from "@/utils/avatarUtils";
 import { NavUser } from "@/components/nav-user";
 import { NavSecondary } from "@/components/nav-secondary";
 import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
+import { Button } from "@/components/ui/button";
+import { IconPlus } from "@tabler/icons-react";
+// import { useAttendanceStatus } from "@/hooks/useAttendanceStatus";
 
 /**
  * StaffSidebar Component
@@ -42,6 +45,7 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
   const location = useLocation();
   const { user } = useAuth();
   const { counts, loading: sidebarLoading } = useStaffSidebar();
+  // const { attendanceStatus } = useAttendanceStatus();
   const [isNavigating, setIsNavigating] = useState(false);
 
   // Debug logging for counts
@@ -107,6 +111,11 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
     },
     [counts]
   );
+
+  // Quick check-in handler
+  const handleQuickCheckIn = useCallback(() => {
+    navigate("/staff/checkin");
+  }, [navigate]);
 
   // Render navigation item
   const renderNavItem = useCallback(
@@ -203,6 +212,23 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent className="flex flex-col gap-4">
+            {/* Quick Actions Section */}
+            <div>
+              <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Quick Actions
+              </h3>
+              <div className="px-3 py-2">
+                <Button
+                  onClick={handleQuickCheckIn}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium text-sm"
+                  disabled={sidebarLoading}
+                >
+                  <IconPlus className="w-4 h-4 mr-2" />
+                  Check-In
+                </Button>
+              </div>
+            </div>
+
             {/* Main Navigation */}
             {config.navMain && renderSection("navMain", config.navMain, "Main")}
 
