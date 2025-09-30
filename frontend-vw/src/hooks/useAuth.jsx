@@ -136,10 +136,20 @@ export const AuthProvider = ({ children }) => {
   }, [accessToken]); // Only run when accessToken changes (on login)
 
   // Fix missing workId by fetching fresh profile data
+  // Only fetch if workId is missing AND we haven't recently updated the profile
   useEffect(() => {
     if (user && !user.workId && accessToken) {
-      console.log("User data missing workId, fetching fresh profile...");
-      fetchUserProfile();
+      // Check if we recently updated the profile (within last 30 seconds)
+      const recentlyUpdated =
+        user.avatarUpdatedAt &&
+        Date.now() - new Date(user.avatarUpdatedAt).getTime() < 30000;
+
+      if (!recentlyUpdated) {
+        console.log("User data missing workId, fetching fresh profile...");
+        fetchUserProfile();
+      } else {
+        console.log("Skipping profile fetch - recently updated profile image");
+      }
     }
   }, [user, accessToken]);
 

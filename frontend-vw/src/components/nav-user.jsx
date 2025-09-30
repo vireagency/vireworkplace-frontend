@@ -203,7 +203,9 @@ export const NavUser = React.memo(function NavUser({
              User profile dropdown with account management options
              ======================================================================== */}
 
-        <DropdownMenu>
+        <DropdownMenu
+          onOpenChange={(open) => console.log("Dropdown menu open:", open)}
+        >
           {/* ====================================================================
                DROPDOWN TRIGGER
                ====================================================================
@@ -304,19 +306,34 @@ export const NavUser = React.memo(function NavUser({
               {/* View profile option */}
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => {
-                  // Navigate to profile based on user role
-                  const role = user?.role?.toLowerCase();
-                  if (role === "staff") {
-                    navigate("/staff/settings/profile");
-                  } else if (
-                    role === "hr" ||
-                    role === "human resource manager"
-                  ) {
-                    navigate("/human-resource-manager/settings/profile");
-                  } else if (role === "admin") {
-                    navigate("/admin/settings/profile");
-                  }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("View profile clicked, user:", user);
+
+                  // Small delay to ensure dropdown closes properly before navigation
+                  setTimeout(() => {
+                    // Navigate to profile based on user role
+                    const role = user?.role?.toLowerCase();
+                    console.log("User role for profile:", role);
+
+                    if (role === "staff") {
+                      console.log("Navigating to staff profile");
+                      navigate("/staff/settings/profile");
+                    } else if (
+                      role === "hr" ||
+                      role === "human resource manager"
+                    ) {
+                      console.log("Navigating to HR profile");
+                      navigate("/human-resource-manager/settings/profile");
+                    } else if (role === "admin") {
+                      console.log("Navigating to admin profile");
+                      navigate("/admin/settings/profile");
+                    } else {
+                      console.log("Unknown role, defaulting to staff profile");
+                      navigate("/staff/settings/profile");
+                    }
+                  }, 100);
                 }}
               >
                 <IconUserCircle />
@@ -326,19 +343,34 @@ export const NavUser = React.memo(function NavUser({
               {/* Settings option */}
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => {
-                  // Navigate to settings based on user role
-                  const role = user?.role?.toLowerCase();
-                  if (role === "staff") {
-                    navigate("/staff/settings");
-                  } else if (
-                    role === "hr" ||
-                    role === "human resource manager"
-                  ) {
-                    navigate("/human-resource-manager/settings");
-                  } else if (role === "admin") {
-                    navigate("/admin/settings");
-                  }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("Settings clicked, user:", user);
+
+                  // Small delay to ensure dropdown closes properly before navigation
+                  setTimeout(() => {
+                    // Navigate to settings based on user role
+                    const role = user?.role?.toLowerCase();
+                    console.log("User role for settings:", role);
+
+                    if (role === "staff") {
+                      console.log("Navigating to staff settings");
+                      navigate("/staff/settings");
+                    } else if (
+                      role === "hr" ||
+                      role === "human resource manager"
+                    ) {
+                      console.log("Navigating to HR settings");
+                      navigate("/human-resource-manager/settings");
+                    } else if (role === "admin") {
+                      console.log("Navigating to admin settings");
+                      navigate("/admin/settings");
+                    } else {
+                      console.log("Unknown role, defaulting to staff settings");
+                      navigate("/staff/settings");
+                    }
+                  }, 100);
                 }}
               >
                 <IconSettings />

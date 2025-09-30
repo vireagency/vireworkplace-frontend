@@ -54,6 +54,7 @@ export default function ProfileImageUpload({
   const [isRemoving, setIsRemoving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [forceRerender, setForceRerender] = useState(0);
+  const [recentlyUploaded, setRecentlyUploaded] = useState(false);
 
   // ============================================================================
   // EFFECTS
@@ -68,6 +69,13 @@ export default function ProfileImageUpload({
       setPreviewUrl(null);
     }
   }, [user?.profileImage, previewUrl]);
+
+  /**
+   * Reset recentlyUploaded flag when user changes
+   */
+  useEffect(() => {
+    setRecentlyUploaded(false);
+  }, [user?.id]);
 
   /**
    * Force re-render when user data changes
@@ -186,12 +194,19 @@ export default function ProfileImageUpload({
       return currentImageUrl;
     }
 
-    // Use user's profileImage from API data with stable cache busting
+    // Use user's profileImage from API data with enhanced cache busting
     if (user?.profileImage) {
       const separator = user.profileImage.includes("?") ? "&" : "?";
-      const cacheKey =
-        user.profileImagePublicId || user.avatarUpdatedAt || user.updatedAt;
-      if (cacheKey) {
+      // Use multiple cache keys for better cache busting
+      const cacheKeys = [
+        user.profileImagePublicId,
+        user.avatarUpdatedAt,
+        user.updatedAt,
+        forceRerender, // Include forceRerender for immediate updates
+      ].filter(Boolean);
+
+      if (cacheKeys.length > 0) {
+        const cacheKey = cacheKeys.join("-");
         return `${user.profileImage}${separator}v=${cacheKey}`;
       }
       return user.profileImage;
@@ -207,6 +222,14 @@ export default function ProfileImageUpload({
       userAvatarUrl,
       userKeys: user ? Object.keys(user) : "No user",
       forceRerender,
+      cacheKeys: user
+        ? [
+            user.profileImagePublicId,
+            user.avatarUpdatedAt,
+            user.updatedAt,
+            forceRerender,
+          ].filter(Boolean)
+        : [],
     });
 
     return userAvatarUrl;
@@ -328,6 +351,9 @@ export default function ProfileImageUpload({
           setUser(updatedUser);
           localStorage.setItem("user", JSON.stringify(updatedUser));
 
+          // Set recently uploaded flag to prevent unnecessary refreshes
+          setRecentlyUploaded(true);
+
           // Force re-render with timestamp
           setForceRerender(Date.now());
         }
@@ -343,23 +369,52 @@ export default function ProfileImageUpload({
           onImageUpdate(response.data);
         }
 
-        // Step 4: Fetch fresh profile data in background to ensure persistence
+        // Step 4: Verify the upload was successful by checking if the new image URL is accessible
+        // Only refresh if the new image URL is not accessible (indicating a server issue)
         setTimeout(async () => {
           try {
+            // Skip verification if we recently uploaded and the image is working
+            if (recentlyUploaded) {
+              console.log(
+                "Recently uploaded image, skipping verification to prevent revert"
+              );
+              setPreviewUrl(null);
+              // Reset the flag after a delay
+              setTimeout(() => setRecentlyUploaded(false), 10000);
+              return;
+            }
+
+            // Check if the new image URL is accessible
+            const newImageUrl = response.data?.profileImage;
+            if (newImageUrl) {
+              const imageCheck = await fetch(newImageUrl, { method: "HEAD" });
+              if (imageCheck.ok) {
+                console.log(
+                  "New image URL is accessible, keeping current state"
+                );
+                // Clear preview since the new image is confirmed to be working
+                setPreviewUrl(null);
+                return;
+              }
+            }
+
+            // If image URL is not accessible, try to refresh profile data
+            console.log(
+              "New image URL not accessible, attempting profile refresh..."
+            );
             const profileResult = await fetchFreshProfile();
             if (profileResult.success) {
               console.log("Background profile refresh completed");
-              // Clear preview since we now have fresh data
               setPreviewUrl(null);
-              // Force another re-render to ensure UI updates
               setForceRerender(Date.now());
             }
           } catch (error) {
             console.log(
-              "Background profile refresh failed, but image is already displayed"
+              "Background verification failed, but image is already displayed"
             );
+            // Don't refresh if verification fails - keep the current state
           }
-        }, 2000);
+        }, 3000);
       } else {
         throw new Error(response.message || "Upload failed");
       }
