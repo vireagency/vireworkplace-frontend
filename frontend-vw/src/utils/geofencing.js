@@ -7,8 +7,8 @@
 
 // Office location configuration
 export const OFFICE_CONFIG = {
-  lat: 5.767477,
-  lng: -0.180019,
+  lat: 5.767343288758934,
+  lng: -0.17992358655058244,
   radius: 50, // meters - stricter radius for better security
 };
 

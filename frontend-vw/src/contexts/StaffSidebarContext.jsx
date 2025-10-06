@@ -148,9 +148,11 @@ export const StaffSidebarProvider = ({ children }) => {
     try {
       const response = await apiClient.get("/api/v1/attendance/status");
       if (response.data && response.data.success) {
-        // For attendance, we might want to show pending approvals or notifications
-        // For now, return 0 as attendance doesn't typically have a "count" like tasks
-        return 0;
+        // Check if user has checked in today
+        const data = response.data.data || response.data;
+        if (data.hasCheckedIn && !data.hasCheckedOut) {
+          return 1; // Show badge if checked in but not checked out
+        }
       }
       return 0;
     } catch (error) {

@@ -75,13 +75,13 @@ export const useSidebarCounts = () => {
 
   const fetchAttendanceCount = useCallback(async (apiClient) => {
     try {
-      // Try to get attendance records - if successful, user has attendance data
-      const response = await apiClient.get("/api/v1/attendance");
+      // Check attendance status to see if user has checked in today
+      const response = await apiClient.get("/api/v1/attendance/status");
       if (response.data && response.data.success) {
-        const attendanceData =
-          response.data.data || response.data.attendance || [];
-        // Return count of attendance records
-        return Array.isArray(attendanceData) ? attendanceData.length : 0;
+        const data = response.data.data || response.data;
+        if (data.hasCheckedIn && !data.hasCheckedOut) {
+          return 1; // Show badge if checked in but not checked out
+        }
       }
       return 0;
     } catch (error) {
@@ -92,7 +92,7 @@ export const useSidebarCounts = () => {
 
   const fetchMessagesCount = useCallback(async (apiClient) => {
     try {
-      // Use notifications endpoint instead of messages/unread since messages endpoint doesn't exist
+      // Try to get notifications count - if endpoint doesn't exist, return 0
       const response = await apiClient.get("/api/v1/notifications");
       if (response.data && response.data.success) {
         const notifications =
@@ -117,7 +117,11 @@ export const useSidebarCounts = () => {
       }
 
       const now = Date.now();
-      if (!force && now - lastFetchTime.current < FETCH_INTERVAL && isInitialized.current) {
+      if (
+        !force &&
+        now - lastFetchTime.current < FETCH_INTERVAL &&
+        isInitialized.current
+      ) {
         return; // Skip if fetched recently and already initialized
       }
 
@@ -146,7 +150,7 @@ export const useSidebarCounts = () => {
           loading: false,
           error: null,
         }));
-        
+
         isInitialized.current = true;
       } catch (error) {
         console.error("Error fetching sidebar counts:", error);

@@ -1564,7 +1564,7 @@ const StaffAttendancePage = () => {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg text-slate-900">
+                <h3 className="font-semibold text-lg text-green-600">
                   Already Checked Out
                 </h3>
                 <p className="text-slate-500 mt-1 text-sm">

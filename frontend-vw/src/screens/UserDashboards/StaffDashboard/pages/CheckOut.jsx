@@ -219,21 +219,8 @@ export default function CheckOut() {
         }
       }
 
-      // FIXED: Use enhanced check-in finder
-      const checkinData = findCheckinData();
-
-      if (!checkinData) {
-        console.log("No check-in info found in localStorage");
-        setError("No check-in record found for today. Please check in first.");
-        setShowMainDialog(false);
-        setShowErrorDialog(true);
-        setIsCheckingStatus(false);
-        return;
-      }
-
-      console.log("✅ Check-in data found, user can proceed with checkout");
-
-      // Try to check with API if available
+      // Only check if user has already checked out - don't validate check-in status here
+      // Check-in validation will happen during the actual checkout process
       try {
         const response = await fetch(
           "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/status",
@@ -250,67 +237,33 @@ export default function CheckOut() {
           const result = await response.json();
           console.log("Attendance status API response:", result);
 
-          if (result.data) {
-            // Check if user has already checked out
-            if (result.data.hasCheckedOut) {
-              setHasAlreadyCheckedOut(true);
-              setShowMainDialog(false);
-              setShowAlreadyCheckedOutDialog(true);
-              // Store in localStorage to prevent future API calls
-              const todayKey = getTodayKey();
-              const todayDateString = getTodayDateString();
-              localStorage.setItem(`checkout_${todayKey}`, "true");
-              localStorage.setItem(`checkout_${todayDateString}`, "true");
-              setIsCheckingStatus(false);
-              return;
-            }
-
-            // Check if user has checked in
-            if (result.data.hasCheckedIn) {
-              console.log("✅ User has checked in, can proceed with checkout");
-              // Update localStorage with API check-in data if available
-              if (result.data.checkInTime) {
-                const todayKey = getTodayKey();
-                const todayDateString = getTodayDateString();
-                const checkinInfo = {
-                  date: todayDateString,
-                  dateKey: todayKey,
-                  timestamp: result.data.checkInTime,
-                  workingLocation: result.data.workingLocation || "unknown",
-                  apiData: result.data,
-                  completed: true,
-                };
-                localStorage.setItem(
-                  `checkin_${todayDateString}`,
-                  JSON.stringify(checkinInfo)
-                );
-                localStorage.setItem(
-                  `checkin_${todayKey}`,
-                  JSON.stringify(checkinInfo)
-                );
-              }
-            } else {
-              console.log("❌ User has not checked in today");
-              setError(
-                "No check-in record found for today. Please check in first."
-              );
-              setShowMainDialog(false);
-              setShowErrorDialog(true);
-              setIsCheckingStatus(false);
-              return;
-            }
+          if (result.data && result.data.hasCheckedOut) {
+            console.log("❌ User has already checked out today");
+            setHasAlreadyCheckedOut(true);
+            setShowMainDialog(false);
+            setShowAlreadyCheckedOutDialog(true);
+            // Store in localStorage to prevent future API calls
+            const todayKey = getTodayKey();
+            const todayDateString = getTodayDateString();
+            localStorage.setItem(`checkout_${todayKey}`, "true");
+            localStorage.setItem(`checkout_${todayDateString}`, "true");
+            setIsCheckingStatus(false);
+            return;
           }
         } else if (response.status === 401 || response.status === 403) {
           clearTokens();
           throw new Error("Session expired. Please log in again.");
         } else {
           console.warn("Attendance status API returned:", response.status);
-          // Continue with normal flow - the checkout API will handle validation
+          // Continue with normal flow - show checkout modal
         }
       } catch (apiError) {
         console.warn("Attendance status API not available:", apiError);
-        // Continue with normal flow
+        // Continue with normal flow - show checkout modal
       }
+
+      // If we reach here, user can proceed with checkout (show checkout modal)
+      console.log("✅ User can proceed with checkout - showing checkout modal");
     } catch (error) {
       console.error("Error checking attendance status:", error);
       // Continue with normal flow if status check fails
@@ -511,14 +464,69 @@ export default function CheckOut() {
         dailySummary: dailySummary || "No summary provided",
       };
 
-      // FIXED: Use enhanced check-in finder for debugging
+      // Validate check-in status before proceeding with checkout
+      console.log("🔍 Validating check-in status before checkout...");
+
+      // First check localStorage
       const checkinData = findCheckinData();
+
+      // Then check backend API for accurate status
+      let backendCheckinVerified = false;
+
+      try {
+        const statusResponse = await fetch(
+          "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/status",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (statusResponse.ok) {
+          const statusResult = await statusResponse.json();
+          console.log("✅ Backend check-in status:", statusResult);
+
+          if (statusResult.data && statusResult.data.hasCheckedIn) {
+            console.log("✅ Backend confirms user has checked in");
+            backendCheckinVerified = true;
+          } else {
+            console.log("❌ Backend confirms user has NOT checked in");
+            throw new Error(
+              "No check-in found for today. Please check in first."
+            );
+          }
+        } else {
+          console.warn(
+            "⚠️ Backend status check failed:",
+            statusResponse.status
+          );
+        }
+      } catch (statusError) {
+        console.warn("⚠️ Backend status check error:", statusError);
+      }
+
+      // If backend check failed, fall back to localStorage check
+      if (!backendCheckinVerified) {
+        if (!checkinData) {
+          console.log("❌ No check-in data found in localStorage either");
+          throw new Error(
+            "No check-in found for today. Please check in first."
+          );
+        }
+        console.log(
+          "✅ Check-in data found in localStorage, proceeding with checkout"
+        );
+      }
 
       console.log("=== CHECKOUT DEBUG INFO ===");
       console.log("Today key (YYYY-MM-DD):", getTodayKey());
       console.log("Today date string:", getTodayDateString());
       console.log("Current timezone offset:", new Date().getTimezoneOffset());
       console.log("Found check-in data:", checkinData);
+      console.log("Backend check-in verified:", backendCheckinVerified);
       console.log("=== END DEBUG INFO ===");
 
       console.log("Making checkout API call:", {
@@ -577,13 +585,13 @@ export default function CheckOut() {
         }
 
         if (response.status === 404) {
-          // FIXED: Better handling of 404 error with check-in info
+          // IMPROVED: Better handling of 404 error with detailed feedback
           if (checkinData) {
             console.log(
               "404 error but check-in found in localStorage, backend sync issue"
             );
             throw new Error(
-              "Backend data sync issue detected. You appear to be checked in, but the system cannot find your check-in record. Please contact support or try again later."
+              "SYNC_ERROR: Your check-in was recorded locally but not found in the system. This might be a temporary sync issue. Please try checking in again, or contact support if the problem persists."
             );
           } else {
             throw new Error(
@@ -753,7 +761,11 @@ export default function CheckOut() {
       }
 
       // Handle backend sync issue
-      if (error.message && error.message.includes("Backend data sync issue")) {
+      if (
+        error.message &&
+        (error.message.includes("Backend data sync issue") ||
+          error.message.includes("SYNC_ERROR"))
+      ) {
         console.log("Backend sync issue detected");
         setBackendSyncIssue(true);
         setShowMainDialog(false);
@@ -1057,7 +1069,7 @@ export default function CheckOut() {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg text-slate-900">
+                <h3 className="font-semibold text-lg text-green-600">
                   Already Checked Out
                 </h3>
                 <p className="text-slate-500 mt-1 text-sm">

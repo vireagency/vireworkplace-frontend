@@ -23,8 +23,8 @@ import axios from "axios";
 
 // Office location configuration
 const OFFICE = {
-  lat: 5.767477,
-  lng: -0.180019,
+  lat: 5.767343288758934,
+  lng: -0.17992358655058244,
   radius: 50, // meters - stricter radius for better security
 };
 
@@ -549,6 +549,7 @@ export default function AttendanceModal({ isOpen, onClose, onSuccess }) {
 
     const requestBody = { workingLocation };
 
+    // Add coordinates for office check-in (required for office location)
     if (workingLocation === "office" && lat !== null && lng !== null) {
       requestBody.latitude = lat;
       requestBody.longitude = lng;
@@ -733,10 +734,16 @@ export default function AttendanceModal({ isOpen, onClose, onSuccess }) {
     setError("");
 
     try {
+      let response;
+
       if (workLocation === "office") {
         try {
           const userLocation = await getCurrentLocation();
-          await submitCheckIn("office", userLocation.lat, userLocation.lng);
+          response = await submitCheckIn(
+            "office",
+            userLocation.lat,
+            userLocation.lng
+          );
         } catch (locationError) {
           console.error("Location validation failed:", locationError);
           throw new Error(
@@ -745,12 +752,13 @@ export default function AttendanceModal({ isOpen, onClose, onSuccess }) {
           );
         }
       } else {
-        await submitCheckIn("remote");
+        response = await submitCheckIn("remote");
       }
 
       setShowDialog(false);
       setShowSuccess(true);
-      toast.success("Successfully checked in!");
+      const successMessage = response?.message || "Successfully checked in!";
+      toast.success(successMessage);
       setIsCheckedIn(true);
 
       if (onSuccess) {
@@ -1296,7 +1304,7 @@ export default function AttendanceModal({ isOpen, onClose, onSuccess }) {
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-lg text-slate-900">
+              <h3 className="font-semibold text-lg text-green-600">
                 Already Checked Out
               </h3>
               <p className="text-slate-500 mt-1 text-sm">

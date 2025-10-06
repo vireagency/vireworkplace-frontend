@@ -22,8 +22,8 @@ import axios from "axios";
 
 // Office location configuration
 const OFFICE = {
-  lat: 5.767477,
-  lng: -0.180019,
+  lat: 5.767343288758934,
+  lng: -0.17992358655058244,
   radius: 50, // meters - stricter radius for better security
 };
 
@@ -515,7 +515,7 @@ export default function CheckIn() {
 
     const requestBody = { workingLocation };
 
-    // Add coordinates for office check-in
+    // Add coordinates for office check-in (required for office location)
     if (workingLocation === "office" && lat !== null && lng !== null) {
       requestBody.latitude = lat;
       requestBody.longitude = lng;
@@ -536,6 +536,7 @@ export default function CheckIn() {
       // Log the response for debugging
       console.log("Check-in response:", response.data);
 
+      // Validate response structure according to new API
       if (response.data.success !== true) {
         throw new Error("Unexpected response format");
       }
@@ -631,12 +632,18 @@ export default function CheckIn() {
     setError("");
 
     try {
+      let response;
+
       // Proceed with check-in
       if (workLocation === "office") {
         // Get location for office check-in (with fallback)
         try {
           const userLocation = await getCurrentLocation();
-          await submitCheckIn("office", userLocation.lat, userLocation.lng);
+          response = await submitCheckIn(
+            "office",
+            userLocation.lat,
+            userLocation.lng
+          );
         } catch (locationError) {
           // If location validation fails, don't allow check-in
           console.error("Location validation failed:", locationError);
@@ -647,13 +654,14 @@ export default function CheckIn() {
         }
       } else {
         // Remote check-in
-        await submitCheckIn("remote");
+        response = await submitCheckIn("remote");
       }
 
-      // Success
+      // Success - show API response message if available
       setShowDialog(false);
       setShowSuccess(true);
-      toast.success("Successfully checked in!");
+      const successMessage = response?.message || "Successfully checked in!";
+      toast.success(successMessage);
 
       // Navigate after delay
       setTimeout(() => {
