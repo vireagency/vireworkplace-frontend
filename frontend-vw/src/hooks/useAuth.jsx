@@ -143,14 +143,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Fetch fresh profile data on app mount to ensure we have latest data
-  useEffect(() => {
-    if (accessToken && user) {
-      console.log(
-        "App mounted with user data, fetching fresh profile to ensure latest data..."
-      );
-      fetchUserProfile();
-    }
-  }, [accessToken]); // Only run when accessToken changes (on login)
+  // DISABLED: This was causing black screen on first login because it was fetching
+  // profile immediately after login, which set loading state and interfered with navigation
+  // The profile data from login response is sufficient for initial authentication
+  // useEffect(() => {
+  //   if (accessToken && user) {
+  //     console.log(
+  //       "App mounted with user data, fetching fresh profile to ensure latest data..."
+  //     );
+  //     fetchUserProfile();
+  //   }
+  // }, [accessToken]); // Only run when accessToken changes (on login)
 
   // Fix missing workId by fetching fresh profile data
   // Only fetch if workId is missing AND we haven't recently updated the profile
@@ -192,12 +195,11 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         localStorage.setItem("access_token", tokenFromLogin);
         localStorage.setItem("user", JSON.stringify(userData));
-        // Immediately refresh with a definitive profile fetch after login
-        try {
-          await fetchUserProfile(tokenFromLogin);
-        } catch (_) {
-          // If fetch fails, keep userData from login response
-        }
+        
+        // Don't fetch profile immediately after login - use the userData from login response
+        // This prevents the black screen issue caused by setting loading state during navigation
+        // The profile will be fetched later if needed (e.g., if workId is missing)
+        
         return { success: true };
       }
     } catch (err) {
