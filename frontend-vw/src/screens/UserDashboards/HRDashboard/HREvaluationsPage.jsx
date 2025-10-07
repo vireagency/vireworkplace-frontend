@@ -41,8 +41,19 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import EvaluationCreator from "./EvaluationCreator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 // Loading State Component
 const LoadingState = () => (
@@ -54,11 +65,217 @@ const LoadingState = () => (
   </div>
 );
 
+// Calendar Modal Component
+const CalendarModal = ({ isOpen, onClose, evaluations }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    return { daysInMonth, startingDayOfWeek };
+  };
+
+  const getEvaluationsForDate = (date) => {
+    return evaluations.filter((evaluation) => {
+      if (!evaluation.reviewDeadline) return false;
+      const evalDate = new Date(evaluation.reviewDeadline);
+      return evalDate.toDateString() === date.toDateString();
+    });
+  };
+
+  const navigateMonth = (direction) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() + direction);
+    setCurrentDate(newDate);
+  };
+
+  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
+  const days = [];
+
+  // Add empty cells for days before the first day of the month
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    days.push(null);
+  }
+
+  // Add days of the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push(day);
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Evaluation Calendar
+          </DialogTitle>
+          <DialogDescription>
+            View upcoming evaluation deadlines on the calendar
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth(-1)}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+
+            <h3 className="text-lg font-semibold">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h3>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth(1)}
+              className="flex items-center gap-2"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="border rounded-lg overflow-hidden">
+            {/* Day Headers */}
+            <div className="grid grid-cols-7 bg-slate-100">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <div
+                  key={day}
+                  className="p-3 text-center text-sm font-semibold text-slate-700 border-r last:border-r-0"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7">
+              {days.map((day, index) => {
+                if (!day) {
+                  return (
+                    <div
+                      key={`empty-${index}`}
+                      className="min-h-[100px] border-r border-b bg-slate-50"
+                    ></div>
+                  );
+                }
+
+                const date = new Date(
+                  currentDate.getFullYear(),
+                  currentDate.getMonth(),
+                  day
+                );
+                const evalsForDay = getEvaluationsForDate(date);
+                const isToday =
+                  date.toDateString() === new Date().toDateString();
+
+                return (
+                  <div
+                    key={day}
+                    className={`min-h-[100px] border-r border-b p-2 ${
+                      isToday ? "bg-green-50" : "bg-white"
+                    } hover:bg-slate-50 transition-colors`}
+                  >
+                    <div
+                      className={`text-sm font-medium mb-1 ${
+                        isToday ? "text-green-600" : "text-slate-700"
+                      }`}
+                    >
+                      {day}
+                    </div>
+
+                    <div className="space-y-1">
+                      {evalsForDay.map((evaluation, idx) => {
+                        const daysUntil = Math.ceil(
+                          (date - new Date()) / (1000 * 60 * 60 * 24)
+                        );
+                        const colorClass =
+                          daysUntil < 0
+                            ? "bg-red-100 text-red-700 border-red-200"
+                            : daysUntil <= 3
+                            ? "bg-orange-100 text-orange-700 border-orange-200"
+                            : "bg-blue-100 text-blue-700 border-blue-200";
+
+                        return (
+                          <div
+                            key={evaluation._id || idx}
+                            className={`text-xs p-1 rounded border truncate ${colorClass}`}
+                            title={`${
+                              evaluation.employeeName || evaluation.formName
+                            } - ${evaluation.formType || "Evaluation"}`}
+                          >
+                            {evaluation.employeeName ||
+                              evaluation.formName ||
+                              "N/A"}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
+              <span className="text-slate-600">Overdue</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-100 border border-orange-200 rounded"></div>
+              <span className="text-slate-600">Due Soon (≤3 days)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-100 border border-blue-200 rounded"></div>
+              <span className="text-slate-600">Upcoming</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+              <span className="text-slate-600">Today</span>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function HREvaluationsPage() {
   const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [showEvaluationCreator, setShowEvaluationCreator] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // API State
   const [evaluations, setEvaluations] = useState([]);
@@ -603,112 +820,129 @@ export default function HREvaluationsPage() {
 
             {/* Second Row: Upcoming Deadlines */}
             <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Upcoming Deadlines
-                </h3>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Upcoming Deadlines
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {getUpcomingDeadlines().length} evaluations pending
+                  </p>
+                </div>
                 <Button
                   variant="link"
                   className="flex items-center gap-2 text-sm p-0 h-auto"
+                  onClick={() => setShowCalendar(true)}
                 >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
+                  <CalendarIcon className="h-4 w-4" />
                   View Calendar
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column */}
-                <Card>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className="h-3 w-3 bg-orange-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          Jerry John Rothman
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          Annual Performance Review
-                        </p>
-                        <p className="text-xs text-slate-500">2024-08-15</p>
-                      </div>
-                    </div>
+              {evaluationsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                  <span className="ml-2 text-slate-600">
+                    Loading deadlines...
+                  </span>
+                </div>
+              ) : getUpcomingDeadlines().length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {getUpcomingDeadlines()
+                    .slice(0, 6)
+                    .map((evaluation, index) => {
+                      const daysUntilDeadline = evaluation.reviewDeadline
+                        ? Math.ceil(
+                            (new Date(evaluation.reviewDeadline) - new Date()) /
+                              (1000 * 60 * 60 * 24)
+                          )
+                        : null;
 
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className="h-3 w-3 bg-green-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          Jackson Cole
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          360-Degree Review
-                        </p>
-                        <p className="text-xs text-slate-500">2024-08-01</p>
-                      </div>
+                      const priorityColor =
+                        daysUntilDeadline <= 3
+                          ? "bg-red-500"
+                          : daysUntilDeadline <= 7
+                          ? "bg-orange-500"
+                          : daysUntilDeadline <= 14
+                          ? "bg-yellow-500"
+                          : "bg-green-500";
+
+                      return (
+                        <Card key={evaluation._id || index}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`h-3 w-3 ${priorityColor} rounded-full mt-1 flex-shrink-0`}
+                              ></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-slate-900 truncate">
+                                  {evaluation.employeeName ||
+                                    evaluation.formName ||
+                                    "N/A"}
+                                </p>
+                                <p className="text-sm text-slate-600 truncate">
+                                  {evaluation.formType ||
+                                    evaluation.evaluationType ||
+                                    "Evaluation"}
+                                </p>
+                                <div className="flex items-center justify-between mt-2">
+                                  <p className="text-xs text-slate-500">
+                                    {formatDate(evaluation.reviewDeadline)}
+                                  </p>
+                                  {daysUntilDeadline !== null && (
+                                    <span
+                                      className={`text-xs font-medium ${
+                                        daysUntilDeadline < 0
+                                          ? "text-red-600"
+                                          : daysUntilDeadline <= 3
+                                          ? "text-orange-600"
+                                          : "text-slate-600"
+                                      }`}
+                                    >
+                                      {daysUntilDeadline < 0
+                                        ? `${Math.abs(
+                                            daysUntilDeadline
+                                          )}d overdue`
+                                        : daysUntilDeadline === 0
+                                        ? "Due today"
+                                        : `${daysUntilDeadline}d left`}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-8">
+                    <div className="text-center text-slate-500">
+                      <svg
+                        className="w-12 h-12 mx-auto mb-3 text-slate-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <p className="text-sm font-medium">
+                        No upcoming deadlines
+                      </p>
+                      <p className="text-xs mt-1">
+                        All evaluations are up to date
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Middle Column */}
-                <Card>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className="h-3 w-3 bg-yellow-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          Daniel Obeng
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          Mid-Year Check-in
-                        </p>
-                        <p className="text-xs text-slate-500">2024-08-10</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className="h-3 w-3 bg-red-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          Isabella Wright
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          Performance Improvement Plan
-                        </p>
-                        <p className="text-xs text-slate-500">2024-07-28</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Right Column */}
-                <Card>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className="h-3 w-3 bg-orange-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          Sophia Hayes
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          Project Feedback
-                        </p>
-                        <p className="text-xs text-slate-500">2024-08-05</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              )}
             </div>
           </TabsContent>
 
@@ -995,11 +1229,16 @@ export default function HREvaluationsPage() {
 
           <TabsContent value="upcoming" className="mt-6">
             {/* Section Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Upcoming Deadlines
-              </h3>
-              <Button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Upcoming Deadlines
+                </h3>
+                <p className="text-sm text-slate-500">
+                  {getUpcomingDeadlines().length} evaluations need attention
+                </p>
+              </div>
+              <Button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white">
                 <svg
                   className="h-4 w-4"
                   fill="none"
@@ -1017,19 +1256,185 @@ export default function HREvaluationsPage() {
               </Button>
             </div>
 
-            {/* Upcoming Deadlines Table */}
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <p className="text-center py-12 text-slate-500">
-                    No upcoming deadlines at this time
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Upcoming Deadlines Cards/Table */}
+            {evaluationsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                <span className="ml-2 text-slate-600">
+                  Loading upcoming deadlines...
+                </span>
+              </div>
+            ) : getUpcomingDeadlines().length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {getUpcomingDeadlines().map((evaluation, index) => {
+                  const daysUntilDeadline = evaluation.reviewDeadline
+                    ? Math.ceil(
+                        (new Date(evaluation.reviewDeadline) - new Date()) /
+                          (1000 * 60 * 60 * 24)
+                      )
+                    : null;
+
+                  const priorityConfig =
+                    daysUntilDeadline < 0
+                      ? {
+                          color: "bg-red-500",
+                          text: "Overdue",
+                          textColor: "text-red-600",
+                        }
+                      : daysUntilDeadline <= 3
+                      ? {
+                          color: "bg-red-500",
+                          text: "High",
+                          textColor: "text-red-600",
+                        }
+                      : daysUntilDeadline <= 7
+                      ? {
+                          color: "bg-orange-500",
+                          text: "Medium",
+                          textColor: "text-orange-600",
+                        }
+                      : {
+                          color: "bg-green-500",
+                          text: "Low",
+                          textColor: "text-green-600",
+                        };
+
+                  return (
+                    <Card
+                      key={evaluation._id || index}
+                      className="hover:shadow-md transition-shadow"
+                    >
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                          {/* Priority Indicator */}
+                          <div className="flex items-center gap-3 min-w-0 sm:min-w-[120px]">
+                            <div
+                              className={`h-3 w-3 ${priorityConfig.color} rounded-full flex-shrink-0`}
+                            ></div>
+                            <span
+                              className={`text-sm font-medium ${priorityConfig.textColor}`}
+                            >
+                              {priorityConfig.text}
+                            </span>
+                          </div>
+
+                          {/* Employee Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm flex-shrink-0">
+                                {getInitials(
+                                  evaluation.employeeName || evaluation.formName
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-slate-900 truncate">
+                                  {evaluation.employeeName ||
+                                    evaluation.formName ||
+                                    "N/A"}
+                                </p>
+                                <p className="text-sm text-slate-600 truncate">
+                                  {evaluation.formType ||
+                                    evaluation.evaluationType ||
+                                    "Evaluation"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Deadline Info */}
+                          <div className="flex items-center justify-between sm:justify-end gap-4 sm:min-w-[200px]">
+                            <div className="text-left sm:text-right">
+                              <p className="text-sm font-medium text-slate-900">
+                                {formatDate(evaluation.reviewDeadline)}
+                              </p>
+                              {daysUntilDeadline !== null && (
+                                <p
+                                  className={`text-xs ${priorityConfig.textColor}`}
+                                >
+                                  {daysUntilDeadline < 0
+                                    ? `${Math.abs(
+                                        daysUntilDeadline
+                                      )} days overdue`
+                                    : daysUntilDeadline === 0
+                                    ? "Due today"
+                                    : `${daysUntilDeadline} days left`}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                title="Send reminder"
+                              >
+                                <svg
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                                  />
+                                </svg>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                title="View details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-12">
+                  <div className="text-center text-slate-500">
+                    <svg
+                      className="w-16 h-16 mx-auto mb-4 text-slate-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="text-lg font-medium mb-1">All caught up!</p>
+                    <p className="text-sm">
+                      No upcoming evaluation deadlines at this time
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Calendar Modal */}
+      <CalendarModal
+        isOpen={showCalendar}
+        onClose={() => setShowCalendar(false)}
+        evaluations={evaluations}
+      />
     </DashboardLayout>
   );
 }
