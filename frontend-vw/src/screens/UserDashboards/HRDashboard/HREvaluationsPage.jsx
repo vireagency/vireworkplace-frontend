@@ -59,7 +59,7 @@ export default function HREvaluationsPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showEvaluationCreator, setShowEvaluationCreator] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // API State
   const [evaluations, setEvaluations] = useState([]);
   const [evaluationsLoading, setEvaluationsLoading] = useState(true);
@@ -76,33 +76,39 @@ export default function HREvaluationsPage() {
     const fetchEvaluations = async () => {
       if (!accessToken) {
         console.log("No access token available");
+        setEvaluationsLoading(false);
         return;
       }
 
       try {
         setEvaluationsLoading(true);
         console.log("Fetching evaluations from API...");
-        
+
         const result = await evaluationsApi.getAllEvaluations(accessToken);
-        
+
         if (result.success) {
           console.log("Evaluations fetched successfully:", result.data);
-          setEvaluations(result.data.data || result.data || []);
-          
+          const evalData = Array.isArray(result.data)
+            ? result.data
+            : result.data?.data || [];
+          setEvaluations(evalData);
+
           // Calculate statistics from the data
-          const evals = result.data.data || result.data || [];
-          calculateStatistics(evals);
-          
+          calculateStatistics(evalData);
+
           setEvaluationsError(null);
         } else {
           console.error("Failed to fetch evaluations:", result.error);
           setEvaluationsError(result.error);
-          toast.error(result.error || "Failed to load evaluations");
+          // Don't show toast, just log the error
+          console.log("Using fallback to show UI without data");
+          setEvaluations([]);
         }
       } catch (error) {
         console.error("Error fetching evaluations:", error);
-        setEvaluationsError("Failed to load evaluations");
-        toast.error("Failed to load evaluations");
+        setEvaluationsError("API currently unavailable");
+        console.log("Using fallback to show UI without data");
+        setEvaluations([]);
       } finally {
         setEvaluationsLoading(false);
       }
@@ -117,15 +123,25 @@ export default function HREvaluationsPage() {
       return;
     }
 
-    const inProgress = evals.filter(e => e.status === 'in_progress' || e.status === 'pending').length;
-    const completed = evals.filter(e => e.status === 'completed' || e.status === 'submitted').length;
-    const overdue = evals.filter(e => e.status === 'overdue').length;
-    
+    const inProgress = evals.filter(
+      (e) => e.status === "in_progress" || e.status === "pending"
+    ).length;
+    const completed = evals.filter(
+      (e) => e.status === "completed" || e.status === "submitted"
+    ).length;
+    const overdue = evals.filter((e) => e.status === "overdue").length;
+
     // Calculate average score for completed evaluations
-    const completedWithScores = evals.filter(e => (e.status === 'completed' || e.status === 'submitted') && e.score);
-    const avgScore = completedWithScores.length > 0
-      ? Math.round(completedWithScores.reduce((sum, e) => sum + (e.score || 0), 0) / completedWithScores.length)
-      : 0;
+    const completedWithScores = evals.filter(
+      (e) => (e.status === "completed" || e.status === "submitted") && e.score
+    );
+    const avgScore =
+      completedWithScores.length > 0
+        ? Math.round(
+            completedWithScores.reduce((sum, e) => sum + (e.score || 0), 0) /
+              completedWithScores.length
+          )
+        : 0;
 
     setStatistics({
       reviewsInProgress: inProgress,
@@ -149,52 +165,80 @@ export default function HREvaluationsPage() {
     // Refresh evaluations when returning from creator
     if (accessToken) {
       setEvaluationsLoading(true);
-      evaluationsApi.getAllEvaluations(accessToken).then(result => {
-        if (result.success) {
-          setEvaluations(result.data.data || result.data || []);
-          calculateStatistics(result.data.data || result.data || []);
-        }
-        setEvaluationsLoading(false);
-      });
+      evaluationsApi
+        .getAllEvaluations(accessToken)
+        .then((result) => {
+          if (result.success) {
+            const evalData = Array.isArray(result.data)
+              ? result.data
+              : result.data?.data || [];
+            setEvaluations(evalData);
+            calculateStatistics(evalData);
+          } else {
+            setEvaluations([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error refreshing evaluations:", error);
+          setEvaluations([]);
+        })
+        .finally(() => {
+          setEvaluationsLoading(false);
+        });
     }
   };
 
   // Helper functions to filter and format evaluations
   const getRecentSubmissions = () => {
     return evaluations
-      .filter(e => e.status === 'submitted' || e.status === 'completed')
-      .sort((a, b) => new Date(b.submittedAt || b.createdAt) - new Date(a.submittedAt || a.createdAt))
+      .filter((e) => e.status === "submitted" || e.status === "completed")
+      .sort(
+        (a, b) =>
+          new Date(b.submittedAt || b.createdAt) -
+          new Date(a.submittedAt || a.createdAt)
+      )
       .slice(0, 5);
   };
 
   const getUpcomingDeadlines = () => {
     return evaluations
-      .filter(e => e.status !== 'completed' && e.status !== 'submitted' && e.reviewDeadline)
+      .filter(
+        (e) =>
+          e.status !== "completed" &&
+          e.status !== "submitted" &&
+          e.reviewDeadline
+      )
       .sort((a, b) => new Date(a.reviewDeadline) - new Date(b.reviewDeadline))
       .slice(0, 10);
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      'submitted': { class: 'bg-green-100 text-green-800', text: 'Submitted' },
-      'completed': { class: 'bg-green-100 text-green-800', text: 'Completed' },
-      'pending': { class: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
-      'in_progress': { class: 'bg-blue-100 text-blue-800', text: 'In Progress' },
-      'overdue': { class: 'bg-red-100 text-red-800', text: 'Overdue' },
+      submitted: { class: "bg-green-100 text-green-800", text: "Submitted" },
+      completed: { class: "bg-green-100 text-green-800", text: "Completed" },
+      pending: { class: "bg-yellow-100 text-yellow-800", text: "Pending" },
+      in_progress: { class: "bg-blue-100 text-blue-800", text: "In Progress" },
+      overdue: { class: "bg-red-100 text-red-800", text: "Overdue" },
     };
-    return statusMap[status] || { class: 'bg-gray-100 text-gray-800', text: status };
+    return (
+      statusMap[status] || { class: "bg-gray-100 text-gray-800", text: status }
+    );
   };
 
   const getInitials = (name) => {
-    if (!name) return 'N/A';
-    const parts = name.split(' ');
-    return parts.map(p => p[0]).join('').toUpperCase().slice(0, 3);
+    if (!name) return "N/A";
+    const parts = name.split(" ");
+    return parts
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 3);
   };
 
   // If loading, show loading state
@@ -258,86 +302,100 @@ export default function HREvaluationsPage() {
         {evaluationsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <span className="ml-2 text-slate-600">Loading evaluation metrics...</span>
-          </div>
-        ) : evaluationsError ? (
-          <div className="text-center py-12">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Evaluations</h3>
-            <p className="text-gray-500 mb-4">{evaluationsError}</p>
-            <Button
-              onClick={() => window.location.reload()}
-              className="bg-green-500 hover:bg-green-600 text-white"
-            >
-              Try Again
-            </Button>
+            <span className="ml-2 text-slate-600">
+              Loading evaluation metrics...
+            </span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Reviews in Progress */}
-            <Card className="@container/card relative">
-              <CardHeader>
-                <CardDescription>Reviews in Progress</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {statistics.reviewsInProgress}
-                </CardTitle>
-              </CardHeader>
-              <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-green-600 bg-green-50">
-                  <IconTrendingUp className="text-green-600" />
-                  +56%
-                </Badge>
+          <>
+            {evaluationsError && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-600">⚠️</span>
+                  <p className="text-sm text-yellow-800">
+                    Unable to load evaluation data from server. Showing page
+                    without live data.
+                  </p>
+                </div>
               </div>
-            </Card>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Reviews in Progress */}
+              <Card className="@container/card relative">
+                <CardHeader>
+                  <CardDescription>Reviews in Progress</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                    {statistics.reviewsInProgress}
+                  </CardTitle>
+                </CardHeader>
+                <div className="absolute bottom-3 right-3">
+                  <Badge
+                    variant="secondary"
+                    className="text-green-600 bg-green-50"
+                  >
+                    <IconTrendingUp className="text-green-600" />
+                    +56%
+                  </Badge>
+                </div>
+              </Card>
 
-            {/* Reviews Completed */}
-            <Card className="@container/card relative">
-              <CardHeader>
-                <CardDescription>Reviews Completed</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {statistics.reviewsCompleted}
-                </CardTitle>
-              </CardHeader>
-              <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-green-600 bg-green-50">
-                  <IconTrendingUp className="text-green-600" />
-                  +56%
-                </Badge>
-              </div>
-            </Card>
+              {/* Reviews Completed */}
+              <Card className="@container/card relative">
+                <CardHeader>
+                  <CardDescription>Reviews Completed</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                    {statistics.reviewsCompleted}
+                  </CardTitle>
+                </CardHeader>
+                <div className="absolute bottom-3 right-3">
+                  <Badge
+                    variant="secondary"
+                    className="text-green-600 bg-green-50"
+                  >
+                    <IconTrendingUp className="text-green-600" />
+                    +56%
+                  </Badge>
+                </div>
+              </Card>
 
-            {/* Reviews Overdue */}
-            <Card className="@container/card relative">
-              <CardHeader>
-                <CardDescription>Reviews Overdue</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {statistics.reviewsOverdue}
-                </CardTitle>
-              </CardHeader>
-              <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-red-600 bg-red-50">
-                  <IconTrendingDown className="text-red-600" />
-                  {statistics.reviewsOverdue > 0 ? "Needs Attention" : "On Track"}
-                </Badge>
-              </div>
-            </Card>
+              {/* Reviews Overdue */}
+              <Card className="@container/card relative">
+                <CardHeader>
+                  <CardDescription>Reviews Overdue</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                    {statistics.reviewsOverdue}
+                  </CardTitle>
+                </CardHeader>
+                <div className="absolute bottom-3 right-3">
+                  <Badge variant="secondary" className="text-red-600 bg-red-50">
+                    <IconTrendingDown className="text-red-600" />
+                    {statistics.reviewsOverdue > 0
+                      ? "Needs Attention"
+                      : "On Track"}
+                  </Badge>
+                </div>
+              </Card>
 
-            {/* Average Score */}
-            <Card className="@container/card relative">
-              <CardHeader>
-                <CardDescription>Average Score</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {statistics.averageScore}
-                </CardTitle>
-              </CardHeader>
-              <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-green-600 bg-green-50">
-                  <IconTrendingUp className="text-green-600" />
-                  +3.2%
-                </Badge>
-              </div>
-            </Card>
-          </div>
+              {/* Average Score */}
+              <Card className="@container/card relative">
+                <CardHeader>
+                  <CardDescription>Average Score</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                    {statistics.averageScore}
+                  </CardTitle>
+                </CardHeader>
+                <div className="absolute bottom-3 right-3">
+                  <Badge
+                    variant="secondary"
+                    className="text-green-600 bg-green-50"
+                  >
+                    <IconTrendingUp className="text-green-600" />
+                    +3.2%
+                  </Badge>
+                </div>
+              </Card>
+            </div>
+          </>
         )}
 
         {/* Tabs Navigation */}
@@ -384,30 +442,42 @@ export default function HREvaluationsPage() {
                     </div>
                   ) : getRecentSubmissions().length > 0 ? (
                     <div className="space-y-3">
-                      {getRecentSubmissions().slice(0, 3).map((evaluation, index) => {
-                        const statusBadge = getStatusBadge(evaluation.status);
-                        return (
-                          <div key={evaluation._id || index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                            <div>
-                              <p className="font-medium text-slate-900">
-                                {evaluation.employeeName || evaluation.formName || 'N/A'}
-                              </p>
-                              <p className="text-sm text-slate-600">
-                                {evaluation.formType || evaluation.evaluationType || 'Evaluation'}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {formatDate(evaluation.submittedAt || evaluation.createdAt)}
-                              </p>
-                            </div>
-                            <Badge
-                              variant="secondary"
-                              className={statusBadge.class}
+                      {getRecentSubmissions()
+                        .slice(0, 3)
+                        .map((evaluation, index) => {
+                          const statusBadge = getStatusBadge(evaluation.status);
+                          return (
+                            <div
+                              key={evaluation._id || index}
+                              className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
                             >
-                              {statusBadge.text}
-                            </Badge>
-                          </div>
-                        );
-                      })}
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {evaluation.employeeName ||
+                                    evaluation.formName ||
+                                    "N/A"}
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                  {evaluation.formType ||
+                                    evaluation.evaluationType ||
+                                    "Evaluation"}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {formatDate(
+                                    evaluation.submittedAt ||
+                                      evaluation.createdAt
+                                  )}
+                                </p>
+                              </div>
+                              <Badge
+                                variant="secondary"
+                                className={statusBadge.class}
+                              >
+                                {statusBadge.text}
+                              </Badge>
+                            </div>
+                          );
+                        })}
                     </div>
                   ) : (
                     <div className="text-center py-6 text-slate-500">
@@ -726,7 +796,9 @@ export default function HREvaluationsPage() {
                   {evaluationsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                      <span className="ml-2 text-slate-600">Loading submissions...</span>
+                      <span className="ml-2 text-slate-600">
+                        Loading submissions...
+                      </span>
                     </div>
                   ) : getRecentSubmissions().length === 0 ? (
                     <div className="text-center py-12">
@@ -807,11 +879,16 @@ export default function HREvaluationsPage() {
                       <TableBody className="divide-y divide-slate-100">
                         {getRecentSubmissions().map((evaluation) => {
                           const statusBadge = getStatusBadge(evaluation.status);
-                          const initials = getInitials(evaluation.employeeName || evaluation.formName);
+                          const initials = getInitials(
+                            evaluation.employeeName || evaluation.formName
+                          );
                           const score = evaluation.score || 0;
 
                           return (
-                            <TableRow key={evaluation._id} className="hover:bg-slate-50">
+                            <TableRow
+                              key={evaluation._id}
+                              className="hover:bg-slate-50"
+                            >
                               <TableCell className="py-3 px-4">
                                 <input
                                   type="checkbox"
@@ -825,19 +902,25 @@ export default function HREvaluationsPage() {
                                   </div>
                                   <div>
                                     <div className="font-medium text-slate-900">
-                                      {evaluation.employeeName || evaluation.formName || 'N/A'}
+                                      {evaluation.employeeName ||
+                                        evaluation.formName ||
+                                        "N/A"}
                                     </div>
                                     <div className="text-sm text-slate-500">
-                                      {evaluation.department || 'N/A'}
+                                      {evaluation.department || "N/A"}
                                     </div>
                                   </div>
                                 </div>
                               </TableCell>
                               <TableCell className="py-3 px-4 text-slate-900">
-                                {evaluation.formType || evaluation.evaluationType || 'N/A'}
+                                {evaluation.formType ||
+                                  evaluation.evaluationType ||
+                                  "N/A"}
                               </TableCell>
                               <TableCell className="py-3 px-4 text-slate-900">
-                                {formatDate(evaluation.submittedAt || evaluation.createdAt)}
+                                {formatDate(
+                                  evaluation.submittedAt || evaluation.createdAt
+                                )}
                               </TableCell>
                               <TableCell className="py-3 px-4">
                                 {score > 0 ? (
@@ -865,7 +948,7 @@ export default function HREvaluationsPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="py-3 px-4 text-slate-600">
-                                {evaluation.department || 'N/A'}
+                                {evaluation.department || "N/A"}
                               </TableCell>
                               <TableCell className="py-3 px-4">
                                 <div className="flex items-center space-x-2">
@@ -911,845 +994,6 @@ export default function HREvaluationsPage() {
           </TabsContent>
 
           <TabsContent value="upcoming" className="mt-6">
-                      {/* Row 1 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm">
-                              WOP
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                William Okuu Panwar
-                              </div>
-                              <div className="text-sm text-slate-500">
-                                Engineering
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Annual Performance Review
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-20
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">
-                              85
-                            </span>
-                            <div className="w-16 bg-slate-200 rounded-full h-2">
-                              <div
-                                className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: "85%" }}
-                              ></div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-800"
-                          >
-                            submitted
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          Engineering
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 cursor-pointer"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 2 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-semibold text-sm">
-                              BL
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                Bless Lemplay
-                              </div>
-                              <div className="text-sm text-slate-500">
-                                Marketing
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Mid-Year Check-in
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-18
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">
-                              92
-                            </span>
-                            <div className="w-16 bg-slate-200 rounded-full h-2">
-                              <div
-                                className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: "92%" }}
-                              ></div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-800"
-                          >
-                            submitted
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          Marketing
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 3 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
-                              MEQ
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                Maame Esi Quansah
-                              </div>
-                              <div className="text-sm text-slate-500">
-                                Design
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Project Feedback
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-15
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">
-                              78
-                            </span>
-                            <div className="w-16 bg-slate-200 rounded-full h-2">
-                              <div
-                                className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: "78%" }}
-                              ></div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-800"
-                          >
-                            submitted
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          Design
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 4 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-semibold text-sm">
-                              AJ
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                Alex Johnson
-                              </div>
-                              <div className="text-sm text-slate-500">
-                                Sales
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          360-Degree Review
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-12
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">
-                              88
-                            </span>
-                            <div className="w-16 bg-slate-200 rounded-full h-2">
-                              <div
-                                className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: "88%" }}
-                              ></div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-800"
-                          >
-                            submitted
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          Sales
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 5 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-semibold text-sm">
-                              RK
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                Robert Kim
-                              </div>
-                              <div className="text-sm text-slate-500">HR</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Performance Improvement Plan
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-10
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">
-                              65
-                            </span>
-                            <div className="w-16 bg-slate-200 rounded-full h-2">
-                              <div
-                                className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: "65%" }}
-                              ></div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-100 text-green-800"
-                          >
-                            submitted
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          HR
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 6 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 font-semibold text-sm">
-                              SJ
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                Sarah Johnson
-                              </div>
-                              <div className="text-sm text-slate-500">
-                                Finance
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Quarterly Review
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-08
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <span className="text-slate-400">-</span>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-yellow-100 text-yellow-800"
-                          >
-                            pending
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          Finance
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 7 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300"
-                          />
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-semibold text-sm">
-                              MC
-                            </div>
-                            <div>
-                              <div className="font-medium text-slate-900">
-                                Marcus Chen
-                              </div>
-                              <div className="text-sm text-slate-500">
-                                Engineering
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Annual Performance Review
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-07-05
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <span className="text-slate-400">-</span>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-red-100 text-red-800"
-                          >
-                            overdue
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-600">
-                          Engineering
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="upcoming" className="mt-6">
             {/* Section Header */}
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -1777,419 +1021,9 @@ export default function HREvaluationsPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-b border-slate-200">
-                        <TableHead className="text-left px-4 font-medium text-slate-600">
-                          Priority
-                        </TableHead>
-                        <TableHead className="text-left px-4 font-medium text-slate-600">
-                          Employee
-                        </TableHead>
-                        <TableHead className="text-left px-4 font-medium text-slate-600">
-                          Evaluation Type
-                        </TableHead>
-                        <TableHead className="text-left px-4 font-medium text-slate-600">
-                          Deadline
-                        </TableHead>
-                        <TableHead className="text-left px-4 font-medium text-slate-600">
-                          Days Left
-                        </TableHead>
-                        <TableHead className="text-left px-4 font-medium text-slate-600">
-                          Actions
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-slate-100">
-                      {/* Row 1 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-orange-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-slate-900">
-                              High
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
-                              JJR
-                            </div>
-                            <div className="font-medium text-slate-900">
-                              Jerry John Rothman
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Annual Performance Review
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-08-15
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-100 text-slate-600"
-                          >
-                            -375 days
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 2 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-yellow-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-slate-900">
-                              Medium
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
-                              DO
-                            </div>
-                            <div className="font-medium text-slate-900">
-                              Daniel Obeng
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Mid-Year Check-in
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-08-10
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-100 text-slate-600"
-                          >
-                            -380 days
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 3 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-orange-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-slate-900">
-                              High
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
-                              SH
-                            </div>
-                            <div className="font-medium text-slate-900">
-                              Sophia Hayes
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          Project Feedback
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-08-05
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-100 text-slate-600"
-                          >
-                            -385 days
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Row 4 */}
-                      <TableRow className="hover:bg-slate-50">
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-green-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-slate-900">
-                              Low
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
-                              LM
-                            </div>
-                            <div className="font-medium text-slate-900">
-                              Lisa Martinez
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          360-Degree Review
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-slate-900">
-                          2024-08-01
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-100 text-slate-600"
-                          >
-                            -390 days
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm-0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  <p className="text-center py-12 text-slate-500">
+                    No upcoming deadlines at this time
+                  </p>
                 </div>
               </CardContent>
             </Card>
