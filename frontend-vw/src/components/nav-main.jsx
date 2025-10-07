@@ -151,41 +151,6 @@ export function NavMain({
         )}
 
         {/* ========================================================================
-             FALLBACK ACTION BUTTONS
-             ========================================================================
-             
-             Default check-in and inbox buttons when no custom action buttons provided
-             ======================================================================== */}
-
-        {(!actionButtons || actionButtons.length === 0) && (
-          <SidebarMenu>
-            <SidebarMenuItem className="flex items-center gap-2">
-              {/* Check-in action button */}
-              <ActionButton
-                icon={IconCirclePlusFilled} // Plus icon for check-in
-                text="Check-In" // Button text
-                tooltip="Check-In" // Tooltip text
-                variant="primary" // Primary button style
-                onClick={handleAttendanceClick}
-              />
-
-              {/* Inbox button */}
-              <Button
-                size="icon" // Icon-only button size
-                className="size-8 group-data-[collapsible=icon]:opacity-0" // Responsive visibility
-                variant="outline"
-              >
-                {" "}
-                // Outline button style
-                <IconMail /> // Mail icon
-                <span className="sr-only">Inbox</span>{" "}
-                {/* Screen reader text */}
-              </Button>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        )}
-
-        {/* ========================================================================
              NAVIGATION ITEMS MENU
              ========================================================================
              

@@ -1,9 +1,9 @@
-import HRDashboardLayout from "@/components/dashboard/HRDashboardLayout"
-import { hrDashboardConfig } from "@/config/dashboardConfigs"
-import hrData from "./hrData.json"
-import { useState, useEffect } from "react"
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
-import { Badge } from "@/components/ui/badge"
+import HRDashboardLayout from "@/components/dashboard/HRDashboardLayout";
+import { hrDashboardConfig } from "@/config/dashboardConfigs";
+import hrData from "./hrData.json";
+import { useState, useEffect } from "react";
+import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardAction,
@@ -11,112 +11,116 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { useAuth } from "@/hooks/useAuth"
-import { useNavigate } from "react-router-dom"
-import axios from "axios"
-import { getApiUrl } from "@/config/apiConfig"
-import { hrOverviewApi } from "@/services/hrOverviewApi"
-import { toast } from "sonner"
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableHead, 
-  TableRow, 
-  TableCell 
-} from "@/components/ui/table"
+} from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { getApiUrl } from "@/config/apiConfig";
+import { hrOverviewApi } from "@/services/hrOverviewApi";
+import { toast } from "sonner";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 
 function getGreeting() {
-  const currentHour = new Date().getHours()
-  if (currentHour < 12) return "Good Morning"
-  if (currentHour < 18) return "Good Afternoon"
-  return "Good Evening"
+  const currentHour = new Date().getHours();
+  if (currentHour < 12) return "Good Morning";
+  if (currentHour < 18) return "Good Afternoon";
+  return "Good Evening";
 }
 
 // StatusBadge component with fallback logic
 const StatusBadge = ({ status }) => {
   const statusConfig = {
-    "Active": { 
-      bgColor: "bg-green-50", 
-      borderColor: "border-green-200", 
+    Active: {
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
       textColor: "text-green-700",
       dotColor: "bg-green-500",
-      text: "Active" 
+      text: "Active",
     },
-    "In-active": { 
-      bgColor: "bg-orange-50", 
-      borderColor: "border-orange-200", 
+    "In-active": {
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
       textColor: "text-orange-700",
       dotColor: "bg-orange-500",
-      text: "In-active" 
+      text: "In-active",
     },
-    "Closed": { 
-      bgColor: "bg-red-50", 
-      borderColor: "border-red-200", 
+    Closed: {
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
       textColor: "text-red-700",
       dotColor: "bg-red-500",
-      text: "Closed" 
-    }
-  }
-  
-  const config = statusConfig[status] || statusConfig["In-active"]
-  
+      text: "Closed",
+    },
+  };
+
+  const config = statusConfig[status] || statusConfig["In-active"];
+
   return (
-    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}>
+    <div
+      className={`inline-flex items-center gap-2 px-2 py-1 rounded-full border ${config.bgColor} ${config.borderColor}`}
+    >
       <div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
-      <span className={`text-sm font-medium ${config.textColor}`}>{config.text}</span>
+      <span className={`text-sm font-medium ${config.textColor}`}>
+        {config.text}
+      </span>
     </div>
-  )
-}
+  );
+};
 
 export default function HRDashboardMainPage() {
-  const { user, accessToken } = useAuth()
-  const navigate = useNavigate()
-  const greeting = getGreeting()
-  
+  const { user, accessToken } = useAuth();
+  const navigate = useNavigate();
+  const greeting = getGreeting();
+
   // Get user's first name, fallback to "User" if not available
-  const userName = user?.firstName || "User"
+  const userName = user?.firstName || "User";
 
   // API configuration
-  const API_URL = getApiUrl()
+  const API_URL = getApiUrl();
 
   // State for employee data
-  const [employees, setEmployees] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   // State for HR overview data
-  const [overviewData, setOverviewData] = useState(null)
-  const [loadingOverview, setLoadingOverview] = useState(true)
-  const [overviewError, setOverviewError] = useState(null)
+  const [overviewData, setOverviewData] = useState(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+  const [overviewError, setOverviewError] = useState(null);
 
   // Fetch employees from API
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        setLoading(true)
-        
+        setLoading(true);
+
         // Check authentication
         if (!accessToken) {
-          console.log("No access token available")
-          throw new Error("No access token available. Please log in again.")
+          console.log("No access token available");
+          throw new Error("No access token available. Please log in again.");
         }
-        
-        console.log("Making API call to:", `${API_URL}/employees/list`)
-        console.log("User:", user)
-        console.log("User role:", user?.role)
-        
+
+        console.log("Making API call to:", `${API_URL}/employees/list`);
+        console.log("User:", user);
+        console.log("User role:", user?.role);
+
         const response = await axios.get(`${API_URL}/employees/list`, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        })
-        
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
         if (response.data.success) {
           // Transform API data to match our component structure
-          const transformedEmployees = response.data.data.map(emp => ({
+          const transformedEmployees = response.data.data.map((emp) => ({
             id: emp._id,
             name: `${emp.firstName} ${emp.lastName}`,
             email: emp.email,
@@ -125,41 +129,47 @@ export default function HRDashboardMainPage() {
             status: emp.attendanceStatus || "In-active", // Fallback to "In-active" if status is undefined/null
             location: emp.locationToday,
             checkIn: emp.checkInTime,
-            avatar: emp.avatar || null
-          }))
-          
-          setEmployees(transformedEmployees)
-          console.log("API Response:", response.data)
-          console.log("Transformed Employees:", transformedEmployees)
-          console.log("Employee statuses:", transformedEmployees.map(emp => ({ name: emp.name, status: emp.status })))
+            avatar: emp.avatar || null,
+          }));
+
+          setEmployees(transformedEmployees);
+          console.log("API Response:", response.data);
+          console.log("Transformed Employees:", transformedEmployees);
+          console.log(
+            "Employee statuses:",
+            transformedEmployees.map((emp) => ({
+              name: emp.name,
+              status: emp.status,
+            }))
+          );
         } else {
-          setError("Failed to fetch employees")
+          setError("Failed to fetch employees");
         }
       } catch (err) {
-        console.error("Error fetching employees:", err)
-        setError(`Error fetching employees: ${err.message}`)
+        console.error("Error fetching employees:", err);
+        setError(`Error fetching employees: ${err.message}`);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchEmployees()
-  }, [accessToken, API_URL, user])
+    fetchEmployees();
+  }, [accessToken, API_URL, user]);
 
   // Fetch HR overview data
   useEffect(() => {
     const fetchOverview = async () => {
       if (!accessToken) return;
-      
+
       try {
         setLoadingOverview(true);
-        console.log('Fetching HR overview data...');
-        
+        console.log("Fetching HR overview data...");
+
         const result = await hrOverviewApi.getOverview(accessToken);
-        
+
         if (result.success) {
           setOverviewData(result.data);
-          console.log('HR Overview Data:', result.data);
+          console.log("HR Overview Data:", result.data);
         } else {
           setOverviewError(result.error || "Failed to load overview data");
           toast.error(result.error || "Failed to load overview data");
@@ -190,33 +200,33 @@ export default function HRDashboardMainPage() {
       noCheckInToday: 3,
       productivityIndex: "86.36%",
       departmentPerformance: {
-        "Engineering": {
+        Engineering: {
           total: 10,
           checkedIn: 8,
-          percent: "80.00%"
+          percent: "80.00%",
         },
-        "HR": {
+        HR: {
           total: 5,
           checkedIn: 5,
-          percent: "100.00%"
+          percent: "100.00%",
         },
-        "Finance": {
+        Finance: {
           total: 7,
           checkedIn: 6,
-          percent: "85.71%"
-        }
+          percent: "85.71%",
+        },
       },
-      incompleteTasks: 14
-    }
+      incompleteTasks: 14,
+    },
   });
 
   // Function to handle navigation to Employees page
   const handleSeeAllEmployees = () => {
-    navigate("/human-resource-manager/employees")
-  }
+    navigate("/human-resource-manager/employees");
+  };
 
   return (
-    <HRDashboardLayout 
+    <HRDashboardLayout
       sidebarConfig={hrDashboardConfig}
       showSectionCards={false}
       showChart={false}
@@ -228,8 +238,13 @@ export default function HRDashboardMainPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-normal text-gray-900 mb-1">
-              <span className="font-medium">{greeting}, {userName}</span>
-              <span className="text-base font-light"> – here's what's happening in Vire Agency today</span>
+              <span className="font-medium">
+                {greeting}, {userName}
+              </span>
+              <span className="text-base font-light">
+                {" "}
+                – here's what's happening in Vire Agency today
+              </span>
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -246,11 +261,12 @@ export default function HRDashboardMainPage() {
         {loadingOverview ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <span className="ml-2 text-slate-600">Loading dashboard data...</span>
+            <span className="ml-2 text-slate-600">
+              Loading dashboard data...
+            </span>
           </div>
         ) : overviewData ? (
-          <div
-            className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
@@ -259,13 +275,16 @@ export default function HRDashboardMainPage() {
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-green-600 bg-green-50">
+                <Badge
+                  variant="secondary"
+                  className="text-green-600 bg-green-50"
+                >
                   <IconTrendingUp className="text-green-600" />
                   +36%
                 </Badge>
               </div>
             </Card>
-            
+
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Total Remote Workers Today</CardDescription>
@@ -280,7 +299,7 @@ export default function HRDashboardMainPage() {
                 </Badge>
               </div>
             </Card>
-            
+
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>No Check-In Today</CardDescription>
@@ -289,13 +308,18 @@ export default function HRDashboardMainPage() {
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-orange-600 bg-orange-50">
+                <Badge
+                  variant="secondary"
+                  className="text-orange-600 bg-orange-50"
+                >
                   <IconTrendingDown className="text-orange-600" />
-                  {overviewData.data?.noCheckInToday > 0 ? 'Needs Attention' : 'All Checked In'}
+                  {overviewData.data?.noCheckInToday > 0
+                    ? "Needs Attention"
+                    : "All Checked In"}
                 </Badge>
               </div>
             </Card>
-            
+
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Productivity Index</CardDescription>
@@ -304,7 +328,10 @@ export default function HRDashboardMainPage() {
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-green-600 bg-green-50">
+                <Badge
+                  variant="secondary"
+                  className="text-green-600 bg-green-50"
+                >
                   <IconTrendingUp className="text-green-600" />
                   +5%
                 </Badge>
@@ -314,12 +341,26 @@ export default function HRDashboardMainPage() {
         ) : (
           <div className="text-center py-12">
             <div className="text-slate-400 mb-4">
-              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <svg
+                className="w-12 h-12 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 mb-2">No dashboard data available</h3>
-            <p className="text-slate-600">Dashboard overview data could not be loaded.</p>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">
+              No dashboard data available
+            </h3>
+            <p className="text-slate-600">
+              Dashboard overview data could not be loaded.
+            </p>
           </div>
         )}
       </div>
@@ -329,33 +370,49 @@ export default function HRDashboardMainPage() {
         <div className="px-4 lg:px-6 mt-6">
           <div className="bg-white rounded-lg border p-6">
             <div className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Department Performance Overview</h3>
-              <p className="text-sm text-gray-500">Check-in rates and attendance by department</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Department Performance Overview
+              </h3>
+              <p className="text-sm text-gray-500">
+                Check-in rates and attendance by department
+              </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(overviewData.data.departmentPerformance).map(([department, data]) => (
-                <div key={department} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">{department}</h4>
-                    <span className="text-sm font-semibold text-gray-700">{data.percent}</span>
+              {Object.entries(overviewData.data.departmentPerformance).map(
+                ([department, data]) => (
+                  <div key={department} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900">
+                        {department}
+                      </h4>
+                      <span className="text-sm font-semibold text-gray-700">
+                        {data.percent}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                      <span>
+                        {data.checkedIn} of {data.total} checked in
+                      </span>
+                      <span>{data.total - data.checkedIn} remaining</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          parseFloat(data.percent) >= 90
+                            ? "bg-green-500"
+                            : parseFloat(data.percent) >= 70
+                            ? "bg-blue-500"
+                            : parseFloat(data.percent) >= 50
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        }`}
+                        style={{ width: data.percent }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                    <span>{data.checkedIn} of {data.total} checked in</span>
-                    <span>{data.total - data.checkedIn} remaining</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        parseFloat(data.percent) >= 90 ? 'bg-green-500' : 
-                        parseFloat(data.percent) >= 70 ? 'bg-blue-500' : 
-                        parseFloat(data.percent) >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: data.percent }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </div>
         </div>
@@ -369,26 +426,48 @@ export default function HRDashboardMainPage() {
             {/* Header Section with Time Range Selector and Export Button on same line */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-1">AI Work Log Analyzer</h3>
-                <p className="text-sm text-gray-500">Monthly Attendance & Productivity</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                  AI Work Log Analyzer
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Monthly Attendance & Productivity
+                </p>
               </div>
-              
+
               <div className="flex items-center space-x-24">
                 <div className="flex space-x-1">
-                  <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">12 Months</button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">6 Months</button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">30 Days</button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">7 Days</button>
+                  <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">
+                    12 Months
+                  </button>
+                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                    6 Months
+                  </button>
+                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                    30 Days
+                  </button>
+                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                    7 Days
+                  </button>
                 </div>
                 <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   Export PDF
                 </button>
               </div>
             </div>
-            
+
             {/* Chart Area */}
             <div className="bg-white border border-gray-200 rounded-lg p-4 h-80">
               {/* Chart Header */}
@@ -404,15 +483,29 @@ export default function HRDashboardMainPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Chart Content */}
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center text-gray-500">
-                  <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <svg
+                    className="w-16 h-16 mx-auto mb-3 text-gray-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
                   </svg>
-                  <p className="text-sm">Chart visualization will be implemented here</p>
-                  <p className="text-xs text-gray-400 mt-1">Line chart with monthly data from Feb to Jan</p>
+                  <p className="text-sm">
+                    Chart visualization will be implemented here
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Line chart with monthly data from Feb to Jan
+                  </p>
                 </div>
               </div>
             </div>
@@ -421,99 +514,134 @@ export default function HRDashboardMainPage() {
           {/* Real-Time Tracker - Takes up 1/3 of the space */}
           <div className="lg:col-span-1 bg-white rounded-lg border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Real-Time Tracker</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Real-Time Tracker
+              </h3>
               <select className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white">
                 <option>Last 7 Days</option>
                 <option>Last 30 Days</option>
                 <option>Last 3 Months</option>
               </select>
             </div>
-            
+
             {/* Metrics */}
             {loadingOverview ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-                <span className="ml-2 text-sm text-slate-600">Loading tracker data...</span>
+                <span className="ml-2 text-sm text-slate-600">
+                  Loading tracker data...
+                </span>
               </div>
             ) : overviewData ? (
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Active Employees</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Active Employees
+                    </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.activeEmployees?.toLocaleString() || '0'}
+                      {overviewData.data?.activeEmployees?.toLocaleString() ||
+                        "0"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ 
-                        width: overviewData.data?.activeEmployees 
-                          ? `${Math.min((overviewData.data.activeEmployees / 50) * 100, 100)}%` 
-                          : '0%' 
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: overviewData.data?.activeEmployees
+                          ? `${Math.min(
+                              (overviewData.data.activeEmployees / 50) * 100,
+                              100
+                            )}%`
+                          : "0%",
                       }}
                     ></div>
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Remote Workers Today</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Remote Workers Today
+                    </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.totalRemoteWorkersToday?.toLocaleString() || '0'}
+                      {overviewData.data?.totalRemoteWorkersToday?.toLocaleString() ||
+                        "0"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ 
-                        width: overviewData.data?.totalRemoteWorkersToday 
-                          ? `${Math.min((overviewData.data.totalRemoteWorkersToday / 20) * 100, 100)}%` 
-                          : '0%' 
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: overviewData.data?.totalRemoteWorkersToday
+                          ? `${Math.min(
+                              (overviewData.data.totalRemoteWorkersToday / 20) *
+                                100,
+                              100
+                            )}%`
+                          : "0%",
                       }}
                     ></div>
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">No Check-In Today</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      No Check-In Today
+                    </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.noCheckInToday?.toLocaleString() || '0'}
+                      {overviewData.data?.noCheckInToday?.toLocaleString() ||
+                        "0"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className={`h-2 rounded-full transition-all duration-300 ${
-                        overviewData.data?.noCheckInToday > 5 ? 'bg-red-500' : 
-                        overviewData.data?.noCheckInToday > 2 ? 'bg-orange-500' : 'bg-green-500'
+                        overviewData.data?.noCheckInToday > 5
+                          ? "bg-red-500"
+                          : overviewData.data?.noCheckInToday > 2
+                          ? "bg-orange-500"
+                          : "bg-green-500"
                       }`}
-                      style={{ 
-                        width: overviewData.data?.noCheckInToday 
-                          ? `${Math.min((overviewData.data.noCheckInToday / 10) * 100, 100)}%` 
-                          : '0%' 
+                      style={{
+                        width: overviewData.data?.noCheckInToday
+                          ? `${Math.min(
+                              (overviewData.data.noCheckInToday / 10) * 100,
+                              100
+                            )}%`
+                          : "0%",
                       }}
                     ></div>
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Incomplete Tasks</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Incomplete Tasks
+                    </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.incompleteTasks?.toLocaleString() || '0'}
+                      {overviewData.data?.incompleteTasks?.toLocaleString() ||
+                        "0"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className={`h-2 rounded-full transition-all duration-300 ${
-                        overviewData.data?.incompleteTasks > 20 ? 'bg-red-500' : 
-                        overviewData.data?.incompleteTasks > 10 ? 'bg-orange-500' : 'bg-green-500'
+                        overviewData.data?.incompleteTasks > 20
+                          ? "bg-red-500"
+                          : overviewData.data?.incompleteTasks > 10
+                          ? "bg-orange-500"
+                          : "bg-green-500"
                       }`}
-                      style={{ 
-                        width: overviewData.data?.incompleteTasks 
-                          ? `${Math.min((overviewData.data.incompleteTasks / 30) * 100, 100)}%` 
-                          : '0%' 
+                      style={{
+                        width: overviewData.data?.incompleteTasks
+                          ? `${Math.min(
+                              (overviewData.data.incompleteTasks / 30) * 100,
+                              100
+                            )}%`
+                          : "0%",
                       }}
                     ></div>
                   </div>
@@ -522,11 +650,23 @@ export default function HRDashboardMainPage() {
             ) : (
               <div className="text-center py-8">
                 <div className="text-slate-400 mb-2">
-                  <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <svg
+                    className="w-8 h-8 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
                   </svg>
                 </div>
-                <p className="text-sm text-slate-600">No tracker data available</p>
+                <p className="text-sm text-slate-600">
+                  No tracker data available
+                </p>
               </div>
             )}
           </div>
@@ -539,11 +679,16 @@ export default function HRDashboardMainPage() {
           {/* Table Header */}
           <div className="mb-6">
             <div className="mb-2">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Employee Overview</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Employee Overview
+              </h3>
               <div className="flex items-center gap-64">
-                <p className="text-sm text-gray-500">Monitor employee status, attendance, and task completion in real-time</p>
+                <p className="text-sm text-gray-500">
+                  Monitor employee status, attendance, and task completion in
+                  real-time
+                </p>
                 <div className="text-center">
-                  <button 
+                  <button
                     onClick={handleSeeAllEmployees}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
                   >
@@ -564,111 +709,188 @@ export default function HRDashboardMainPage() {
             ) : error ? (
               <div className="text-center py-12">
                 <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Employees</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Error Loading Employees
+                </h3>
                 <p className="text-gray-500 mb-4">{error}</p>
-                <button 
-                  onClick={() => window.location.reload()} 
+                <button
+                  onClick={() => window.location.reload()}
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
                 >
                   Try Again
                 </button>
               </div>
             ) : (
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="border-b border-gray-200">
-                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      Name
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      Status
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      Role
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      Location Today
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      Check-In Time
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      Tasks Completed Today
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-gray-100">
-                {employees.slice(0, 5).map((employee) => (
-                  <TableRow key={employee.id} className="hover:bg-gray-50">
-                    <TableCell className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600">
-                            {employee.name.split(' ').map(n => n[0]).join('')}
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="border-b border-gray-200">
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Name
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Status
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Role
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Location Today
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Check-In Time
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Tasks Completed Today
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-100">
+                  {employees.slice(0, 5).map((employee) => (
+                    <TableRow key={employee.id} className="hover:bg-gray-50">
+                      <TableCell className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-600">
+                              {employee.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {employee.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {employee.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <StatusBadge status={employee.status} />
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <span className="text-sm text-gray-900">
+                          {employee.role}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <span className="text-sm text-gray-900">
+                          {employee.location}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <span className="text-sm text-purple-600 font-medium">
+                          {employee.checkIn}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">5</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                            On Track
                           </span>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900">{employee.name}</div>
-                          <div className="text-sm text-gray-500">{employee.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-4">
-                      <StatusBadge status={employee.status} />
-                    </TableCell>
-                    <TableCell className="py-4 px-4">
-                      <span className="text-sm text-gray-900">{employee.role}</span>
-                    </TableCell>
-                    <TableCell className="py-4 px-4">
-                      <span className="text-sm text-gray-900">{employee.location}</span>
-                    </TableCell>
-                    <TableCell className="py-4 px-4">
-                      <span className="text-sm text-purple-600 font-medium">{employee.checkIn}</span>
-                    </TableCell>
-                    <TableCell className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">5</span>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">On Track</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </div>
         </div>
       </div>
     </HRDashboardLayout>
-  )
+  );
 }

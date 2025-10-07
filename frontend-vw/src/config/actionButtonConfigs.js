@@ -34,19 +34,7 @@ import {
  * Action buttons specific to Human Resource Managers.
  * Focuses on employee management, recruitment, and HR operations.
  */
-const hrActionButtons = [
-  {
-    icon: IconPlus,
-    text: "Check-In",
-    tooltip: "Employee Check-In",
-    variant: "primary",
-    className:
-      "bg-green-500 font-medium text-white text-sm hover:bg-green-600 active:bg-green-600",
-    onClick: () => {
-      // This will be overridden by nav-main.jsx to show the modal
-    },
-  },
-];
+const hrActionButtons = [];
 
 /**
  * Staff Dashboard Action Buttons
