@@ -94,12 +94,12 @@ export const hrDashboardConfig = {
       url: "/human-resource-manager/performance",
       icon: IconChartBar,
     },
-    {
-      title: "Hiring",
-      url: "/human-resource-manager/hiring",
-      icon: IconUserCheck,
-      badge: "NEW",
-    },
+    // {
+    //   title: "Hiring",
+    //   url: "/human-resource-manager/hiring",
+    //   icon: IconUserCheck,
+    //   badge: "NEW",
+    // },
   ],
 
   // Teams section
