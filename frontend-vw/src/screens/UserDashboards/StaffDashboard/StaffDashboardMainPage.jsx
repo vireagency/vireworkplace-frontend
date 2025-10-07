@@ -85,33 +85,31 @@ export default function StaffDashboardMainPage() {
   // API configuration
   const API_URL = getApiUrl();
 
-  // State for employee data
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // State for attendance data
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
+  const [attendanceStats, setAttendanceStats] = useState(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
+  const [attendanceError, setAttendanceError] = useState(null);
 
   // State for task data
   const [tasks, setTasks] = useState([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState(null);
 
-  // Fetch employees from API
+  // Fetch attendance status from API
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchAttendanceStatus = async () => {
       try {
-        setLoading(true);
+        setAttendanceLoading(true);
+        setAttendanceError(null);
 
-        // Check authentication
         if (!accessToken) {
-          console.log("No access token available");
           throw new Error("No access token available. Please log in again.");
         }
 
-        console.log("Making API call to:", `${API_URL}/employees/list`);
-        console.log("User:", user);
-        console.log("User role:", user?.role);
+        console.log("Fetching attendance status from:", `${API_URL}/attendance/status`);
 
-        const response = await axios.get(`${API_URL}/employees/list`, {
+        const response = await axios.get(`${API_URL}/attendance/status`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
@@ -119,41 +117,57 @@ export default function StaffDashboardMainPage() {
         });
 
         if (response.data.success) {
-          // Transform API data to match our component structure
-          const transformedEmployees = response.data.data.map((emp) => ({
-            id: emp._id,
-            name: `${emp.firstName} ${emp.lastName}`,
-            email: emp.email,
-            role: emp.jobRole,
-            department: emp.department,
-            status: emp.attendanceStatus || "In-active", // Fallback to "In-active" if status is undefined/null
-            location: emp.locationToday,
-            checkIn: emp.checkInTime,
-            avatar: emp.avatar || null,
-          }));
-
-          setEmployees(transformedEmployees);
-          console.log("API Response:", response.data);
-          console.log("Transformed Employees:", transformedEmployees);
-          console.log(
-            "Employee statuses:",
-            transformedEmployees.map((emp) => ({
-              name: emp.name,
-              status: emp.status,
-            }))
-          );
+          setAttendanceStatus({
+            status: response.data.status || "In-active",
+            attendanceData: response.data.attendanceData || {},
+          });
+          console.log("Attendance Status:", response.data);
         } else {
-          setError("Failed to fetch employees");
+          setAttendanceError("Failed to fetch attendance status");
         }
       } catch (err) {
-        console.error("Error fetching employees:", err);
-        setError(`Error fetching employees: ${err.message}`);
+        console.error("Error fetching attendance status:", err);
+        setAttendanceError(err.message || "Failed to fetch attendance status");
       } finally {
-        setLoading(false);
+        setAttendanceLoading(false);
       }
     };
 
-    fetchEmployees();
+    fetchAttendanceStatus();
+  }, [accessToken, API_URL]);
+
+  // Fetch attendance statistics from API
+  useEffect(() => {
+    const fetchAttendanceStats = async () => {
+      try {
+        if (!accessToken || !user?._id) {
+          return;
+        }
+
+        console.log("Fetching attendance stats from:", `${API_URL}/attendance/stats/${user._id}`);
+
+        const response = await axios.get(`${API_URL}/attendance/stats/${user._id}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.data) {
+          setAttendanceStats({
+            totalDays: response.data.totalDays || 0,
+            totalOvertimeHours: response.data.totalOvertimeHours || 0,
+            daysLate: response.data.daysLate || 0,
+          });
+          console.log("Attendance Stats:", response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching attendance stats:", err);
+        // Don't set error state for stats as it's not critical
+      }
+    };
+
+    fetchAttendanceStats();
   }, [accessToken, API_URL, user]);
 
   // Fetch tasks from API
@@ -271,10 +285,28 @@ export default function StaffDashboardMainPage() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm text-green-600 px-3 py-1.5 border border-gray-200 rounded-lg">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              Active
-            </div>
+            {attendanceLoading ? (
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 px-3 py-1.5 border border-gray-200 rounded-lg">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                Loading...
+              </div>
+            ) : attendanceStatus ? (
+              <div className={`flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg ${
+                attendanceStatus.status === "Active" 
+                  ? "text-green-600 border-green-200 bg-green-50" 
+                  : "text-orange-600 border-orange-200 bg-orange-50"
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  attendanceStatus.status === "Active" ? "bg-green-500" : "bg-orange-500"
+                }`}></div>
+                {attendanceStatus.status}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 px-3 py-1.5 border border-gray-200 rounded-lg">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                In-active
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -318,36 +350,40 @@ export default function StaffDashboardMainPage() {
 
           <Card className="@container/card relative">
             <CardHeader>
-              <CardDescription>Hours Worked Today</CardDescription>
+              <CardDescription>Days Worked</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                {/* Replace with actual hours if available, fallback to 0 */}
-                {typeof user?.hoursWorkedToday === "number"
-                  ? user.hoursWorkedToday
-                  : 0}
+                {attendanceStats?.totalDays || 0}
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
               <Badge variant="secondary" className="text-green-600 bg-green-50">
                 <IconTrendingUp className="text-green-600" />
-                +5%
+                This Month
               </Badge>
             </div>
           </Card>
 
           <Card className="@container/card relative">
             <CardHeader>
-              <CardDescription>Performance Score</CardDescription>
+              <CardDescription>Overtime Hours</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                {/* Replace with actual score if available, fallback to 0% */}
-                {typeof user?.performanceScore === "number"
-                  ? `${user.performanceScore}%`
-                  : "0%"}
+                {attendanceStats?.totalOvertimeHours?.toFixed(1) || "0.0"}
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className="text-green-600 bg-green-50">
-                <IconTrendingUp className="text-green-600" />
-                +8%
+              <Badge variant="secondary" className={
+                (attendanceStats?.totalOvertimeHours || 0) > 0 
+                  ? "text-orange-600 bg-orange-50" 
+                  : "text-gray-600 bg-gray-50"
+              }>
+                {(attendanceStats?.totalOvertimeHours || 0) > 0 ? (
+                  <>
+                    <IconTrendingUp className="text-orange-600" />
+                    Extra
+                  </>
+                ) : (
+                  "None"
+                )}
               </Badge>
             </div>
           </Card>
@@ -470,13 +506,15 @@ export default function StaffDashboardMainPage() {
                     Tasks Completed
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    6/8
+                    {tasks.filter(t => t.status?.toLowerCase() === "completed").length}/{tasks.length}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: "75%" }}
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${tasks.length > 0 ? (tasks.filter(t => t.status?.toLowerCase() === "completed").length / tasks.length) * 100 : 0}%` 
+                    }}
                   ></div>
                 </div>
               </div>
@@ -484,16 +522,18 @@ export default function StaffDashboardMainPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">
-                    Hours Worked
+                    Days Worked
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    7.5/8
+                    {attendanceStats?.totalDays || 0}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: "94%" }}
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(((attendanceStats?.totalDays || 0) / 30) * 100, 100)}%` 
+                    }}
                   ></div>
                 </div>
               </div>
@@ -501,16 +541,18 @@ export default function StaffDashboardMainPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">
-                    Performance Score
+                    Overtime Hours
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    92%
+                    {attendanceStats?.totalOvertimeHours?.toFixed(1) || "0.0"}h
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-purple-500 h-2 rounded-full"
-                    style={{ width: "92%" }}
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(((attendanceStats?.totalOvertimeHours || 0) / 40) * 100, 100)}%` 
+                    }}
                   ></div>
                 </div>
               </div>
@@ -518,16 +560,20 @@ export default function StaffDashboardMainPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">
-                    Attendance
+                    Attendance Status
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    On Time
+                    {attendanceStatus?.status || "In-active"}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: "100%" }}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      attendanceStatus?.status === "Active" ? "bg-green-500" : "bg-orange-500"
+                    }`}
+                    style={{ 
+                      width: attendanceStatus?.status === "Active" ? "100%" : "50%" 
+                    }}
                   ></div>
                 </div>
               </div>
