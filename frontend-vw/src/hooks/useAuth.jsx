@@ -195,11 +195,11 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         localStorage.setItem("access_token", tokenFromLogin);
         localStorage.setItem("user", JSON.stringify(userData));
-        
+
         // Don't fetch profile immediately after login - use the userData from login response
         // This prevents the black screen issue caused by setting loading state during navigation
         // The profile will be fetched later if needed (e.g., if workId is missing)
-        
+
         return { success: true };
       }
     } catch (err) {

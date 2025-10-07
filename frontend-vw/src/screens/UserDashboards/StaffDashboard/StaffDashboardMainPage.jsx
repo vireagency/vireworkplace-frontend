@@ -107,7 +107,10 @@ export default function StaffDashboardMainPage() {
           throw new Error("No access token available. Please log in again.");
         }
 
-        console.log("Fetching attendance status from:", `${API_URL}/attendance/status`);
+        console.log(
+          "Fetching attendance status from:",
+          `${API_URL}/attendance/status`
+        );
 
         const response = await axios.get(`${API_URL}/attendance/status`, {
           headers: {
@@ -144,14 +147,20 @@ export default function StaffDashboardMainPage() {
           return;
         }
 
-        console.log("Fetching attendance stats from:", `${API_URL}/attendance/stats/${user._id}`);
+        console.log(
+          "Fetching attendance stats from:",
+          `${API_URL}/attendance/stats/${user._id}`
+        );
 
-        const response = await axios.get(`${API_URL}/attendance/stats/${user._id}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await axios.get(
+          `${API_URL}/attendance/stats/${user._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (response.data) {
           setAttendanceStats({
@@ -291,14 +300,20 @@ export default function StaffDashboardMainPage() {
                 Loading...
               </div>
             ) : attendanceStatus ? (
-              <div className={`flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg ${
-                attendanceStatus.status === "Active" 
-                  ? "text-green-600 border-green-200 bg-green-50" 
-                  : "text-orange-600 border-orange-200 bg-orange-50"
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  attendanceStatus.status === "Active" ? "bg-green-500" : "bg-orange-500"
-                }`}></div>
+              <div
+                className={`flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg ${
+                  attendanceStatus.status === "Active"
+                    ? "text-green-600 border-green-200 bg-green-50"
+                    : "text-orange-600 border-orange-200 bg-orange-50"
+                }`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    attendanceStatus.status === "Active"
+                      ? "bg-green-500"
+                      : "bg-orange-500"
+                  }`}
+                ></div>
                 {attendanceStatus.status}
               </div>
             ) : (
@@ -371,11 +386,14 @@ export default function StaffDashboardMainPage() {
               </CardTitle>
             </CardHeader>
             <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className={
-                (attendanceStats?.totalOvertimeHours || 0) > 0 
-                  ? "text-orange-600 bg-orange-50" 
-                  : "text-gray-600 bg-gray-50"
-              }>
+              <Badge
+                variant="secondary"
+                className={
+                  (attendanceStats?.totalOvertimeHours || 0) > 0
+                    ? "text-orange-600 bg-orange-50"
+                    : "text-gray-600 bg-gray-50"
+                }
+              >
                 {(attendanceStats?.totalOvertimeHours || 0) > 0 ? (
                   <>
                     <IconTrendingUp className="text-orange-600" />
@@ -506,14 +524,27 @@ export default function StaffDashboardMainPage() {
                     Tasks Completed
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    {tasks.filter(t => t.status?.toLowerCase() === "completed").length}/{tasks.length}
+                    {
+                      tasks.filter(
+                        (t) => t.status?.toLowerCase() === "completed"
+                      ).length
+                    }
+                    /{tasks.length}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${tasks.length > 0 ? (tasks.filter(t => t.status?.toLowerCase() === "completed").length / tasks.length) * 100 : 0}%` 
+                    style={{
+                      width: `${
+                        tasks.length > 0
+                          ? (tasks.filter(
+                              (t) => t.status?.toLowerCase() === "completed"
+                            ).length /
+                              tasks.length) *
+                            100
+                          : 0
+                      }%`,
                     }}
                   ></div>
                 </div>
@@ -531,8 +562,11 @@ export default function StaffDashboardMainPage() {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${Math.min(((attendanceStats?.totalDays || 0) / 30) * 100, 100)}%` 
+                    style={{
+                      width: `${Math.min(
+                        ((attendanceStats?.totalDays || 0) / 30) * 100,
+                        100
+                      )}%`,
                     }}
                   ></div>
                 </div>
@@ -550,8 +584,11 @@ export default function StaffDashboardMainPage() {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${Math.min(((attendanceStats?.totalOvertimeHours || 0) / 40) * 100, 100)}%` 
+                    style={{
+                      width: `${Math.min(
+                        ((attendanceStats?.totalOvertimeHours || 0) / 40) * 100,
+                        100
+                      )}%`,
                     }}
                   ></div>
                 </div>
@@ -569,10 +606,13 @@ export default function StaffDashboardMainPage() {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      attendanceStatus?.status === "Active" ? "bg-green-500" : "bg-orange-500"
+                      attendanceStatus?.status === "Active"
+                        ? "bg-green-500"
+                        : "bg-orange-500"
                     }`}
-                    style={{ 
-                      width: attendanceStatus?.status === "Active" ? "100%" : "50%" 
+                    style={{
+                      width:
+                        attendanceStatus?.status === "Active" ? "100%" : "50%",
                     }}
                   ></div>
                 </div>

@@ -78,6 +78,7 @@ const StaffAttendancePage = () => {
     checkInTime: null,
     checkOutTime: null,
   });
+  const [realTimeWorkDuration, setRealTimeWorkDuration] = useState("0h 0m");
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -437,6 +438,47 @@ const StaffAttendancePage = () => {
       setTasks([]);
     }
   };
+
+  // Calculate real-time work duration based on check-in time
+  useEffect(() => {
+    const calculateWorkDuration = () => {
+      // If user has checked in and is still active
+      if (attendanceData.checkInTime && attendanceStatus === "Active") {
+        const checkInDate = new Date(attendanceData.checkInTime);
+        const now = new Date();
+        const diffMs = now - checkInDate;
+        
+        // Calculate hours and minutes
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        
+        setRealTimeWorkDuration(`${hours}h ${minutes}m`);
+      } 
+      // If user has checked out
+      else if (attendanceData.checkInTime && attendanceData.checkOutTime) {
+        const checkInDate = new Date(attendanceData.checkInTime);
+        const checkOutDate = new Date(attendanceData.checkOutTime);
+        const diffMs = checkOutDate - checkInDate;
+        
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        
+        setRealTimeWorkDuration(`${hours}h ${minutes}m`);
+      }
+      // Not checked in yet
+      else {
+        setRealTimeWorkDuration("0h 0m");
+      }
+    };
+
+    // Calculate immediately
+    calculateWorkDuration();
+
+    // Update every minute (60 seconds)
+    const timer = setInterval(calculateWorkDuration, 60000);
+    
+    return () => clearInterval(timer);
+  }, [attendanceData.checkInTime, attendanceData.checkOutTime, attendanceStatus]);
 
   // Update current time every second
   useEffect(() => {
@@ -1062,9 +1104,15 @@ const StaffAttendancePage = () => {
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <Clock className="w-5 h-5 text-gray-600" />
+                  {attendanceStatus === "Active" && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-600">Live</span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-2xl font-bold text-gray-900 mb-1">
-                  {attendanceData.workDuration || "3h 25m"}
+                  {realTimeWorkDuration}
                 </div>
                 <div className="text-sm text-gray-600">Work Time</div>
               </div>

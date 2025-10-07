@@ -469,10 +469,16 @@ export default function CheckOut() {
 
       // First check localStorage
       const checkinData = findCheckinData();
+      let checkinVerified = false;
 
-      // Then check backend API for accurate status
-      let backendCheckinVerified = false;
+      // PRIORITY 1: Check localStorage first (most reliable)
+      if (checkinData) {
+        console.log("✅ Check-in data found in localStorage");
+        console.log("Check-in data:", checkinData);
+        checkinVerified = true;
+      }
 
+      // PRIORITY 2: Then check backend API for additional verification
       try {
         const statusResponse = await fetch(
           "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/status",
@@ -489,44 +495,50 @@ export default function CheckOut() {
           const statusResult = await statusResponse.json();
           console.log("✅ Backend check-in status:", statusResult);
 
-          if (statusResult.data && statusResult.data.hasCheckedIn) {
-            console.log("✅ Backend confirms user has checked in");
-            backendCheckinVerified = true;
+          // Check if user has active attendance or check-in time exists
+          const hasCheckedIn =
+            statusResult.status === "Active" ||
+            (statusResult.attendanceData &&
+              statusResult.attendanceData.clockInTime) ||
+            (statusResult.data && statusResult.data.hasCheckedIn);
+
+          if (hasCheckedIn) {
+            console.log("✅ Backend also confirms user has checked in");
+            checkinVerified = true;
           } else {
-            console.log("❌ Backend confirms user has NOT checked in");
-            throw new Error(
-              "No check-in found for today. Please check in first."
+            console.log(
+              "⚠️ Backend says no check-in, but will trust localStorage if available"
             );
+            console.log("Status result:", statusResult);
           }
         } else {
           console.warn(
             "⚠️ Backend status check failed:",
-            statusResponse.status
+            statusResponse.status,
+            "- Will rely on localStorage"
           );
         }
       } catch (statusError) {
-        console.warn("⚠️ Backend status check error:", statusError);
+        console.warn("⚠️ Backend status check error:", statusError.message);
+        console.log("Will proceed if localStorage has check-in data");
       }
 
-      // If backend check failed, fall back to localStorage check
-      if (!backendCheckinVerified) {
-        if (!checkinData) {
-          console.log("❌ No check-in data found in localStorage either");
-          throw new Error(
-            "No check-in found for today. Please check in first."
-          );
-        }
-        console.log(
-          "✅ Check-in data found in localStorage, proceeding with checkout"
+      // Final validation: User must have checked in (verified by localStorage or backend)
+      if (!checkinVerified) {
+        console.log("❌ No check-in found in localStorage or backend");
+        throw new Error(
+          "No check-in found for today. Please check in first before checking out."
         );
       }
+
+      console.log("✅ Check-in verified, proceeding with checkout");
 
       console.log("=== CHECKOUT DEBUG INFO ===");
       console.log("Today key (YYYY-MM-DD):", getTodayKey());
       console.log("Today date string:", getTodayDateString());
       console.log("Current timezone offset:", new Date().getTimezoneOffset());
       console.log("Found check-in data:", checkinData);
-      console.log("Backend check-in verified:", backendCheckinVerified);
+      console.log("Check-in verified:", checkinVerified);
       console.log("=== END DEBUG INFO ===");
 
       console.log("Making checkout API call:", {
@@ -539,24 +551,35 @@ export default function CheckOut() {
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log("API call timed out after 30 seconds");
+        console.log("API call timed out after 60 seconds");
         controller.abort();
-      }, 30000);
+      }, 60000); // Increased timeout to 60 seconds
 
-      const response = await fetch(
-        "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/checkout",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
+      let response;
+      try {
+        response = await fetch(
+          "https://vireworkplace-backend-hpca.onrender.com/api/v1/attendance/checkout",
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === "AbortError") {
+          console.error("Request timed out after 60 seconds");
+          throw new Error(
+            "Request timeout. The server is taking too long to respond. Please try again."
+          );
         }
-      );
-
-      clearTimeout(timeoutId);
+        throw fetchError;
+      }
 
       console.log("Checkout API response:", {
         status: response.status,
@@ -1064,8 +1087,8 @@ export default function CheckOut() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
             <div className="p-6 space-y-4 text-center">
               <div className="flex justify-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-blue-500" />
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-500" />
                 </div>
               </div>
               <div>
@@ -1080,7 +1103,7 @@ export default function CheckOut() {
               <div className="pt-2">
                 <Button
                   onClick={handleAlreadyCheckedOutClose}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium"
                 >
                   Go to Dashboard
                 </Button>
