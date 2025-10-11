@@ -123,6 +123,27 @@ const Evaluation = lazy(() =>
   import("./screens/UserDashboards/StaffDashboard/pages/StaffEvaluationPage")
 );
 
+// New Evaluation Components
+const EvaluationsOverview = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/EvaluationsOverview")
+);
+
+const EvaluationDetail = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/EvaluationDetail")
+);
+
+const EvaluationForm = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/EvaluationForm")
+);
+
+const EvaluationSummary = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/EvaluationSummary")
+);
+
+const EvaluationSuccess = lazy(() =>
+  import("./screens/UserDashboards/StaffDashboard/pages/EvaluationSuccess")
+);
+
 // New Staff Dashboard Pages - Lazy loaded
 const StaffPerformancePage = lazy(() =>
   import("./screens/UserDashboards/StaffDashboard/pages/StaffPerformancePage")
@@ -433,6 +454,72 @@ const App = () => (
                       <StaffSidebarProvider>
                         <Suspense fallback={<LoadingSpinner />}>
                           <Evaluation />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* New Evaluation Routes */}
+                <Route
+                  path="/staff/evaluations"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <EvaluationsOverview />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/staff/evaluations/:id"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <EvaluationDetail />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/staff/evaluations/:id/form"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <EvaluationForm />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/staff/evaluations/:id/summary"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <EvaluationSummary />
+                        </Suspense>
+                      </StaffSidebarProvider>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/staff/evaluations/:id/success"
+                  element={
+                    <ProtectedRoute requiredRole="Staff">
+                      <StaffSidebarProvider>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <EvaluationSuccess />
                         </Suspense>
                       </StaffSidebarProvider>
                     </ProtectedRoute>

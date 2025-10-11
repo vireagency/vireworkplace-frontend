@@ -30,7 +30,7 @@ export default function StaffLandingPage() {
       id: "evaluation",
       title: "Evaluation",
       description: "Submit and improve performance",
-      route: "/staff/evaluation",
+      route: "/staff/evaluations",
     },
   ];
 

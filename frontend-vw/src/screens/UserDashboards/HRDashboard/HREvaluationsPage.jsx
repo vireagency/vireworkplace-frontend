@@ -279,6 +279,8 @@ export default function HREvaluationsPage() {
 
   // API State
   const [evaluations, setEvaluations] = useState([]);
+  const [submittedEvaluations, setSubmittedEvaluations] = useState([]);
+  const [pendingEvaluations, setPendingEvaluations] = useState([]);
   const [evaluationsLoading, setEvaluationsLoading] = useState(true);
   const [evaluationsError, setEvaluationsError] = useState(null);
   const [statistics, setStatistics] = useState({
@@ -288,7 +290,13 @@ export default function HREvaluationsPage() {
     averageScore: 0,
   });
 
-  // Fetch evaluations from API
+  // Pagination state for each tab
+  const [submittedPage, setSubmittedPage] = useState(1);
+  const [pendingPage, setPendingPage] = useState(1);
+  const [submittedLimit] = useState(10);
+  const [pendingLimit] = useState(10);
+
+  // Fetch all evaluations data from API
   useEffect(() => {
     const fetchEvaluations = async () => {
       if (!accessToken) {
@@ -301,38 +309,93 @@ export default function HREvaluationsPage() {
         setEvaluationsLoading(true);
         console.log("Fetching evaluations from API...");
 
-        const result = await evaluationsApi.getAllEvaluations(accessToken);
+        // Fetch all evaluation types in parallel
+        const [allEvaluationsResult, submittedResult, pendingResult] =
+          await Promise.all([
+            evaluationsApi.getAllEvaluations(accessToken),
+            evaluationsApi.getSubmittedEvaluations(accessToken, {
+              page: submittedPage,
+              limit: submittedLimit,
+            }),
+            evaluationsApi.getPendingEvaluations(accessToken, {
+              page: pendingPage,
+              limit: pendingLimit,
+              status: "pending",
+            }),
+          ]);
 
-        if (result.success) {
-          console.log("Evaluations fetched successfully:", result.data);
-          const evalData = Array.isArray(result.data)
-            ? result.data
-            : result.data?.data || [];
+        // Process all evaluations
+        if (allEvaluationsResult.success) {
+          console.log(
+            "All evaluations fetched successfully:",
+            allEvaluationsResult.data
+          );
+          const evalData = Array.isArray(allEvaluationsResult.data)
+            ? allEvaluationsResult.data
+            : allEvaluationsResult.data?.data || [];
           setEvaluations(evalData);
 
           // Calculate statistics from the data
           calculateStatistics(evalData);
-
-          setEvaluationsError(null);
         } else {
-          console.error("Failed to fetch evaluations:", result.error);
-          setEvaluationsError(result.error);
-          // Don't show toast, just log the error
-          console.log("Using fallback to show UI without data");
+          console.error(
+            "Failed to fetch all evaluations:",
+            allEvaluationsResult.error
+          );
           setEvaluations([]);
         }
+
+        // Process submitted evaluations
+        if (submittedResult.success) {
+          console.log(
+            "Submitted evaluations fetched successfully:",
+            submittedResult.data
+          );
+          const submittedData = Array.isArray(submittedResult.data)
+            ? submittedResult.data
+            : submittedResult.data?.data || [];
+          setSubmittedEvaluations(submittedData);
+        } else {
+          console.error(
+            "Failed to fetch submitted evaluations:",
+            submittedResult.error
+          );
+          setSubmittedEvaluations([]);
+        }
+
+        // Process pending evaluations
+        if (pendingResult.success) {
+          console.log(
+            "Pending evaluations fetched successfully:",
+            pendingResult.data
+          );
+          const pendingData = Array.isArray(pendingResult.data)
+            ? pendingResult.data
+            : pendingResult.data?.data || [];
+          setPendingEvaluations(pendingData);
+        } else {
+          console.error(
+            "Failed to fetch pending evaluations:",
+            pendingResult.error
+          );
+          setPendingEvaluations([]);
+        }
+
+        setEvaluationsError(null);
       } catch (error) {
         console.error("Error fetching evaluations:", error);
         setEvaluationsError("API currently unavailable");
         console.log("Using fallback to show UI without data");
         setEvaluations([]);
+        setSubmittedEvaluations([]);
+        setPendingEvaluations([]);
       } finally {
         setEvaluationsLoading(false);
       }
     };
 
     fetchEvaluations();
-  }, [accessToken]);
+  }, [accessToken, submittedPage, pendingPage, submittedLimit, pendingLimit]);
 
   // Calculate statistics from evaluations data
   const calculateStatistics = (evals) => {
@@ -407,6 +470,16 @@ export default function HREvaluationsPage() {
 
   // Helper functions to filter and format evaluations
   const getRecentSubmissions = () => {
+    // Use the submittedEvaluations from the API call
+    if (submittedEvaluations && submittedEvaluations.length > 0) {
+      return submittedEvaluations.sort(
+        (a, b) =>
+          new Date(b.submittedAt || b.createdAt) -
+          new Date(a.submittedAt || a.createdAt)
+      );
+    }
+
+    // Fallback to filtering from all evaluations if API didn't return data
     return evaluations
       .filter((e) => e.status === "submitted" || e.status === "completed")
       .sort(
@@ -418,12 +491,18 @@ export default function HREvaluationsPage() {
   };
 
   const getUpcomingDeadlines = () => {
+    // Use the pendingEvaluations from the API call
+    if (pendingEvaluations && pendingEvaluations.length > 0) {
+      return pendingEvaluations.sort(
+        (a, b) => new Date(a.reviewDeadline) - new Date(b.reviewDeadline)
+      );
+    }
+
+    // Fallback to filtering from all evaluations if API didn't return data
     return evaluations
       .filter(
         (e) =>
-          e.status !== "completed" &&
-          e.status !== "submitted" &&
-          e.reviewDeadline
+          (e.status === "pending" || e.status === "overdue") && e.reviewDeadline
       )
       .sort((a, b) => new Date(a.reviewDeadline) - new Date(b.reviewDeadline))
       .slice(0, 10);
@@ -1223,6 +1302,39 @@ export default function HREvaluationsPage() {
                     </Table>
                   )}
                 </div>
+
+                {/* Pagination Controls for Submitted Evaluations */}
+                {submittedEvaluations && submittedEvaluations.length > 0 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
+                    <div className="text-sm text-slate-600">
+                      Showing page {submittedPage}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setSubmittedPage((prev) => Math.max(1, prev - 1))
+                        }
+                        disabled={submittedPage === 1}
+                        className="cursor-pointer"
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSubmittedPage((prev) => prev + 1)}
+                        disabled={submittedEvaluations.length < submittedLimit}
+                        className="cursor-pointer"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1424,6 +1536,40 @@ export default function HREvaluationsPage() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Pagination Controls for Pending Evaluations */}
+            {pendingEvaluations && pendingEvaluations.length > 0 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-slate-600">
+                  Showing page {pendingPage} - {pendingEvaluations.length}{" "}
+                  evaluations
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setPendingPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={pendingPage === 1}
+                    className="cursor-pointer"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPendingPage((prev) => prev + 1)}
+                    disabled={pendingEvaluations.length < pendingLimit}
+                    className="cursor-pointer"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
             )}
           </TabsContent>
         </Tabs>

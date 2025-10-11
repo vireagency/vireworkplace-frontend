@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 // StaffSettingsPage - Unified settings page for Staff with horizontal tab navigation
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
+import { settingsApi } from "@/services/settingsApi";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,7 +103,7 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function StaffSettingsPage() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const { sidebarConfig } = useStandardizedSidebar();
   const sidebarCounts = useSidebarCounts();
   const [activeTab, setActiveTab] = useState("profile");
@@ -211,6 +213,52 @@ export default function StaffSettingsPage() {
     "Figma",
     "Mobile design",
   ]);
+
+  // Settings state
+  const [settings, setSettings] = useState({
+    notifications: {
+      masterEnabled: true,
+      deliveryMethods: {
+        inApp: true,
+        email: false,
+        sms: false,
+        push: false,
+      },
+      system: {
+        systemMaintenance: true,
+        systemUpdates: true,
+        appAnnouncements: true,
+      },
+      employee: {
+        newOnboarding: true,
+        profileUpdates: true,
+        latenessAlerts: true,
+        overtimeAlerts: true,
+      },
+      tasks: {
+        assignments: true,
+        updates: true,
+        deadlines: true,
+        completions: true,
+      },
+      performance: {
+        newReviewAssigned: true,
+        reviewDueSoon: true,
+        performanceDeadlines: true,
+      },
+    },
+    preferences: {
+      theme: "system",
+      timezone: "UTC",
+      language: "en",
+      showEmailToColleagues: false,
+      showPhoneToColleagues: false,
+      defaultWorkLocation: "in-person",
+      weeklyHoursTarget: 40,
+    },
+  });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  // Profile form data state
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     username: user?.email?.split("@")[0] ? `@${user.email.split("@")[0]}` : "",
@@ -221,6 +269,38 @@ export default function StaffSettingsPage() {
     gender: user?.gender || "",
     personalPronouns: user?.personalPronouns || "",
   });
+
+  // Contact information state
+  const [contactData, setContactData] = useState({
+    email: user?.email || "",
+    phoneNumber: user?.phoneNumber || "",
+    address: user?.address || "",
+    city: user?.city || "",
+    regionOrState: user?.regionOrState || "",
+    postalCode: user?.postalCode || "",
+  });
+
+  // Emergency contact state
+  const [emergencyData, setEmergencyData] = useState({
+    fullName: user?.emergencyContact?.fullName || "",
+    relationship: user?.emergencyContact?.relationship || "",
+    phoneNumber: user?.emergencyContact?.phoneNumber || "",
+    address: user?.emergencyContact?.address || "",
+  });
+
+  // Employment details state
+  const [employmentData, setEmploymentData] = useState({
+    jobTitle: user?.jobTitle || user?.role || "",
+    department: user?.department || "",
+    employmentType: user?.employmentType || "Full-time",
+    supervisorName: user?.supervisorName || "",
+    employmentStatus: user?.employmentStatus || "Active",
+  });
+
+  // Form submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Update form data when user data changes
   useEffect(() => {
@@ -250,6 +330,30 @@ export default function StaffSettingsPage() {
         nationality: user.nationality || "Ghanaian",
         gender: user.gender || "",
         personalPronouns: user.personalPronouns || "",
+      });
+
+      setContactData({
+        email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
+        address: user.address || "",
+        city: user.city || "",
+        regionOrState: user.regionOrState || "",
+        postalCode: user.postalCode || "",
+      });
+
+      setEmergencyData({
+        fullName: user.emergencyContact?.fullName || "",
+        relationship: user.emergencyContact?.relationship || "",
+        phoneNumber: user.emergencyContact?.phoneNumber || "",
+        address: user.emergencyContact?.address || "",
+      });
+
+      setEmploymentData({
+        jobTitle: user.jobTitle || user.role || "",
+        department: user.department || "",
+        employmentType: user.employmentType || "Full-time",
+        supervisorName: user.supervisorName || "",
+        employmentStatus: user.employmentStatus || "Active",
       });
     }
   }, [user]);
@@ -380,21 +484,31 @@ export default function StaffSettingsPage() {
           throw new Error("New password must be at least 8 characters long");
         }
 
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Password change submitted:", passwordState.formData);
-
-        // Clear form and show success
-        setPasswordState((prev) => ({
-          ...prev,
-          formData: {
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
+        // Call the API to change password
+        const result = await settingsApi.changePassword(
+          {
+            oldPassword: passwordState.formData.currentPassword,
+            newPassword: passwordState.formData.newPassword,
           },
-          success: true,
-          isLoading: false,
-        }));
+          accessToken
+        );
+
+        if (result.success) {
+          // Clear form and show success
+          setPasswordState((prev) => ({
+            ...prev,
+            formData: {
+              currentPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            },
+            success: true,
+            isLoading: false,
+          }));
+          toast.success("Password changed successfully!");
+        } else {
+          throw new Error(result.error || "Failed to change password");
+        }
       } catch (error) {
         setPasswordState((prev) => ({
           ...prev,
@@ -405,6 +519,190 @@ export default function StaffSettingsPage() {
     },
     [passwordState.formData]
   );
+
+  // Settings functions
+  const loadSettings = useCallback(async () => {
+    if (!accessToken) return;
+
+    try {
+      setSettingsLoading(true);
+      const result = await settingsApi.getSettings(accessToken);
+
+      if (result.success && result.data) {
+        setSettings(result.data);
+      } else {
+        console.error("Failed to load settings:", result.error);
+        toast.error("Failed to load settings");
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, [accessToken]);
+
+  const saveNotificationSettings = useCallback(async () => {
+    if (!accessToken) return;
+
+    try {
+      const result = await settingsApi.updateNotifications(
+        settings.notifications,
+        accessToken
+      );
+
+      if (result.success) {
+        console.log("Notification settings saved successfully");
+        toast.success("Notification settings saved successfully");
+      } else {
+        console.error("Failed to save notification settings:", result.error);
+        toast.error("Failed to save notification settings");
+      }
+    } catch (error) {
+      console.error("Error saving notification settings:", error);
+    }
+  }, [accessToken, settings.notifications]);
+
+  const savePreferences = useCallback(async () => {
+    if (!accessToken) return;
+
+    try {
+      const result = await settingsApi.updatePreferences(
+        settings.preferences,
+        accessToken
+      );
+
+      if (result.success) {
+        console.log("Preferences saved successfully");
+        toast.success("Preferences saved successfully");
+      } else {
+        console.error("Failed to save preferences:", result.error);
+        toast.error("Failed to save preferences");
+      }
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+    }
+  }, [accessToken, settings.preferences]);
+
+  const deleteAccount = useCallback(async () => {
+    if (!accessToken) return;
+
+    try {
+      const confirmed = window.confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      );
+
+      if (!confirmed) return;
+
+      const result = await settingsApi.deleteAccount(accessToken);
+
+      if (result.success) {
+        toast.success("Account deleted successfully");
+        // Redirect to login or home page
+        window.location.href = "/";
+      } else {
+        console.error("Failed to delete account:", result.error);
+        toast.error("Failed to delete account: " + result.error);
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.error("Error deleting account: " + error.message);
+    }
+  }, [accessToken]);
+
+  // Profile update function
+  const saveProfile = useCallback(async () => {
+    if (!accessToken) return;
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      setSubmitSuccess(false);
+
+      // Prepare the profile data according to the API specification
+      const profileData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: contactData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth,
+        jobTitle: employmentData.jobTitle,
+        department: employmentData.department,
+        role: employmentData.jobTitle,
+        personalInfo: {
+          nationality: formData.nationality,
+          maritalStatus: formData.maritalStatus,
+          personalPronouns: [formData.personalPronouns].filter(Boolean),
+        },
+        contactInfo: {
+          email: contactData.email,
+          phoneNumber: contactData.phoneNumber,
+          address: contactData.address,
+          city: contactData.city,
+          regionOrState: contactData.regionOrState,
+          postalCode: contactData.postalCode,
+        },
+        emergencyContact: {
+          fullName: emergencyData.fullName,
+          relationship: emergencyData.relationship,
+          phoneNumber: emergencyData.phoneNumber,
+          address: emergencyData.address,
+        },
+        employmentDetails: {
+          jobTitle: employmentData.jobTitle,
+          department: employmentData.department,
+          employmentType: employmentData.employmentType,
+          supervisorName: employmentData.supervisorName,
+          employmentStatus: employmentData.employmentStatus,
+        },
+        qualifications: {
+          education: educationEntries.map((edu) => ({
+            level: edu.level,
+            degree: edu.degree,
+            institution: edu.institution,
+            startDate: {
+              month: edu.startMonth,
+              year: edu.startYear,
+            },
+            endDate: {
+              month: edu.endMonth,
+              year: edu.endYear,
+            },
+            description: edu.description,
+          })),
+          skills: skillsEntries,
+        },
+      };
+
+      const result = await settingsApi.updateProfile(profileData, accessToken);
+
+      if (result.success) {
+        setSubmitSuccess(true);
+        toast.success("Profile updated successfully!");
+        // Optionally refresh user data
+        // fetchUserProfile();
+      } else {
+        setSubmitError(result.error || "Failed to update profile");
+        toast.error("Failed to update profile: " + result.error);
+      }
+    } catch (error) {
+      setSubmitError(error.message);
+      toast.error("Error updating profile: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    accessToken,
+    formData,
+    contactData,
+    emergencyData,
+    employmentData,
+    educationEntries,
+    skillsEntries,
+  ]);
+
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   // Notification handlers (from HRNotificationSettings)
   const toggleCategory = useCallback((category) => {
@@ -530,7 +828,7 @@ export default function StaffSettingsPage() {
     { id: "employment", label: "Employment Details", icon: IconId },
     { id: "qualifications", label: "Qualifications", icon: IconCertificate },
     { id: "documents", label: "Documents", icon: IconFileText },
-    { id: "health", label: "Health Info", icon: IconShield },
+    // { id: "health", label: "Health Info", icon: IconShield },
   ];
 
   // Dynamically update the sidebar config with counts
@@ -620,18 +918,16 @@ export default function StaffSettingsPage() {
               {activeTab === "profile" &&
                 profileSubTab === "documents" &&
                 "Documents"}
-              {activeTab === "profile" &&
-                profileSubTab === "health" &&
-                "Health Info"}
               {activeTab === "password" && "Password"}
               {activeTab === "notification" && "Notifications"}
+              {activeTab === "danger" && "Danger Zone"}
             </span>
           </p>
         </div>
 
         {/* Profile Section (common to all tabs) */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
-          <div className="flex items-start space-x-6">
+          <div className="flex items-start space-x-3">
             {/* Profile Picture Upload */}
             <ProfileImageUpload
               size="w-24 h-24"
@@ -649,7 +945,7 @@ export default function StaffSettingsPage() {
               <p className="text-gray-600 mb-3">
                 {user?.jobRole || user?.role || "Loading..."}
               </p>
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
                 <StatusBadge status={user?.attendanceStatus || "Active"} />
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-700 text-sm">
@@ -699,6 +995,16 @@ export default function StaffSettingsPage() {
             >
               Notification
             </button>
+            <button
+              onClick={() => setActiveTab("danger")}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === "danger"
+                  ? "border-red-500 text-red-500"
+                  : "border-transparent text-gray-500 hover:text-red-700 hover:border-red-300"
+              }`}
+            >
+              Danger Zone
+            </button>
           </div>
         </div>
 
@@ -735,6 +1041,22 @@ export default function StaffSettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Personal Information
                   </h2>
+
+                  {/* Success/Error Messages */}
+                  {submitSuccess && (
+                    <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-md">
+                      <p className="text-green-700 text-sm">
+                        Profile updated successfully!
+                      </p>
+                    </div>
+                  )}
+                  {submitError && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
+                      <p className="text-red-700 text-sm">
+                        Error: {submitError}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
@@ -1010,8 +1332,12 @@ export default function StaffSettingsPage() {
 
                   {/* Save Button */}
                   <div className="flex justify-end">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                      Save
+                    <Button
+                      onClick={saveProfile}
+                      disabled={isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
@@ -1035,7 +1361,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="email"
-                          value="nana@gmail.com"
+                          value={contactData.email}
+                          onChange={(e) =>
+                            setContactData({
+                              ...contactData,
+                              email: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1049,7 +1381,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="address"
-                          value="New site, Adenta"
+                          value={contactData.address}
+                          onChange={(e) =>
+                            setContactData({
+                              ...contactData,
+                              address: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1063,7 +1401,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="region"
-                          value="Greater Accra"
+                          value={contactData.regionOrState}
+                          onChange={(e) =>
+                            setContactData({
+                              ...contactData,
+                              regionOrState: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1080,7 +1424,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="phone"
-                          value="(+233) 0248940734"
+                          value={contactData.phoneNumber}
+                          onChange={(e) =>
+                            setContactData({
+                              ...contactData,
+                              phoneNumber: e.target.value,
+                            })
+                          }
                           className="bg-white border-blue-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1094,7 +1444,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="city"
-                          value="Accra"
+                          value={contactData.city}
+                          onChange={(e) =>
+                            setContactData({
+                              ...contactData,
+                              city: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1108,7 +1464,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="postalCode"
-                          value="GP-2448"
+                          value={contactData.postalCode}
+                          onChange={(e) =>
+                            setContactData({
+                              ...contactData,
+                              postalCode: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1117,8 +1479,12 @@ export default function StaffSettingsPage() {
 
                   {/* Save Button */}
                   <div className="flex justify-end mt-6">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                      Save
+                    <Button
+                      onClick={saveProfile}
+                      disabled={isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
@@ -1142,7 +1508,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="ec_fullName"
-                          value="Michael Gyamfi"
+                          value={emergencyData.fullName}
+                          onChange={(e) =>
+                            setEmergencyData({
+                              ...emergencyData,
+                              fullName: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1171,7 +1543,8 @@ export default function StaffSettingsPage() {
                         <Input
                           id="ec_region"
                           value="Greater Accra"
-                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                          readOnly
+                          className="bg-gray-100 border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
 
@@ -1184,7 +1557,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="ec_address"
-                          value="Ecomog, Hasto"
+                          value={emergencyData.address}
+                          onChange={(e) =>
+                            setEmergencyData({
+                              ...emergencyData,
+                              address: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1201,7 +1580,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="ec_phone"
-                          value="(+233) 0245678901"
+                          value={emergencyData.phoneNumber}
+                          onChange={(e) =>
+                            setEmergencyData({
+                              ...emergencyData,
+                              phoneNumber: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1216,7 +1601,8 @@ export default function StaffSettingsPage() {
                         <Input
                           id="ec_city"
                           value="Accra"
-                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                          readOnly
+                          className="bg-gray-100 border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
 
@@ -1229,7 +1615,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="ec_relationship"
-                          value="Father"
+                          value={emergencyData.relationship}
+                          onChange={(e) =>
+                            setEmergencyData({
+                              ...emergencyData,
+                              relationship: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1238,8 +1630,12 @@ export default function StaffSettingsPage() {
 
                   {/* Save Button */}
                   <div className="flex justify-end mt-6">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                      Save
+                    <Button
+                      onClick={saveProfile}
+                      disabled={isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
@@ -1264,7 +1660,8 @@ export default function StaffSettingsPage() {
                         <Input
                           id="emp_employeeId"
                           value="VIRE-12345"
-                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                          readOnly
+                          className="bg-gray-100 border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
 
@@ -1277,7 +1674,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="emp_department"
-                          value="Engineering"
+                          value={employmentData.department}
+                          onChange={(e) =>
+                            setEmploymentData({
+                              ...employmentData,
+                              department: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1289,7 +1692,15 @@ export default function StaffSettingsPage() {
                         >
                           Employment Type
                         </Label>
-                        <Select defaultValue="Full Time">
+                        <Select
+                          value={employmentData.employmentType}
+                          onValueChange={(value) =>
+                            setEmploymentData({
+                              ...employmentData,
+                              employmentType: value,
+                            })
+                          }
+                        >
                           <SelectTrigger
                             id="emp_type"
                             className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
@@ -1351,7 +1762,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="emp_jobTitle"
-                          value="Engineering Lead"
+                          value={employmentData.jobTitle}
+                          onChange={(e) =>
+                            setEmploymentData({
+                              ...employmentData,
+                              jobTitle: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1366,7 +1783,8 @@ export default function StaffSettingsPage() {
                         <Input
                           id="emp_dateHired"
                           value="23 - 09 - 23"
-                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                          readOnly
+                          className="bg-gray-100 border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
 
@@ -1379,7 +1797,13 @@ export default function StaffSettingsPage() {
                         </Label>
                         <Input
                           id="emp_supervisor"
-                          value="Nana Gyamfi Addae"
+                          value={employmentData.supervisorName}
+                          onChange={(e) =>
+                            setEmploymentData({
+                              ...employmentData,
+                              supervisorName: e.target.value,
+                            })
+                          }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
@@ -1391,7 +1815,15 @@ export default function StaffSettingsPage() {
                         >
                           Status
                         </Label>
-                        <Select defaultValue="Active">
+                        <Select
+                          value={employmentData.employmentStatus}
+                          onValueChange={(value) =>
+                            setEmploymentData({
+                              ...employmentData,
+                              employmentStatus: value,
+                            })
+                          }
+                        >
                           <SelectTrigger
                             id="emp_status"
                             className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
@@ -1425,8 +1857,12 @@ export default function StaffSettingsPage() {
 
                   {/* Save Button */}
                   <div className="flex justify-end mt-6">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
-                      Save
+                    <Button
+                      onClick={saveProfile}
+                      disabled={isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
@@ -1552,8 +1988,12 @@ export default function StaffSettingsPage() {
 
                   {/* Save Button */}
                   <div className="flex justify-end mt-8">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                      Save
+                    <Button
+                      onClick={saveProfile}
+                      disabled={isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </div>
@@ -1580,111 +2020,6 @@ export default function StaffSettingsPage() {
                         and other relevant files.
                       </p>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Health Info Tab */}
-              {profileSubTab === "health" && (
-                <div className="mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
-                    Health Information
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left Column */}
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="bloodType"
-                          className="text-sm font-semibold text-gray-800"
-                        >
-                          Blood Type
-                        </Label>
-                        <Select defaultValue="O+">
-                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="A+" className="cursor-pointer">
-                              A+
-                            </SelectItem>
-                            <SelectItem value="A-" className="cursor-pointer">
-                              A-
-                            </SelectItem>
-                            <SelectItem value="B+" className="cursor-pointer">
-                              B+
-                            </SelectItem>
-                            <SelectItem value="B-" className="cursor-pointer">
-                              B-
-                            </SelectItem>
-                            <SelectItem value="AB+" className="cursor-pointer">
-                              AB+
-                            </SelectItem>
-                            <SelectItem value="AB-" className="cursor-pointer">
-                              AB-
-                            </SelectItem>
-                            <SelectItem value="O+" className="cursor-pointer">
-                              O+
-                            </SelectItem>
-                            <SelectItem value="O-" className="cursor-pointer">
-                              O-
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="allergies"
-                          className="text-sm font-semibold text-gray-800"
-                        >
-                          Allergies
-                        </Label>
-                        <Input
-                          id="allergies"
-                          placeholder="List any allergies"
-                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Right Column */}
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="medicalConditions"
-                          className="text-sm font-semibold text-gray-800"
-                        >
-                          Medical Conditions
-                        </Label>
-                        <Input
-                          id="medicalConditions"
-                          placeholder="List any medical conditions"
-                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="emergencyNotes"
-                          className="text-sm font-semibold text-gray-800"
-                        >
-                          Emergency Notes
-                        </Label>
-                        <Input
-                          id="emergencyNotes"
-                          placeholder="Any additional emergency information"
-                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Save Button */}
-                  <div className="flex justify-end mt-6">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                      Save
-                    </Button>
                   </div>
                 </div>
               )}
@@ -2048,6 +2383,48 @@ export default function StaffSettingsPage() {
                     ? "Saving..."
                     : "Save Preferences"}
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Danger Zone Tab Content */}
+          {activeTab === "danger" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Danger Zone
+              </h2>
+              <p className="text-gray-600 mb-8">
+                These actions are permanent and cannot be undone.
+              </p>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-red-800 mb-2">
+                      Delete Account
+                    </h3>
+                    <p className="text-red-700 text-sm mb-4">
+                      Permanently delete your account and all associated data.
+                      This action cannot be undone.
+                    </p>
+                    <ul className="text-red-600 text-sm space-y-1 mb-4">
+                      <li>• All your profile data will be deleted</li>
+                      <li>• Your attendance records will be removed</li>
+                      <li>
+                        • You will lose access to all tasks and evaluations
+                      </li>
+                      <li>• This action cannot be reversed</li>
+                    </ul>
+                  </div>
+                  <div className="ml-6">
+                    <Button
+                      onClick={deleteAccount}
+                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium"
+                    >
+                      Delete Account
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -526,7 +526,7 @@ export default function HRSettingsPage() {
     { id: "employment", label: "Employment Details", icon: IconId },
     { id: "qualifications", label: "Qualifications", icon: IconCertificate },
     { id: "documents", label: "Documents", icon: IconFileText },
-    { id: "health", label: "Health Info", icon: IconShield },
+    // { id: "health", label: "Health Info", icon: IconShield },
   ];
 
   return (
@@ -561,9 +561,9 @@ export default function HRSettingsPage() {
               {activeTab === "profile" &&
                 profileSubTab === "documents" &&
                 "Documents"}
-              {activeTab === "profile" &&
+              {/* {activeTab === "profile" &&
                 profileSubTab === "health" &&
-                "Health Info"}
+                "Health Info"} */}
               {activeTab === "password" && "Password"}
               {activeTab === "notification" && "Notifications"}
             </span>
@@ -1639,7 +1639,7 @@ export default function HRSettingsPage() {
               )}
 
               {/* Health Info Tab */}
-              {profileSubTab === "health" && (
+              {/* {profileSubTab === "health" && (
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold text-gray-800 mb-6">
                     Health Information
@@ -1734,7 +1734,7 @@ export default function HRSettingsPage() {
                     </Button>
                   </div>
                 </div>
-              )}
+              )} */}
             </>
           )}
 

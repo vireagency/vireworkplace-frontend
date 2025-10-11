@@ -11,10 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  uploadProfileImage,
-  removeProfileImage,
-} from "@/services/profileImageApi";
+import { settingsApi } from "@/services/settingsApi";
 import { IconPlus, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
 import {
   getUserAvatarUrl,
@@ -334,7 +331,7 @@ export default function ProfileImageUpload({
     try {
       // Step 1: Upload image to backend
       console.log("Step 1: Uploading image to backend...");
-      const response = await uploadProfileImage(file, accessToken);
+      const response = await settingsApi.updateProfileImage(file, accessToken);
 
       console.log("Upload response:", response);
 

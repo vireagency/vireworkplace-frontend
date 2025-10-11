@@ -132,16 +132,16 @@ export const hrDashboardConfig = {
       url: "/human-resource-manager/settings/profile",
       icon: IconSettings,
     },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
+    // {
+    //   title: "Get Help",
+    //   url: "#",
+    //   icon: IconHelp,
+    // },
+    // {
+    //   title: "Search",
+    //   url: "#",
+    //   icon: IconSearch,
+    // },
   ],
 
   // HR-specific action buttons
@@ -169,7 +169,7 @@ export const staffDashboardConfig = {
   analytics: [
     {
       title: "Evaluations",
-      url: "/staff/evaluation",
+      url: "/staff/evaluations",
       icon: IconFileText,
     },
   ],

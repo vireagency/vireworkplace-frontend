@@ -11,9 +11,10 @@
 
 import axios from "axios";
 import { apiConfig } from "@/config/apiConfig";
+import { hrEvaluationsApi } from "./hrEvaluations";
 
 // Base URL for staff evaluations API
-const STAFF_EVALUATIONS_API_BASE = `${apiConfig.baseURL}/api/v1/dashboard/staff/evaluations`;
+const STAFF_EVALUATIONS_API_BASE = `${apiConfig.baseURL}/dashboard/staff/evaluations/reviews`;
 
 /**
  * Create API headers with authentication token
@@ -28,6 +29,19 @@ const getAuthHeaders = (accessToken) => ({
 /**
  * Staff Evaluations API Service
  */
+// Helper function to check if evaluation is completed
+const isEvaluationCompleted = (evaluationId) => {
+  try {
+    const completedEvaluations = JSON.parse(
+      localStorage.getItem("completedEvaluations") || "[]"
+    );
+    return completedEvaluations.includes(evaluationId);
+  } catch (error) {
+    console.warn("Error checking completion status:", error);
+    return false;
+  }
+};
+
 export const staffEvaluationsApi = {
   /**
    * Get assigned evaluations for staff
@@ -37,21 +51,54 @@ export const staffEvaluationsApi = {
   getAssignedEvaluations: async (accessToken) => {
     try {
       console.log("Fetching assigned evaluations for staff...");
-      const response = await axios.get(
-        `${STAFF_EVALUATIONS_API_BASE}/reviews`,
-        {
-          headers: getAuthHeaders(accessToken),
-        }
-      );
+      const response = await axios.get(STAFF_EVALUATIONS_API_BASE, {
+        headers: getAuthHeaders(accessToken),
+        timeout: 30000, // 30 second timeout
+      });
 
       console.log("Assigned evaluations response:", response.data);
-      return { success: true, data: response.data };
+
+      // Handle different response structures
+      let evaluationsData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          evaluationsData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          evaluationsData = response.data.data;
+        } else if (
+          response.data.evaluations &&
+          Array.isArray(response.data.evaluations)
+        ) {
+          evaluationsData = response.data.evaluations;
+        }
+      }
+
+      return {
+        success: true,
+        data: evaluationsData,
+        rawData: response.data,
+      };
     } catch (error) {
       console.error("Error fetching assigned evaluations:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
+
+      // Handle different error types
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage =
+          error.response.data?.message ||
+          error.response.data?.error ||
+          `Server error: ${error.response.status}`;
+        return { success: false, error: errorMessage };
+      } else if (error.request) {
+        // Request was made but no response received
+        return {
+          success: false,
+          error: "Network error: Unable to reach server",
+        };
+      } else {
+        // Something else happened
+        return { success: false, error: error.message };
+      }
     }
   },
 
@@ -63,25 +110,67 @@ export const staffEvaluationsApi = {
    */
   getEvaluationFormById: async (evaluationId, accessToken) => {
     try {
+      if (!evaluationId) {
+        return { success: false, error: "Evaluation ID is required" };
+      }
+
       console.log(`Fetching evaluation form with ID: ${evaluationId}`);
       const response = await axios.get(
-        `${STAFF_EVALUATIONS_API_BASE}/reviews/${evaluationId}`,
+        `${STAFF_EVALUATIONS_API_BASE}/${evaluationId}`,
         {
           headers: getAuthHeaders(accessToken),
+          timeout: 30000,
         }
       );
 
       console.log("Evaluation form response:", response.data);
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error(
-        "Error fetching evaluation form:",
-        error.response?.data || error.message
-      );
+
+      // Ensure we have the evaluation data
+      let evaluationData = response.data;
+      if (response.data && response.data.data) {
+        evaluationData = response.data.data;
+      }
+
       return {
-        success: false,
-        error: error.response?.data?.message || error.message,
+        success: true,
+        data: evaluationData,
+        rawData: response.data,
       };
+    } catch (error) {
+      console.error("Error fetching evaluation form:", error);
+
+      if (error.response) {
+        const status = error.response.status;
+        let errorMessage;
+
+        switch (status) {
+          case 401:
+            errorMessage = "Unauthorized: Please log in again";
+            break;
+          case 403:
+            errorMessage =
+              "Access denied: You don't have permission to view this evaluation";
+            break;
+          case 404:
+            errorMessage = "Evaluation not found";
+            break;
+          case 500:
+            errorMessage = "Server error: Please try again later";
+            break;
+          default:
+            errorMessage =
+              error.response.data?.message || `Server error: ${status}`;
+        }
+
+        return { success: false, error: errorMessage };
+      } else if (error.request) {
+        return {
+          success: false,
+          error: "Network error: Unable to reach server",
+        };
+      } else {
+        return { success: false, error: error.message };
+      }
     }
   },
 
@@ -94,6 +183,10 @@ export const staffEvaluationsApi = {
    */
   submitEvaluationResponse: async (evaluationId, responseData, accessToken) => {
     try {
+      if (!evaluationId) {
+        return { success: false, error: "Evaluation ID is required" };
+      }
+
       // Validate required fields
       if (!responseData.responses || !Array.isArray(responseData.responses)) {
         return {
@@ -106,21 +199,133 @@ export const staffEvaluationsApi = {
       console.log("Response data:", responseData);
 
       const response = await axios.post(
-        `${STAFF_EVALUATIONS_API_BASE}/reviews/${evaluationId}/response`,
+        `${STAFF_EVALUATIONS_API_BASE}/${evaluationId}/response`,
         responseData,
         {
-          headers: getAuthHeaders(accessToken),
+          headers: {
+            ...getAuthHeaders(accessToken),
+            "Content-Type": "application/json",
+          },
+          timeout: 30000,
         }
       );
 
       console.log("Evaluation response submission result:", response.data);
-      return { success: true, data: response.data };
+
+      // Mark evaluation as completed in local storage
+      try {
+        const completedEvaluations = JSON.parse(
+          localStorage.getItem("completedEvaluations") || "[]"
+        );
+        if (!completedEvaluations.includes(evaluationId)) {
+          completedEvaluations.push(evaluationId);
+          localStorage.setItem(
+            "completedEvaluations",
+            JSON.stringify(completedEvaluations)
+          );
+          console.log(`Marked evaluation ${evaluationId} as completed`);
+        }
+      } catch (storageError) {
+        console.warn("Failed to update completion status:", storageError);
+      }
+
+      // Sync with HR system (don't fail if this fails)
+      try {
+        await hrEvaluationsApi.syncStaffSubmission(
+          evaluationId,
+          responseData,
+          accessToken
+        );
+        console.log("Successfully synced submission with HR system");
+      } catch (syncError) {
+        console.warn("Failed to sync with HR system:", syncError);
+        // Don't fail the main submission
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.data?.message || "Evaluation submitted successfully",
+        completed: true,
+      };
     } catch (error) {
       console.error("Error submitting evaluation response:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message,
-      };
+
+      if (error.response) {
+        const status = error.response.status;
+        let errorMessage;
+
+        switch (status) {
+          case 401:
+            errorMessage = "Unauthorized: Please log in again";
+            break;
+          case 403:
+            errorMessage =
+              "Access denied: You don't have permission to submit this evaluation";
+            break;
+          case 404:
+            errorMessage = "Evaluation not found";
+            break;
+          case 400:
+            errorMessage =
+              error.response.data?.message || "Invalid data provided";
+            break;
+          case 500:
+            errorMessage = "Server error: Please try again later";
+            break;
+          default:
+            errorMessage =
+              error.response.data?.message || `Server error: ${status}`;
+        }
+
+        return { success: false, error: errorMessage };
+      } else if (error.request) {
+        return {
+          success: false,
+          error: "Network error: Unable to reach server",
+        };
+      } else {
+        return { success: false, error: error.message };
+      }
+    }
+  },
+
+  /**
+   * Check if an evaluation has been completed
+   * @param {string} evaluationId - Evaluation ID to check
+   * @returns {boolean} True if evaluation is completed
+   */
+  isEvaluationCompleted: (evaluationId) => {
+    return isEvaluationCompleted(evaluationId);
+  },
+
+  /**
+   * Get all completed evaluation IDs
+   * @returns {string[]} Array of completed evaluation IDs
+   */
+  getCompletedEvaluations: () => {
+    try {
+      return JSON.parse(localStorage.getItem("completedEvaluations") || "[]");
+    } catch (error) {
+      console.warn("Error getting completed evaluations:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Clear completion status for an evaluation (for testing purposes)
+   * @param {string} evaluationId - Evaluation ID to clear
+   */
+  clearCompletionStatus: (evaluationId) => {
+    try {
+      const completedEvaluations = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
+      const filtered = completedEvaluations.filter((id) => id !== evaluationId);
+      localStorage.setItem("completedEvaluations", JSON.stringify(filtered));
+      console.log(`Cleared completion status for evaluation ${evaluationId}`);
+    } catch (error) {
+      console.warn("Error clearing completion status:", error);
     }
   },
 };

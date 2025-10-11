@@ -59,6 +59,8 @@ import {
   Sidebar, // Main sidebar container
   SidebarContent, // Sidebar content area
   SidebarFooter, // Sidebar footer section
+  SidebarGroup, // Sidebar group container
+  SidebarGroupContent, // Sidebar group content area
   SidebarHeader, // Sidebar header section
   SidebarMenu, // Sidebar menu container
   SidebarMenuButton, // Sidebar menu button
@@ -291,6 +293,54 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
+      {/* ========================================================================
+           QUICK ACTIONS SECTION
+           ========================================================================
+           
+           Quick action buttons positioned right under the logo
+           Only show for HR users
+           ======================================================================== */}
+
+      {user?.role === "Human Resource Manager" && (
+        <SidebarGroup>
+          <SidebarGroupContent>
+            {/* Quick Actions section header */}
+            <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Quick Actions
+            </h3>
+
+            {/* Quick Actions button */}
+            <div className="px-3">
+              <button
+                onClick={() => {
+                  // Navigate to evaluation creation page
+                  if (typeof window !== "undefined" && window.location) {
+                    window.location.href =
+                      "/human-resource-manager/evaluations/create";
+                  }
+                }}
+                className="w-full bg-[#04B435] hover:bg-[#00C010] text-white font-medium py-2.5 px-1.5 rounded-md transition-colors duration-200 flex items-center justify-center gap-1.5 text-sm"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                Create Evaluation
+              </button>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
 
       {/* ========================================================================
            SIDEBAR CONTENT

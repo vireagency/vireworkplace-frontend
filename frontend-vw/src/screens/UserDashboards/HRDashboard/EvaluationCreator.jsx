@@ -1,19 +1,23 @@
-import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, FileText } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { createEvaluationReview } from '@/services/evaluations';
-import { toast } from 'sonner';
-import EvaluationTypeStep from './EvaluationTypeStep';
-import EmployeeSelectionStep from './EmployeeSelectionStep';
-import FormCustomizationStep from './FormCustomizationStep';
-import ReviewAndSendStep from './ReviewAndSendStep';
+import React, { useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, Check, FileText } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { createEvaluationReview } from "@/services/evaluations";
+import { toast } from "sonner";
+import EvaluationTypeStep from "./EvaluationTypeStep";
+import EmployeeSelectionStep from "./EmployeeSelectionStep";
+import FormCustomizationStep from "./FormCustomizationStep";
+import ReviewAndSendStep from "./ReviewAndSendStep";
 
 const steps = [
-  { id: 1, title: 'Evaluation Type', description: 'Select type and period' },
-  { id: 2, title: 'Select Employees', description: 'Choose who to evaluate' },
-  { id: 3, title: 'Customize Form', description: 'Design the evaluation' },
-  { id: 4, title: 'Review & Send', description: 'Final review and distribution' }
+  { id: 1, title: "Evaluation Type", description: "Select type and period" },
+  { id: 2, title: "Select Employees", description: "Choose who to evaluate" },
+  { id: 3, title: "Customize Form", description: "Design the evaluation" },
+  {
+    id: 4,
+    title: "Review & Send",
+    description: "Final review and distribution",
+  },
 ];
 
 export default function EvaluationCreator({ onBack }) {
@@ -21,22 +25,30 @@ export default function EvaluationCreator({ onBack }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [evaluationData, setEvaluationData] = useState({
-    type: '',
-    period: '',
+    type: "",
+    period: "",
     selectedEmployees: [],
-    formName: '',
+    formName: "",
     sections: [],
-    description: '',
-    reviewDeadline: '',
+    description: "",
+    reviewDeadline: "",
     recipients: {
       individuals: [],
       departments: [],
-      teams: []
-    }
+      teams: [],
+    },
   });
 
   const updateEvaluationData = useCallback((updates) => {
-    setEvaluationData(prev => ({ ...prev, ...updates }));
+    console.log(
+      "EvaluationCreator - updateEvaluationData called with:",
+      updates
+    );
+    setEvaluationData((prev) => {
+      const newData = { ...prev, ...updates };
+      console.log("EvaluationCreator - new evaluation data:", newData);
+      return newData;
+    });
   }, []);
 
   const nextStep = () => {
@@ -53,65 +65,97 @@ export default function EvaluationCreator({ onBack }) {
 
   const handleSubmit = async () => {
     if (!accessToken) {
-      toast.error('Authentication required. Please log in to create evaluations.');
+      toast.error(
+        "Authentication required. Please log in to create evaluations."
+      );
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
+      // Transform sections to match API requirements
+      const transformedSections = evaluationData.sections.map((section) => ({
+        title: section.title,
+        description: section.description,
+        questions: section.questions.map((question) => ({
+          questionText: question.text, // Transform 'text' to 'questionText'
+          type: question.type,
+          required: question.required,
+        })),
+      }));
+
+      // Map form types to valid enum values
+      const formTypeMapping = {
+        annual: "Annual",
+        quarterly: "Quarterly",
+        probationary: "Probationary",
+        "project-based": "Project-based",
+      };
+
       // Prepare the request body according to the API specification
       const requestBody = {
         formName: evaluationData.formName,
-        formType: evaluationData.type,
-        description: evaluationData.description || `Evaluation for ${evaluationData.period}`,
+        formType: formTypeMapping[evaluationData.type] || evaluationData.type, // Map to valid enum values
+        description:
+          evaluationData.description ||
+          `Evaluation for ${evaluationData.period}`,
         reviewPeriod: evaluationData.period,
-        reviewDeadline: evaluationData.reviewDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 1 week from now
-        dueDate: evaluationData.reviewDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Backend expects both reviewDeadline and dueDate
-        status: 'draft', // Default status for new evaluations
-        sections: evaluationData.sections,
-        employees: evaluationData.selectedEmployees
+        reviewDeadline:
+          evaluationData.reviewDeadline ||
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 1 week from now
+        dueDate:
+          evaluationData.reviewDeadline ||
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Backend expects both reviewDeadline and dueDate
+        status: "pending", // Use valid enum value from the error message
+        sections: transformedSections, // Use transformed sections
+        employees: evaluationData.selectedEmployees,
       };
 
-      console.log('Submitting evaluation with data:', requestBody);
-      console.log('Sections data:', evaluationData.sections);
-      console.log('Sections length:', evaluationData.sections.length);
+      console.log("Submitting evaluation with data:", requestBody);
+      console.log("Sections data:", evaluationData.sections);
+      console.log("Transformed sections:", transformedSections);
+      console.log("Sections length:", evaluationData.sections.length);
+      console.log("Form type being sent:", requestBody.formType);
+      console.log("Status being sent:", requestBody.status);
 
       const result = await createEvaluationReview(requestBody, accessToken);
 
-      console.log('Evaluation creation result:', result);
+      console.log("Evaluation creation result:", result);
 
       if (result.success) {
-        toast.success('Evaluation created successfully!');
-        
+        toast.success("Evaluation created successfully!");
+
         // Reset the form or redirect
         setEvaluationData({
-          type: '',
-          period: '',
+          type: "",
+          period: "",
           selectedEmployees: [],
-          formName: '',
+          formName: "",
           sections: [],
-          description: '',
-          reviewDeadline: '',
+          description: "",
+          reviewDeadline: "",
           recipients: {
             individuals: [],
             departments: [],
-            teams: []
-          }
+            teams: [],
+          },
         });
         setCurrentStep(1);
-        
+
         // Optionally call onBack to return to the previous page
         if (onBack) {
           onBack();
         }
       } else {
-        console.error('Evaluation creation failed:', result.error);
-        toast.error(result.error || 'Failed to create evaluation. Please try again.');
+        console.error("Evaluation creation failed:", result.error);
+        toast.error(
+          result.error || "Failed to create evaluation. Please try again."
+        );
       }
     } catch (error) {
-      console.error('Error creating evaluation:', error);
-      toast.error('An unexpected error occurred. Please try again.');
+      console.error("Error creating evaluation:", error);
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -168,14 +212,20 @@ export default function EvaluationCreator({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{'--card': 'oklch(1 0 0)', '--card-foreground': 'oklch(0.145 0 0)'}}>
+    <div
+      className="min-h-screen bg-gray-50"
+      style={{
+        "--card": "oklch(1 0 0)",
+        "--card-foreground": "oklch(0.145 0 0)",
+      }}
+    >
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onBack ? onBack() : window.history.back()}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => (onBack ? onBack() : window.history.back())}
             className="flex items-center space-x-2 text-gray-700 hover:text-green-500 border-gray-300 hover:border-gray-400 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -195,7 +245,7 @@ export default function EvaluationCreator({ onBack }) {
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
-                <div 
+                <div
                   className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => {
                     // Allow navigation to any completed step or current step
@@ -207,10 +257,10 @@ export default function EvaluationCreator({ onBack }) {
                   <div
                     className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors ${
                       currentStep > step.id
-                        ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
+                        ? "bg-green-500 border-green-500 text-white hover:bg-green-600"
                         : currentStep === step.id
-                        ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'
+                        ? "bg-blue-500 border-blue-500 text-white hover:bg-blue-600"
+                        : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"
                     }`}
                   >
                     {currentStep > step.id ? (
@@ -220,9 +270,13 @@ export default function EvaluationCreator({ onBack }) {
                     )}
                   </div>
                   <div className="hidden sm:block">
-                    <p className={`text-sm font-medium transition-colors ${
-                      currentStep >= step.id ? 'text-gray-900' : 'text-gray-500'
-                    }`}>
+                    <p
+                      className={`text-sm font-medium transition-colors ${
+                        currentStep >= step.id
+                          ? "text-gray-900"
+                          : "text-gray-500"
+                      }`}
+                    >
                       {step.title}
                     </p>
                     <p className="text-xs text-gray-500">{step.description}</p>
@@ -231,14 +285,14 @@ export default function EvaluationCreator({ onBack }) {
                 {index < steps.length - 1 && (
                   <div
                     className={`hidden sm:block w-16 h-0.5 ml-6 ${
-                      currentStep > step.id ? 'bg-green-500' : 'bg-gray-300'
+                      currentStep > step.id ? "bg-green-500" : "bg-gray-300"
                     }`}
                   />
                 )}
               </div>
             ))}
           </div>
-          
+
           {/* Navigation Hint */}
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
@@ -260,7 +314,7 @@ export default function EvaluationCreator({ onBack }) {
               </span>
             </div>
           </div>
-          
+
           {renderStepContent()}
         </div>
       </div>
