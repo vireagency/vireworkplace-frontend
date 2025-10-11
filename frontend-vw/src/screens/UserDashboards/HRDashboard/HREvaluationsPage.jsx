@@ -45,6 +45,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Edit,
 } from "lucide-react";
 import EvaluationCreator from "./EvaluationCreator";
 import {
@@ -535,6 +536,74 @@ export default function HREvaluationsPage() {
       .join("")
       .toUpperCase()
       .slice(0, 3);
+  };
+
+  // Handle viewing evaluation
+  const handleViewEvaluation = (evaluation) => {
+    console.log("Viewing evaluation:", evaluation);
+    // TODO: Navigate to evaluation view page or open modal
+    toast.info(
+      `Viewing evaluation for ${evaluation.employeeName || evaluation.formName}`
+    );
+    // For now, we'll show a toast. Later you can navigate to a view page
+  };
+
+  // Handle editing evaluation
+  const handleEditEvaluation = (evaluation) => {
+    console.log("Editing evaluation:", evaluation);
+    // TODO: Navigate to evaluation edit page or open edit modal
+    toast.info(
+      `Editing evaluation for ${evaluation.employeeName || evaluation.formName}`
+    );
+    // For now, we'll show a toast. Later you can navigate to an edit page
+  };
+
+  // Handle downloading evaluation
+  const handleDownloadEvaluation = (evaluation) => {
+    console.log("Downloading evaluation:", evaluation);
+
+    // Create a downloadable data structure
+    const downloadData = {
+      employeeName: evaluation.employeeName || evaluation.formName || "N/A",
+      department: evaluation.department || "N/A",
+      evaluationType: evaluation.formType || evaluation.evaluationType || "N/A",
+      submittedDate: evaluation.submittedAt || evaluation.createdAt || "N/A",
+      score: evaluation.score || "N/A",
+      status: evaluation.status || "N/A",
+      responses: evaluation.responses || [],
+      comments: evaluation.comments || "No comments",
+    };
+
+    // Convert to JSON string
+    const jsonData = JSON.stringify(downloadData, null, 2);
+
+    // Create blob and download
+    const blob = new Blob([jsonData], { type: "application/json" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `evaluation_${evaluation._id || "unknown"}_${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast.success(
+      `Downloaded evaluation for ${
+        evaluation.employeeName || evaluation.formName
+      }`
+    );
+  };
+
+  // Handle sending reminder
+  const handleSendReminder = (evaluation) => {
+    console.log("Sending reminder for evaluation:", evaluation);
+    // TODO: Implement actual reminder functionality
+    toast.success(
+      `Reminder sent to ${evaluation.employeeName || evaluation.formName}`
+    );
   };
 
   // If loading, show loading state
@@ -1268,30 +1337,35 @@ export default function HREvaluationsPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0 cursor-pointer"
-                                    title="View"
+                                    className="h-8 w-8 p-0 cursor-pointer hover:bg-blue-50 hover:text-blue-600"
+                                    title="View Evaluation"
+                                    onClick={() =>
+                                      handleViewEvaluation(evaluation)
+                                    }
                                   >
                                     <Eye className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0"
-                                    title="Edit"
+                                    className="h-8 w-8 p-0 cursor-pointer hover:bg-green-50 hover:text-green-600"
+                                    title="Edit Evaluation"
+                                    onClick={() =>
+                                      handleEditEvaluation(evaluation)
+                                    }
                                   >
-                                    <svg
-                                      className="h-4 w-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                      />
-                                    </svg>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 cursor-pointer hover:bg-purple-50 hover:text-purple-600"
+                                    title="Download Evaluation"
+                                    onClick={() =>
+                                      handleDownloadEvaluation(evaluation)
+                                    }
+                                  >
+                                    <Download className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -1479,8 +1553,9 @@ export default function HREvaluationsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 cursor-pointer hover:bg-orange-50 hover:text-orange-600"
                                 title="Send reminder"
+                                onClick={() => handleSendReminder(evaluation)}
                               >
                                 <svg
                                   className="h-4 w-4"
@@ -1499,8 +1574,9 @@ export default function HREvaluationsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 cursor-pointer hover:bg-blue-50 hover:text-blue-600"
                                 title="View details"
+                                onClick={() => handleViewEvaluation(evaluation)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
