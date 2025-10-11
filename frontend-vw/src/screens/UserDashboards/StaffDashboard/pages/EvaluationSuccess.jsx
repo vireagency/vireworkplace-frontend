@@ -40,7 +40,8 @@ const EvaluationSuccess = () => {
 
   // Handle return to dashboard
   const handleReturnToDashboard = () => {
-    navigate("/staff/dashboard");
+    console.log("Navigating to staff dashboard...");
+    navigate("/staff/dashboard", { replace: true });
   };
 
   return (
@@ -102,7 +103,13 @@ const EvaluationSuccess = () => {
               </Button>
 
               <Button
-                onClick={handleReturnToDashboard}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log("Return to Dashboard clicked");
+                  console.log("Current location:", window.location.pathname);
+                  console.log("Target route: /staff/dashboard");
+                  handleReturnToDashboard();
+                }}
                 variant="outline"
                 className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 py-3 text-base font-medium rounded-lg"
               >

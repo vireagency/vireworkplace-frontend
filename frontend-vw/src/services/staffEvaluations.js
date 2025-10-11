@@ -42,6 +42,89 @@ const isEvaluationCompleted = (evaluationId) => {
   }
 };
 
+// Helper function to get pending submissions
+export const getPendingSubmissions = () => {
+  try {
+    return JSON.parse(
+      localStorage.getItem("pendingEvaluationSubmissions") || "[]"
+    );
+  } catch (error) {
+    console.error("Error getting pending submissions:", error);
+    return [];
+  }
+};
+
+// Helper function to sync pending submissions to backend
+export const syncPendingSubmissions = async (accessToken) => {
+  try {
+    const pendingSubmissions = getPendingSubmissions();
+
+    if (pendingSubmissions.length === 0) {
+      console.log("No pending submissions to sync");
+      return { success: true, synced: 0, total: 0 };
+    }
+
+    console.log(`Syncing ${pendingSubmissions.length} pending submissions...`);
+    const syncedIds = [];
+    const failedSubmissions = [];
+
+    for (const submission of pendingSubmissions) {
+      try {
+        const result = await staffEvaluationsApi.submitEvaluationResponse(
+          submission.evaluationId,
+          {
+            responses: submission.responses,
+            comments: submission.comments,
+          },
+          accessToken
+        );
+
+        if (result.success) {
+          syncedIds.push(submission.evaluationId);
+          console.log(
+            `✅ Synced submission for evaluation ${submission.evaluationId}`
+          );
+        } else {
+          failedSubmissions.push(submission);
+          console.error(
+            `❌ Failed to sync evaluation ${submission.evaluationId}:`,
+            result.error
+          );
+        }
+      } catch (error) {
+        failedSubmissions.push(submission);
+        console.error(
+          `❌ Error syncing evaluation ${submission.evaluationId}:`,
+          error
+        );
+      }
+    }
+
+    // Update localStorage - keep only failed submissions
+    localStorage.setItem(
+      "pendingEvaluationSubmissions",
+      JSON.stringify(failedSubmissions)
+    );
+
+    console.log(
+      `Sync complete: ${syncedIds.length} synced, ${failedSubmissions.length} failed`
+    );
+
+    return {
+      success: true,
+      synced: syncedIds.length,
+      failed: failedSubmissions.length,
+      total: pendingSubmissions.length,
+    };
+  } catch (error) {
+    console.error("Error syncing pending submissions:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
 export const staffEvaluationsApi = {
   /**
    * Get assigned evaluations for staff
@@ -196,7 +279,14 @@ export const staffEvaluationsApi = {
       }
 
       console.log(`Submitting evaluation response for ID: ${evaluationId}`);
-      console.log("Response data:", responseData);
+      console.log("Response data:", JSON.stringify(responseData, null, 2));
+      console.log("Response data structure:", {
+        hasResponses: Array.isArray(responseData.responses),
+        responsesCount: responseData.responses?.length || 0,
+        hasComments: !!responseData.comments,
+        commentsLength: responseData.comments?.length || 0,
+        sampleResponse: responseData.responses?.[0] || null,
+      });
 
       const response = await axios.post(
         `${STAFF_EVALUATIONS_API_BASE}/${evaluationId}/response`,
@@ -271,7 +361,18 @@ export const staffEvaluationsApi = {
               error.response.data?.message || "Invalid data provided";
             break;
           case 500:
-            errorMessage = "Server error: Please try again later";
+            console.error("Server 500 error details:", {
+              status: error.response.status,
+              data: error.response.data,
+              headers: error.response.headers,
+              requestData: responseData,
+            });
+            errorMessage =
+              error.response.data?.message ||
+              `Server error: ${
+                error.response.data?.error ||
+                "Internal server error. Please try again."
+              }`;
             break;
           default:
             errorMessage =
