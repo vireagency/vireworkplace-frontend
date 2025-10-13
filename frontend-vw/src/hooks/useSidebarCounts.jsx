@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./useAuth";
 import { getApiUrl } from "@/config/apiConfig";
 import axios from "axios";
+import { staffEvaluationsApi } from "@/services/staffEvaluations";
 
 /**
  * Custom hook for managing sidebar counts across staff pages
@@ -58,17 +59,62 @@ export const useSidebarCounts = () => {
 
   const fetchEvaluationsCount = useCallback(async (apiClient) => {
     try {
+      console.log("🔍 Fetching evaluations count for sidebar...");
       const response = await apiClient.get(
         "/api/v1/dashboard/staff/evaluations/reviews"
       );
       if (response.data && response.data.success) {
         const evaluationsData =
           response.data.data || response.data.evaluations || [];
-        return Array.isArray(evaluationsData) ? evaluationsData.length : 0;
+
+        if (Array.isArray(evaluationsData)) {
+          console.log("📊 Sidebar count calculation:", {
+            totalEvaluations: evaluationsData.length,
+          });
+
+          const pendingEvaluations = evaluationsData.filter((evaluation) => {
+            const evaluationId = evaluation.id || evaluation._id;
+            // Use the EXACT same logic as EvaluationsOverview page
+            const isCompleted =
+              staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
+
+            console.log(
+              `📋 Evaluation ${evaluationId}: completed=${isCompleted}, apiCompleted=${isApiCompleted}, status=${
+                evaluation.status
+              }, title=${evaluation.title || evaluation.formName}`
+            );
+
+            // Only show evaluations that are NOT completed or submitted
+            const shouldShow = !isCompleted && !isApiCompleted;
+            console.log(`   → Should show: ${shouldShow}`);
+            return shouldShow;
+          });
+
+          console.log(
+            `✅ Sidebar evaluations count: ${pendingEvaluations.length} pending out of ${evaluationsData.length} total`
+          );
+          return pendingEvaluations.length;
+        }
       }
+      console.log("⚠️ No evaluations data or API failed, returning 0");
       return 0;
     } catch (error) {
-      console.error("Error fetching evaluations count:", error);
+      console.error("❌ Error fetching evaluations count:", error);
+
+      // On 403 error, also check localStorage for completed evaluations
+      if (error.response?.status === 403) {
+        console.log("🔒 403 error - cannot fetch evaluations from API");
+        console.log(
+          "🔒 Since we can't fetch from API, assuming 0 pending evaluations"
+        );
+
+        // Since we can't fetch from API, assume 0 pending (all are completed)
+        return 0;
+      }
+
       return 0;
     }
   }, []);
@@ -142,9 +188,26 @@ export const useSidebarCounts = () => {
             fetchMessagesCount(apiClient),
           ]);
 
+        // Check if there are completed evaluations and adjust count accordingly
+        const completedEvaluations = JSON.parse(
+          localStorage.getItem("completedEvaluations") || "[]"
+        );
+
+        // Don't force to 0 - use the actual filtered count from the API
+        const finalEvaluationsCount = evaluationsCount;
+
+        console.log("📊 Final sidebar counts:", {
+          tasks: tasksCount,
+          evaluations: finalEvaluationsCount,
+          attendance: attendanceCount,
+          messages: messagesCount,
+          completedEvaluations: completedEvaluations.length,
+          originalEvaluationsCount: evaluationsCount,
+        });
+
         setCounts((prev) => ({
           tasks: tasksCount,
-          evaluations: evaluationsCount,
+          evaluations: finalEvaluationsCount,
           attendance: attendanceCount,
           messages: messagesCount,
           loading: false,
@@ -174,16 +237,156 @@ export const useSidebarCounts = () => {
 
   // Initial fetch
   useEffect(() => {
+    console.log("🔍 Initial sidebar load - fetching counts from API");
     fetchAllCounts(true);
+  }, [fetchAllCounts]);
+
+  // Listen for evaluation completion and deletion events to refresh counts
+  useEffect(() => {
+    const handleEvaluationCompleted = () => {
+      console.log(
+        "🔄 Evaluation completed event received, refreshing counts..."
+      );
+
+      // Refresh all counts to get the updated count
+      fetchAllCounts(true);
+    };
+
+    const handleEvaluationDeleted = () => {
+      console.log("🔄 Evaluation deleted event received, refreshing counts...");
+      // Immediately set evaluations count to 0 since evaluation was deleted
+      setCounts((prev) => ({ ...prev, evaluations: 0 }));
+      // Also refresh all counts
+      fetchAllCounts(true);
+    };
+
+    window.addEventListener("evaluationCompleted", handleEvaluationCompleted);
+    window.addEventListener("evaluationDeleted", handleEvaluationDeleted);
+
+    return () => {
+      window.removeEventListener(
+        "evaluationCompleted",
+        handleEvaluationCompleted
+      );
+      window.removeEventListener("evaluationDeleted", handleEvaluationDeleted);
+    };
   }, [fetchAllCounts]);
 
   // Refresh function for manual updates
   const refreshCounts = useCallback(() => {
+    console.log("🔄 Manually refreshing sidebar counts...");
     fetchAllCounts(true);
   }, [fetchAllCounts]);
+
+  // Force refresh evaluations count specifically
+  const refreshEvaluationsCount = useCallback(() => {
+    console.log("🔄 Force refreshing evaluations count...");
+    if (accessToken) {
+      const apiClient = createApiClient();
+      fetchEvaluationsCount(apiClient).then((count) => {
+        console.log(`🔄 Manual evaluations count refresh: ${count}`);
+        setCounts((prev) => ({ ...prev, evaluations: count }));
+      });
+    } else {
+      console.log("🔄 No access token, setting evaluations count to 0");
+      setCounts((prev) => ({ ...prev, evaluations: 0 }));
+    }
+  }, [accessToken, createApiClient, fetchEvaluationsCount]);
+
+  // Add global function for debugging
+  useEffect(() => {
+    window.forceRefreshSidebarCount = () => {
+      console.log("🔄 Force refreshing sidebar count from console...");
+      refreshEvaluationsCount();
+    };
+
+    window.checkSidebarData = () => {
+      const completed = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
+      console.log("📊 Current sidebar data:", {
+        completedEvaluations: completed,
+        currentCount: counts.evaluations,
+        loading: counts.loading,
+      });
+    };
+
+    window.forceSetEvaluationsZero = () => {
+      console.log("🔄 Force setting evaluations count to 0...");
+      setCounts((prev) => ({ ...prev, evaluations: 0 }));
+    };
+
+    window.fixEvaluationsCount = () => {
+      const completed = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
+      console.log(
+        "🔧 Fixing evaluations count based on localStorage:",
+        completed
+      );
+      if (completed.length > 0) {
+        console.log(
+          "🔧 Setting evaluations count to 0 because evaluations are completed"
+        );
+        setCounts((prev) => ({ ...prev, evaluations: 0 }));
+      } else {
+        console.log("🔧 No completed evaluations found, refreshing from API");
+        fetchAllCounts(true);
+      }
+    };
+
+    window.debugEvaluationsMismatch = async () => {
+      console.log("🔍 Debugging evaluations count mismatch...");
+
+      // Check localStorage
+      const completed = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
+      console.log("📱 localStorage completed evaluations:", completed);
+
+      // Check API data
+      if (accessToken) {
+        try {
+          const apiClient = createApiClient();
+          const response = await apiClient.get(
+            "/api/v1/dashboard/staff/evaluations/reviews"
+          );
+          if (response.data && response.data.success) {
+            const evaluationsData =
+              response.data.data || response.data.evaluations || [];
+            console.log("🌐 API evaluations data:", evaluationsData);
+
+            // Check each evaluation
+            evaluationsData.forEach((evaluation) => {
+              const evaluationId = evaluation.id || evaluation._id;
+              const isInLocalStorage = completed.includes(evaluationId);
+              const isApiCompleted =
+                evaluation.status === "completed" ||
+                evaluation.status === "submitted";
+
+              console.log(
+                `📋 ${
+                  evaluation.title || evaluation.formName
+                } (${evaluationId}):`,
+                {
+                  inLocalStorage: isInLocalStorage,
+                  apiStatus: evaluation.status,
+                  isApiCompleted: isApiCompleted,
+                  shouldShow: !isInLocalStorage && !isApiCompleted,
+                }
+              );
+            });
+          }
+        } catch (error) {
+          console.error("❌ Error fetching API data for debug:", error);
+        }
+      }
+    };
+  }, [refreshEvaluationsCount, counts]);
 
   return {
     ...counts,
     refreshCounts,
+    refreshEvaluationsCount,
   };
 };

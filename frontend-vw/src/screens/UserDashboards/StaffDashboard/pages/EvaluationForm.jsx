@@ -297,6 +297,65 @@ const EvaluationForm = () => {
     return !hasErrors;
   };
 
+  // Show specific validation errors to user
+  const showValidationErrors = () => {
+    const missingFields = [];
+
+    if (!evaluation || !evaluation.questions) {
+      toast.error("No evaluation questions found");
+      return;
+    }
+
+    // Check each question
+    evaluation.questions.forEach((question, index) => {
+      const ratingKey = `${question.id}_rating`;
+      const commentsKey = `${question.id}_comments`;
+
+      if (!responses[ratingKey]) {
+        missingFields.push(`Question ${index + 1}: Rating`);
+      }
+
+      if (!responses[commentsKey] || responses[commentsKey].trim() === "") {
+        missingFields.push(`Question ${index + 1}: Comments`);
+      }
+    });
+
+    // Check overall rating
+    if (!responses.overall_rating) {
+      missingFields.push("Overall Rating");
+    }
+
+    // Check summary fields
+    const requiredSummaryFields = [
+      { key: "key_achievements", label: "Key Achievements" },
+      { key: "major_challenges", label: "Major Challenges" },
+      { key: "development_goals", label: "Development Goals" },
+    ];
+
+    requiredSummaryFields.forEach((field) => {
+      if (!responses[field.key] || responses[field.key].trim() === "") {
+        missingFields.push(field.label);
+      }
+    });
+
+    // Show detailed error message
+    if (missingFields.length > 0) {
+      const errorMessage = `Please fill in the following required fields:\n\n• ${missingFields.join(
+        "\n• "
+      )}`;
+      toast.error("Missing Required Fields", {
+        description: errorMessage,
+        duration: 10000, // Show for 10 seconds
+        action: {
+          label: "Got it",
+          onClick: () => toast.dismiss(),
+        },
+      });
+    } else {
+      toast.error("Please fill in all required fields");
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
     console.log("=== FORM SUBMISSION STARTED ===");
@@ -305,7 +364,8 @@ const EvaluationForm = () => {
     console.log("Current responses:", responses);
 
     if (!validateForm()) {
-      toast.error("Please fill in all required fields");
+      // Show specific validation errors
+      showValidationErrors();
       return;
     }
 
@@ -318,8 +378,11 @@ const EvaluationForm = () => {
         comments: comments.trim() || "",
       };
 
-      // Add question responses from HR form
+      // Add question responses from HR form using the new API format
       if (evaluation.questions && Array.isArray(evaluation.questions)) {
+        // Group questions by section if they have sections
+        const sectionsMap = new Map();
+
         evaluation.questions.forEach((question, index) => {
           const rating = responses[`${question.id}_rating`];
           const questionComments = responses[`${question.id}_comments`];
@@ -348,11 +411,83 @@ const EvaluationForm = () => {
           }
 
           if (answer.trim()) {
-            const questionId =
-              question.id || question.questionId || `q_${index}`;
-            responseData.responses.push({
-              questionId: questionId,
+            // Use section title if available, otherwise use default
+            const sectionTitle =
+              question.section || question.sectionTitle || "General Questions";
+
+            if (!sectionsMap.has(sectionTitle)) {
+              sectionsMap.set(sectionTitle, []);
+            }
+
+            sectionsMap.get(sectionTitle).push({
+              questionText:
+                question.text || question.question || `Question ${index + 1}`,
               answer: answer.trim(),
+            });
+          }
+        });
+
+        // Convert sections map to the required API format
+        sectionsMap.forEach((answers, sectionTitle) => {
+          responseData.responses.push({
+            sectionTitle: sectionTitle,
+            answers: answers,
+          });
+        });
+      }
+
+      // Handle sections-based evaluation format (newer format)
+      if (evaluation.sections && Array.isArray(evaluation.sections)) {
+        evaluation.sections.forEach((section, sectionIndex) => {
+          const sectionAnswers = [];
+
+          if (section.questions && Array.isArray(section.questions)) {
+            section.questions.forEach((question, questionIndex) => {
+              const questionId =
+                question.id ||
+                question.questionId ||
+                `q_${sectionIndex}_${questionIndex}`;
+              const rating = responses[`${questionId}_rating`];
+              const questionComments = responses[`${questionId}_comments`];
+              const strengths = responses[`${questionId}_strengths`];
+              const improvements = responses[`${questionId}_improvements`];
+
+              // Create answer text
+              let answer = "";
+
+              if (questionComments && questionComments.trim() !== "") {
+                answer = questionComments.trim();
+              }
+
+              if (strengths && strengths.trim() !== "") {
+                answer +=
+                  (answer ? " " : "") + `Strengths: ${strengths.trim()}`;
+              }
+
+              if (improvements && improvements.trim() !== "") {
+                answer +=
+                  (answer ? " " : "") +
+                  `Areas for improvement: ${improvements.trim()}`;
+              }
+
+              if (rating) {
+                answer += (answer ? " " : "") + `Rating: ${rating}/5`;
+              }
+
+              if (answer.trim()) {
+                sectionAnswers.push({
+                  questionText: question.text || question.question || question,
+                  answer: answer.trim(),
+                });
+              }
+            });
+          }
+
+          if (sectionAnswers.length > 0) {
+            responseData.responses.push({
+              sectionTitle:
+                section.title || section.name || `Section ${sectionIndex + 1}`,
+              answers: sectionAnswers,
             });
           }
         });
@@ -387,11 +522,25 @@ const EvaluationForm = () => {
       console.log("Response structure validation:", {
         responsesCount: responseData.responses.length,
         hasComments: !!responseData.comments,
-        allResponsesHaveQuestionId: responseData.responses.every(
-          (r) => r.questionId
+        allResponsesHaveSectionTitle: responseData.responses.every(
+          (r) => r.sectionTitle
         ),
-        allResponsesHaveAnswer: responseData.responses.every((r) => r.answer),
+        allResponsesHaveAnswers: responseData.responses.every(
+          (r) => r.answers && Array.isArray(r.answers)
+        ),
         sampleResponse: responseData.responses[0],
+        sampleSectionTitle: responseData.responses[0]?.sectionTitle,
+        sampleAnswersCount: responseData.responses[0]?.answers?.length || 0,
+      });
+
+      console.log("API Endpoint Details:", {
+        baseURL: apiConfig.baseURL,
+        endpoint: `${apiConfig.baseURL}/dashboard/staff/evaluations/reviews/${id}/response`,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken ? "present" : "missing"}`,
+          "Content-Type": "application/json",
+        },
       });
       console.log("Evaluation data:", {
         id: id,
@@ -433,6 +582,18 @@ const EvaluationForm = () => {
           "Submission payload:",
           JSON.stringify(submissionPayload, null, 2)
         );
+
+        console.log("Final API Payload Structure:", {
+          responsesCount: submissionPayload.responses.length,
+          responsesFormat: submissionPayload.responses.map((r) => ({
+            sectionTitle: r.sectionTitle,
+            answersCount: r.answers?.length || 0,
+            sampleAnswer: r.answers?.[0] || null,
+          })),
+          hasComments: !!submissionPayload.comments,
+          commentsLength: submissionPayload.comments?.length || 0,
+        });
+
         console.log(
           "Target URL:",
           `${apiConfig.baseURL}/dashboard/staff/evaluations/reviews/${id}/response`
@@ -450,25 +611,190 @@ const EvaluationForm = () => {
           }
         );
 
-        console.log("Submission successful:", response.data);
+        console.log("API Response Status:", response.status);
+        console.log("API Response Headers:", response.headers);
+        console.log("API Response Data:", response.data);
 
-        // Mark as completed
-        const completedEvaluations = JSON.parse(
-          localStorage.getItem("completedEvaluations") || "[]"
-        );
-        if (!completedEvaluations.includes(id)) {
-          completedEvaluations.push(id);
-          localStorage.setItem(
-            "completedEvaluations",
-            JSON.stringify(completedEvaluations)
+        // Validate the response
+        if (response.status === 200 || response.status === 201) {
+          console.log("Submission successful:", response.data);
+
+          // Mark as completed
+          const completedEvaluations = JSON.parse(
+            localStorage.getItem("completedEvaluations") || "[]"
           );
-        }
+          if (!completedEvaluations.includes(id)) {
+            completedEvaluations.push(id);
+            localStorage.setItem(
+              "completedEvaluations",
+              JSON.stringify(completedEvaluations)
+            );
+          }
 
-        result = {
-          success: true,
-          message: "Evaluation submitted successfully to HR!",
-          data: response.data,
-        };
+          // Store submission details for HR to fetch
+          try {
+            const submissionRecord = {
+              evaluationId: id,
+              employeeId: user?.id || user?.employeeId,
+              employeeName:
+                user?.name ||
+                `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+              department: user?.department,
+              role: user?.role || user?.jobTitle,
+              responses: submissionPayload.responses,
+              comments: submissionPayload.comments,
+              submittedAt: new Date().toISOString(),
+              status: "submitted",
+              backendResponse: response.data,
+            };
+
+            // Store in localStorage as backup
+            const submittedEvaluations = JSON.parse(
+              localStorage.getItem("submittedEvaluations") || "[]"
+            );
+            submittedEvaluations.push(submissionRecord);
+            localStorage.setItem(
+              "submittedEvaluations",
+              JSON.stringify(submittedEvaluations)
+            );
+
+            console.log("✅ Submission record saved:", submissionRecord);
+          } catch (storageError) {
+            console.warn("Failed to save submission record:", storageError);
+          }
+
+          // Trigger sidebar count refresh
+          try {
+            // Dispatch custom event to notify sidebar of count change
+            window.dispatchEvent(
+              new CustomEvent("evaluationCompleted", {
+                detail: { evaluationId: id },
+              })
+            );
+            console.log(
+              "Dispatched evaluationCompleted event for sidebar refresh"
+            );
+
+            // Also directly trigger sidebar count update as backup
+            setTimeout(() => {
+              if (window.fixEvaluationsCount) {
+                console.log(
+                  "🔄 Triggering direct sidebar count fix after submission..."
+                );
+                window.fixEvaluationsCount();
+              }
+            }, 1000); // Wait 1 second to ensure localStorage is updated
+
+            // Notify HR system about new submission
+            setTimeout(() => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent("newEvaluationSubmitted", {
+                    detail: {
+                      evaluationId: id,
+                      employeeName:
+                        user?.name ||
+                        `${user?.firstName || ""} ${
+                          user?.lastName || ""
+                        }`.trim(),
+                      submittedAt: new Date().toISOString(),
+                    },
+                  })
+                );
+                console.log(
+                  "📢 Notified HR system about new evaluation submission"
+                );
+              } catch (error) {
+                console.warn("Failed to notify HR system:", error);
+              }
+            }, 2000);
+
+            // Also add a global function for debugging sidebar counts
+            window.debugSidebarCounts = () => {
+              const completed = JSON.parse(
+                localStorage.getItem("completedEvaluations") || "[]"
+              );
+              const submitted = JSON.parse(
+                localStorage.getItem("submittedEvaluations") || "[]"
+              );
+              console.log("🔍 Debug sidebar counts:", {
+                completedEvaluations: completed,
+                submittedEvaluations: submitted,
+                completedCount: completed.length,
+                submittedCount: submitted.length,
+              });
+              return { completed, submitted };
+            };
+
+            // Add a function to force reset sidebar count
+            window.resetSidebarCounts = () => {
+              localStorage.removeItem("completedEvaluations");
+              localStorage.removeItem("submittedEvaluations");
+              console.log("🧹 Cleared all evaluation data from localStorage");
+              window.location.reload();
+            };
+
+            // Add a function to test sidebar count reduction
+            window.testSidebarCountReduction = () => {
+              console.log("🧪 Testing sidebar count reduction...");
+              const completed = JSON.parse(
+                localStorage.getItem("completedEvaluations") || "[]"
+              );
+              console.log("Current completed evaluations:", completed);
+
+              // Simulate adding a new completed evaluation
+              const testId = "test-evaluation-" + Date.now();
+              completed.push(testId);
+              localStorage.setItem(
+                "completedEvaluations",
+                JSON.stringify(completed)
+              );
+
+              console.log("Added test evaluation, triggering count update...");
+              window.dispatchEvent(
+                new CustomEvent("evaluationCompleted", {
+                  detail: { evaluationId: testId },
+                })
+              );
+
+              // Clean up after 5 seconds
+              setTimeout(() => {
+                const updated = JSON.parse(
+                  localStorage.getItem("completedEvaluations") || "[]"
+                );
+                const filtered = updated.filter((id) => id !== testId);
+                localStorage.setItem(
+                  "completedEvaluations",
+                  JSON.stringify(filtered)
+                );
+                console.log("🧹 Cleaned up test evaluation");
+              }, 5000);
+            };
+          } catch (eventError) {
+            console.warn(
+              "Failed to dispatch sidebar refresh event:",
+              eventError
+            );
+          }
+
+          // The submission should automatically be available to HR through the backend
+          console.log(
+            "✅ Submission completed successfully - HR should be able to fetch it now"
+          );
+          console.log("Backend response:", response.data);
+
+          result = {
+            success: true,
+            message: "Evaluation submitted successfully to HR!",
+            data: response.data,
+          };
+        } else {
+          console.warn("Unexpected response status:", response.status);
+          result = {
+            success: false,
+            error: `Unexpected response status: ${response.status}`,
+          };
+        }
       } catch (error) {
         console.error("Submission failed:", error);
         console.error("Full error object:", error);
@@ -577,8 +903,28 @@ const EvaluationForm = () => {
         stack: error.stack,
         response: error.response?.data,
         status: error.response?.status,
+        name: error.name,
+        code: error.code,
       });
-      toast.error("Network error: Please check your connection and try again");
+
+      // More specific error messages
+      if (error.message && error.message.includes("responseData")) {
+        toast.error(
+          "Error preparing submission data. Please check all required fields."
+        );
+      } else if (error.message && error.message.includes("axios")) {
+        toast.error("Network request failed. Please check your connection.");
+      } else if (error.name === "TypeError") {
+        toast.error(
+          `Data error: ${error.message}. Please refresh and try again.`
+        );
+      } else {
+        toast.error(
+          `Submission error: ${
+            error.message || "Please check your connection and try again"
+          }`
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -811,6 +1157,23 @@ const EvaluationForm = () => {
               Complete most required fields (70% minimum) to enable submission
             </p>
           )}
+
+          {/* Missing Fields Indicator */}
+          {Object.keys(validationErrors).length > 0 && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span className="text-sm font-medium text-red-800">
+                  Missing Required Fields (
+                  {Object.keys(validationErrors).length})
+                </span>
+              </div>
+              <div className="text-xs text-red-700">
+                Please fill in all required fields marked with{" "}
+                <span className="text-red-500">*</span> to submit the form.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content Card */}
@@ -933,7 +1296,13 @@ const EvaluationForm = () => {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        className={`block text-sm font-medium mb-1 ${
+                          validationErrors[`${question.id}_rating`]
+                            ? "text-red-600"
+                            : "text-gray-700"
+                        }`}
+                      >
                         Rating:{" "}
                         {responses[`${question.id}_rating`]
                           ? `${
@@ -942,7 +1311,14 @@ const EvaluationForm = () => {
                               responses[`${question.id}_rating`]
                             )}`
                           : "Not Rated"}
+                        <span className="text-red-500">*</span>
                       </label>
+                      {validationErrors[`${question.id}_rating`] && (
+                        <p className="text-red-600 text-sm mb-2 flex items-center gap-1">
+                          <AlertTriangle className="w-4 h-4" />
+                          {validationErrors[`${question.id}_rating`]}
+                        </p>
+                      )}
                       <div className="flex gap-2">
                         {[1, 2, 3, 4, 5].map((rating) => (
                           <Button
@@ -972,8 +1348,15 @@ const EvaluationForm = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        className={`block text-sm font-medium mb-1 ${
+                          validationErrors[`${question.id}_comments`]
+                            ? "text-red-600"
+                            : "text-gray-700"
+                        }`}
+                      >
                         Comments & Examples
+                        <span className="text-red-500">*</span>
                       </label>
                       <Textarea
                         placeholder="Provide specific examples and detailed feedback..."
@@ -1039,9 +1422,22 @@ const EvaluationForm = () => {
               </h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    validationErrors.overall_rating
+                      ? "text-red-600"
+                      : "text-gray-700"
+                  }`}
+                >
                   Overall Final Performance Rating
+                  <span className="text-red-500">*</span>
                 </label>
+                {validationErrors.overall_rating && (
+                  <p className="text-red-600 text-sm mb-2 flex items-center gap-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    {validationErrors.overall_rating}
+                  </p>
+                )}
                 <div className="flex items-center gap-4">
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((rating) => (
@@ -1078,8 +1474,15 @@ const EvaluationForm = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      validationErrors.key_achievements
+                        ? "text-red-600"
+                        : "text-gray-700"
+                    }`}
+                  >
                     Key Achievements
+                    <span className="text-red-500">*</span>
                   </label>
                   <Textarea
                     placeholder="List major accomplishments and contributions..."
@@ -1087,12 +1490,27 @@ const EvaluationForm = () => {
                     onChange={(e) =>
                       handleResponseChange("key_achievements", e.target.value)
                     }
-                    className="min-h-[100px]"
+                    className={`min-h-[100px] ${
+                      validationErrors.key_achievements ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.key_achievements && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      {validationErrors.key_achievements}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      validationErrors.major_challenges
+                        ? "text-red-600"
+                        : "text-gray-700"
+                    }`}
+                  >
                     Major Challenges
+                    <span className="text-red-500">*</span>
                   </label>
                   <Textarea
                     placeholder="Describe challenges faced and how they were addressed..."
@@ -1100,15 +1518,30 @@ const EvaluationForm = () => {
                     onChange={(e) =>
                       handleResponseChange("major_challenges", e.target.value)
                     }
-                    className="min-h-[100px]"
+                    className={`min-h-[100px] ${
+                      validationErrors.major_challenges ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.major_challenges && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      {validationErrors.major_challenges}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      validationErrors.development_goals
+                        ? "text-red-600"
+                        : "text-gray-700"
+                    }`}
+                  >
                     Development Goals
+                    <span className="text-red-500">*</span>
                   </label>
                   <Textarea
                     placeholder="Outline goals for professional development..."
@@ -1116,8 +1549,16 @@ const EvaluationForm = () => {
                     onChange={(e) =>
                       handleResponseChange("development_goals", e.target.value)
                     }
-                    className="min-h-[80px]"
+                    className={`min-h-[80px] ${
+                      validationErrors.development_goals ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.development_goals && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      {validationErrors.development_goals}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -89,8 +89,8 @@ export default function EvaluationCreator({ onBack }) {
       const formTypeMapping = {
         annual: "Annual",
         quarterly: "Quarterly",
-        probationary: "Probationary",
-        "project-based": "Project-based",
+        probationary: "Probation",
+        "project-based": "Project-Based",
       };
 
       // Prepare the request body according to the API specification

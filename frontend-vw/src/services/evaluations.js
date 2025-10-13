@@ -309,6 +309,88 @@ export const evaluationsApi = {
       };
     }
   },
+
+  /**
+   * Fetch staff-submitted evaluation responses
+   * This endpoint tries multiple API routes to find staff submissions
+   * @param {string} accessToken - JWT access token
+   * @param {Object} params - Query parameters (page, limit)
+   * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+   */
+  getStaffSubmittedEvaluations: async (accessToken, params = {}) => {
+    try {
+      const queryParams = {
+        status: "submitted",
+        page: params.page || 1,
+        limit: params.limit || 100, // Get more to ensure we catch all submissions
+        ...params,
+      };
+
+      console.log(
+        "Fetching staff-submitted evaluations with params:",
+        queryParams
+      );
+
+      // Try the submissions endpoint first
+      try {
+        const response = await axios.get(
+          `${EVALUATIONS_API_BASE}/reviews/submissions`,
+          {
+            headers: getAuthHeaders(accessToken),
+            params: queryParams,
+          }
+        );
+
+        console.log("Staff-submitted evaluations response:", response.data);
+        return { success: true, data: response.data };
+      } catch (submissionsError) {
+        console.warn(
+          "Submissions endpoint failed, trying main reviews endpoint:",
+          submissionsError.message
+        );
+
+        // Fallback: Try to get all reviews and filter for submitted ones
+        const allReviewsResponse = await axios.get(
+          `${EVALUATIONS_API_BASE}/reviews`,
+          {
+            headers: getAuthHeaders(accessToken),
+            params: queryParams,
+          }
+        );
+
+        // Filter for submitted/completed reviews
+        let reviewsData = Array.isArray(allReviewsResponse.data)
+          ? allReviewsResponse.data
+          : allReviewsResponse.data?.data || [];
+
+        const submittedReviews = reviewsData.filter(
+          (review) =>
+            review.status === "submitted" || review.status === "completed"
+        );
+
+        console.log(
+          "Filtered submitted evaluations from all reviews:",
+          submittedReviews.length
+        );
+        return { success: true, data: submittedReviews };
+      }
+    } catch (error) {
+      console.error(
+        "Error fetching staff-submitted evaluations:",
+        error.response?.data || error.message
+      );
+
+      // Return empty array instead of error to prevent UI from breaking
+      console.log(
+        "Returning empty array for staff submissions due to API error"
+      );
+      return {
+        success: true,
+        data: [],
+        warning: "API endpoint not available, showing empty results",
+      };
+    }
+  },
 };
 
 export default evaluationsApi;

@@ -11,6 +11,7 @@ import {
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // Layout and Auth
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
@@ -29,6 +30,7 @@ const EvaluationsOverview = () => {
   // State management
   const [evaluations, setEvaluations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     inProgress: 0,
     reviewsDue: 0,
@@ -37,19 +39,30 @@ const EvaluationsOverview = () => {
   });
 
   // Fetch evaluations data
-  const fetchEvaluations = async () => {
+  const fetchEvaluations = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       console.log(
         "Fetching evaluations with token:",
         accessToken ? "present" : "missing"
       );
 
+      console.log(
+        "Calling staffEvaluationsApi.getAssignedEvaluations with token:",
+        accessToken ? "present" : "missing"
+      );
       const result = await staffEvaluationsApi.getAssignedEvaluations(
         accessToken
       );
 
       console.log("API Result:", result);
+      console.log("API Result success:", result.success);
+      console.log("API Result data:", result.data);
+      console.log("API Result error:", result.error);
 
       if (result.success) {
         // Handle different possible response structures
@@ -87,6 +100,51 @@ const EvaluationsOverview = () => {
           }
         }
 
+        console.log("Processed evaluationsData:", evaluationsData);
+        console.log("EvaluationsData length:", evaluationsData.length);
+
+        // If no evaluations found, try to use fallback data for testing
+        if (evaluationsData.length === 0) {
+          console.log("No evaluations from API, checking for fallback data...");
+
+          // Check if we have any completed evaluations in localStorage
+          const completedEvaluations = JSON.parse(
+            localStorage.getItem("completedEvaluations") || "[]"
+          );
+
+          if (completedEvaluations.length > 0) {
+            console.log(
+              "Found completed evaluations in localStorage:",
+              completedEvaluations
+            );
+            // Create a basic evaluation structure from completed IDs
+            evaluationsData = completedEvaluations.map((id, index) => ({
+              id: id,
+              _id: id,
+              formName: `Performance Review ${index + 1}`,
+              title: `Performance Review ${index + 1}`,
+              description: "Complete your performance evaluation",
+              formType: "Performance Review",
+              reviewPeriod: "Q1 2024",
+              status: "completed",
+              reviewDeadline: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+              ).toISOString(), // 30 days from now
+              createdAt: new Date().toISOString(),
+              sections: [],
+              questions: [],
+            }));
+            console.log("Created fallback evaluations:", evaluationsData);
+          }
+        }
+
+        // If no evaluations found and this is a refresh, show a warning but don't fail
+        if (evaluationsData.length === 0 && isRefresh) {
+          console.warn(
+            "No evaluations found during refresh - this might be normal if no evaluations are assigned"
+          );
+        }
+
         // Standardize evaluation data structure from HR
         const standardizedEvaluations = evaluationsData.map((evaluation) => ({
           id: evaluation.id || evaluation._id,
@@ -108,28 +166,56 @@ const EvaluationsOverview = () => {
           updatedAt: evaluation.updatedAt,
         }));
 
-        console.log("Standardized evaluations data:", standardizedEvaluations);
-        setEvaluations(standardizedEvaluations);
+        // Filter out submitted/completed evaluations
+        const pendingEvaluations = standardizedEvaluations.filter((evaluation) => {
+          const evaluationId = evaluation.id || evaluation._id || evaluation.evaluationId;
+          const isCompleted = staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+          const isApiCompleted = evaluation.status === "completed" || evaluation.status === "submitted";
+          
+          // Only show evaluations that are NOT completed or submitted
+          return !isCompleted && !isApiCompleted;
+        });
 
-        // Calculate stats with better status mapping using standardized data
-        const inProgress = standardizedEvaluations.filter(
-          (e) =>
+        console.log(`Filtered evaluations: ${pendingEvaluations.length} pending out of ${standardizedEvaluations.length} total`);
+
+        // Sort evaluations by creation date (newest first)
+        const sortedEvaluations = pendingEvaluations.sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.assignedAt || 0);
+          const dateB = new Date(b.createdAt || b.assignedAt || 0);
+          return dateB - dateA; // Newest first
+        });
+
+        console.log(
+          "Standardized evaluations data (sorted by date):",
+          sortedEvaluations
+        );
+        setEvaluations(sortedEvaluations);
+
+        // Calculate stats - use pending evaluations (submitted ones are already filtered out)
+        const inProgress = pendingEvaluations.filter((e) => {
+          const isPending =
             e.status === "in_progress" ||
             e.status === "pending" ||
-            e.status === "assigned"
-        ).length;
+            e.status === "assigned";
+          return isPending;
+        }).length;
 
-        const reviewsDue = standardizedEvaluations.filter(
-          (e) =>
+        const reviewsDue = pendingEvaluations.filter((e) => {
+          const isDue =
             e.status === "pending" ||
             e.status === "due" ||
             e.status === "assigned" ||
-            (e.dueDate && new Date(e.dueDate) <= new Date())
-        ).length;
+            (e.dueDate && new Date(e.dueDate) <= new Date());
+          return isDue;
+        }).length;
 
-        const completed = standardizedEvaluations.filter(
-          (e) => e.status === "completed" || e.status === "submitted"
-        ).length;
+        // For completed count, use the original standardized list to count all completed
+        const completed = standardizedEvaluations.filter((e) => {
+          const isCompleted = staffEvaluationsApi.isEvaluationCompleted(e.id);
+          const isApiCompleted =
+            e.status === "completed" || e.status === "submitted";
+          return isCompleted || isApiCompleted;
+        }).length;
 
         const avgRating =
           standardizedEvaluations.length > 0
@@ -153,25 +239,102 @@ const EvaluationsOverview = () => {
           completed,
           avgRating,
         });
+
+        // Only log for auto-refresh, don't show toast
+        if (isRefresh && !document.hidden) {
+          console.log(
+            "Staff evaluations refreshed successfully (silent auto-refresh)"
+          );
+        }
       } else {
         console.error("API returned error:", result.error);
-        toast.error(result.error || "Failed to fetch evaluations");
+        
+        // Check if it's a 403 permission error
+        if (result.error && (result.error.includes("Access denied") || result.error.includes("permission") || result.error.includes("403"))) {
+          console.error("⚠️ BACKEND PERMISSION ERROR: Staff user doesn't have permission to access evaluations API");
+          console.error("⚠️ This needs to be fixed on the backend by granting staff users access to /api/v1/dashboard/staff/evaluations/reviews");
+          
+          // Check localStorage for submitted evaluations
+          const submittedEvaluations = JSON.parse(
+            localStorage.getItem("submittedEvaluations") || "[]"
+          );
+          
+          if (submittedEvaluations.length > 0) {
+            console.log("📋 Found submitted evaluations in localStorage:", submittedEvaluations);
+            if (!isRefresh) {
+              toast.warning("Backend permission issue. Contact your administrator.");
+            }
+          }
+        }
+        
+        if (isRefresh) {
+          // Only show error toast for refresh if it's a real error (not just no evaluations)
+          if (result.error && !result.error.includes("No evaluations")) {
+            // Don't show toast for permission errors on auto-refresh
+            if (!result.error.includes("Access denied") && !result.error.includes("permission")) {
+              toast.error("Failed to refresh evaluations");
+            }
+          }
+        } else {
+          // Don't show error toast for permission errors (already handled above)
+          if (!result.error || (!result.error.includes("Access denied") && !result.error.includes("permission"))) {
+            toast.error(result.error || "Failed to fetch evaluations");
+          }
+        }
         setEvaluations([]);
       }
     } catch (error) {
       console.error("Error fetching evaluations:", error);
-      toast.error("Failed to load evaluations");
+      if (isRefresh) {
+        // Only show error for refresh if it's a network/server error
+        if (error.code === "NETWORK_ERROR" || error.response?.status >= 500) {
+          toast.error("Network error refreshing evaluations");
+        } else {
+          console.log(
+            "Refresh failed silently (might be normal):",
+            error.message
+          );
+        }
+      } else {
+        toast.error("Failed to load evaluations");
+      }
       setEvaluations([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // Initial fetch and auto-refresh setup
   useEffect(() => {
     if (accessToken) {
+      // Check localStorage first for any existing evaluations
+      const completedEvaluations = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
+      console.log(
+        "Found completed evaluations in localStorage:",
+        completedEvaluations
+      );
+
       fetchEvaluations();
+
+      // Set up auto-refresh every 10 seconds for real-time updates
+      const interval = setInterval(() => {
+        console.log("Auto-refreshing staff evaluations...");
+        fetchEvaluations(true);
+      }, 10000); // 10 seconds for more frequent updates
+
+      return () => clearInterval(interval);
     }
   }, [accessToken]);
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    console.log("Manual refresh triggered");
+    await fetchEvaluations(true);
+    toast.success("Evaluations refreshed successfully!");
+  };
 
   // Handle evaluation click
   const handleEvaluationClick = (evaluationId) => {
@@ -181,6 +344,66 @@ const EvaluationsOverview = () => {
       return;
     }
     navigate(`/staff/evaluations/${evaluationId}`);
+  };
+
+  // Handle evaluation deletion
+  const handleDeleteEvaluation = async (evaluation) => {
+    const evaluationId =
+      evaluation.id || evaluation._id || evaluation.evaluationId;
+
+    if (!evaluationId) {
+      toast.error("Evaluation ID is missing");
+      return;
+    }
+
+    // Check if evaluation is completed/submitted
+    const isCompleted = staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+
+    // Show confirmation dialog with appropriate message
+    const message = isCompleted
+      ? `Are you sure you want to remove "${
+          evaluation.title || evaluation.formName
+        }" from your list? This evaluation has already been submitted to HR and cannot be modified.`
+      : `Are you sure you want to delete "${
+          evaluation.title || evaluation.formName
+        }"? This action cannot be undone.`;
+
+    const confirmed = window.confirm(message);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      console.log("Deleting evaluation:", evaluationId);
+
+      const result = await staffEvaluationsApi.deleteEvaluation(
+        evaluationId,
+        accessToken
+      );
+
+      if (result.success) {
+        toast.success(result.message || "Evaluation deleted successfully");
+
+        // Refresh the evaluations list
+        await fetchEvaluations(true);
+      } else {
+        // Check if it's a 404 error (evaluation already submitted)
+        if (result.error && result.error.includes("not found")) {
+          toast.warning(
+            "Evaluation not found - it may have already been submitted to HR. Removing from your list."
+          );
+
+          // Still refresh the list to remove it from the UI
+          await fetchEvaluations(true);
+        } else {
+          toast.error(result.error || "Failed to delete evaluation");
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting evaluation:", error);
+      toast.error("Failed to delete evaluation. Please try again.");
+    }
   };
 
   // Get status badge color
@@ -272,10 +495,43 @@ const EvaluationsOverview = () => {
             <p className="text-gray-600 mt-1">Manage and track evaluations.</p>
           </div>
 
-          {/* Status Indicator */}
-          <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm font-medium text-gray-700">Active</span>
+          {/* Status Indicator and Refresh Button */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              {refreshing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Refreshing...</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span>Refresh</span>
+                </>
+              )}
+            </Button>
+            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-lg">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm font-medium text-gray-700">Active</span>
+            </div>
           </div>
         </div>
 
@@ -445,11 +701,39 @@ const EvaluationsOverview = () => {
                       </div>
                     </div>
 
-                    <ArrowRight
-                      className={`w-5 h-5 ${
-                        isOverdue ? "text-red-600" : "text-gray-600"
-                      }`}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click
+                          handleDeleteEvaluation(evaluation);
+                        }}
+                        title={
+                          isCompleted ? "Remove from list" : "Delete evaluation"
+                        }
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </Button>
+                      <ArrowRight
+                        className={`w-5 h-5 ${
+                          isOverdue ? "text-red-600" : "text-gray-600"
+                        }`}
+                      />
+                    </div>
                   </div>
                 );
               })}

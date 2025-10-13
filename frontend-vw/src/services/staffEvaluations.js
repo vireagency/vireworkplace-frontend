@@ -11,7 +11,6 @@
 
 import axios from "axios";
 import { apiConfig } from "@/config/apiConfig";
-import { hrEvaluationsApi } from "./hrEvaluations";
 
 // Base URL for staff evaluations API
 const STAFF_EVALUATIONS_API_BASE = `${apiConfig.baseURL}/dashboard/staff/evaluations/reviews`;
@@ -167,19 +166,42 @@ export const staffEvaluationsApi = {
       // Handle different error types
       if (error.response) {
         // Server responded with error status
-        const errorMessage =
-          error.response.data?.message ||
-          error.response.data?.error ||
-          `Server error: ${error.response.status}`;
+        const status = error.response.status;
+        let errorMessage;
+
+        switch (status) {
+          case 401:
+            errorMessage = "Unauthorized: Please log in again";
+            break;
+          case 403:
+            errorMessage =
+              "Access denied: You don't have permission to view evaluations";
+            break;
+          case 404:
+            errorMessage = "No evaluations assigned to you";
+            break;
+          case 500:
+            errorMessage = "Server error: Please try again later";
+            break;
+          default:
+            errorMessage =
+              error.response.data?.message ||
+              error.response.data?.error ||
+              `Server error: ${status}`;
+        }
+
+        console.error(`Staff evaluations API error (${status}):`, errorMessage);
         return { success: false, error: errorMessage };
       } else if (error.request) {
         // Request was made but no response received
+        console.error("Network error - no response received:", error.request);
         return {
           success: false,
           error: "Network error: Unable to reach server",
         };
       } else {
         // Something else happened
+        console.error("Unexpected error:", error.message);
         return { success: false, error: error.message };
       }
     }
@@ -258,6 +280,153 @@ export const staffEvaluationsApi = {
   },
 
   /**
+   * Delete an evaluation (if allowed by backend)
+   * @param {string} evaluationId - Evaluation ID to delete
+   * @param {string} accessToken - JWT access token
+   * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+   */
+  deleteEvaluation: async (evaluationId, accessToken) => {
+    try {
+      if (!evaluationId) {
+        return { success: false, error: "Evaluation ID is required" };
+      }
+
+      console.log(`Deleting evaluation with ID: ${evaluationId}`);
+      console.log(
+        `Delete API endpoint: ${STAFF_EVALUATIONS_API_BASE}/${evaluationId}`
+      );
+
+      const response = await axios.delete(
+        `${STAFF_EVALUATIONS_API_BASE}/${evaluationId}`,
+        {
+          headers: getAuthHeaders(accessToken),
+          timeout: 30000,
+        }
+      );
+
+      console.log("Evaluation deletion result:", response.data);
+
+      // Remove from completed evaluations if it was completed
+      try {
+        const completedEvaluations = JSON.parse(
+          localStorage.getItem("completedEvaluations") || "[]"
+        );
+        const updatedCompleted = completedEvaluations.filter(
+          (id) => id !== evaluationId
+        );
+        localStorage.setItem(
+          "completedEvaluations",
+          JSON.stringify(updatedCompleted)
+        );
+        console.log(
+          `Removed evaluation ${evaluationId} from completed evaluations`
+        );
+      } catch (storageError) {
+        console.warn("Failed to update completion status:", storageError);
+      }
+
+      // Trigger sidebar count refresh
+      try {
+        window.dispatchEvent(
+          new CustomEvent("evaluationDeleted", {
+            detail: { evaluationId: evaluationId },
+          })
+        );
+        console.log("Dispatched evaluationDeleted event for sidebar refresh");
+      } catch (eventError) {
+        console.warn("Failed to dispatch sidebar refresh event:", eventError);
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.data?.message || "Evaluation deleted successfully",
+      };
+    } catch (error) {
+      console.error("Error deleting evaluation:", error);
+
+      if (error.response) {
+        const status = error.response.status;
+        let errorMessage;
+
+        switch (status) {
+          case 401:
+            errorMessage = "Unauthorized: Please log in again";
+            break;
+          case 403:
+            errorMessage = "Access denied: You cannot delete this evaluation";
+            break;
+          case 404:
+            errorMessage =
+              "Evaluation not found - it may have already been submitted to HR";
+            // For 404 errors, still remove from local storage as the evaluation is effectively "gone"
+            try {
+              const completedEvaluations = JSON.parse(
+                localStorage.getItem("completedEvaluations") || "[]"
+              );
+              const updatedCompleted = completedEvaluations.filter(
+                (id) => id !== evaluationId
+              );
+              localStorage.setItem(
+                "completedEvaluations",
+                JSON.stringify(updatedCompleted)
+              );
+              console.log(
+                `Removed evaluation ${evaluationId} from completed evaluations (404 fallback)`
+              );
+
+              // Trigger sidebar refresh even on 404
+              try {
+                window.dispatchEvent(
+                  new CustomEvent("evaluationDeleted", {
+                    detail: { evaluationId: evaluationId },
+                  })
+                );
+                console.log(
+                  "Dispatched evaluationDeleted event for sidebar refresh (404 fallback)"
+                );
+              } catch (eventError) {
+                console.warn(
+                  "Failed to dispatch sidebar refresh event:",
+                  eventError
+                );
+              }
+            } catch (storageError) {
+              console.warn(
+                "Failed to update completion status on 404:",
+                storageError
+              );
+            }
+            break;
+          case 500:
+            errorMessage = "Server error: Please try again later";
+            break;
+          default:
+            errorMessage =
+              error.response.data?.message ||
+              error.response.data?.error ||
+              `Server error: ${status}`;
+        }
+
+        console.error(
+          `Evaluation deletion API error (${status}):`,
+          errorMessage
+        );
+        return { success: false, error: errorMessage };
+      } else if (error.request) {
+        console.error("Network error - no response received:", error.request);
+        return {
+          success: false,
+          error: "Network error: Unable to reach server",
+        };
+      } else {
+        console.error("Unexpected error:", error.message);
+        return { success: false, error: error.message };
+      }
+    }
+  },
+
+  /**
    * Submit evaluation response
    * @param {string} evaluationId - Evaluation ID
    * @param {Object} responseData - Response data to submit
@@ -270,12 +439,30 @@ export const staffEvaluationsApi = {
         return { success: false, error: "Evaluation ID is required" };
       }
 
-      // Validate required fields
+      // Validate required fields according to new API format
       if (!responseData.responses || !Array.isArray(responseData.responses)) {
         return {
           success: false,
           error: "Responses must be a non-empty array",
         };
+      }
+
+      // Validate response format - should have sectionTitle and answers
+      const hasValidFormat = responseData.responses.every(
+        (response) =>
+          response.sectionTitle &&
+          response.answers &&
+          Array.isArray(response.answers) &&
+          response.answers.every(
+            (answer) => answer.questionText && answer.answer
+          )
+      );
+
+      if (!hasValidFormat) {
+        console.warn(
+          "Response format validation failed. Expected format: { sectionTitle, answers: [{ questionText, answer }] }"
+        );
+        console.log("Current response format:", responseData.responses);
       }
 
       console.log(`Submitting evaluation response for ID: ${evaluationId}`);
@@ -286,6 +473,9 @@ export const staffEvaluationsApi = {
         hasComments: !!responseData.comments,
         commentsLength: responseData.comments?.length || 0,
         sampleResponse: responseData.responses?.[0] || null,
+        sampleSectionTitle: responseData.responses?.[0]?.sectionTitle || null,
+        sampleAnswersCount: responseData.responses?.[0]?.answers?.length || 0,
+        sampleAnswer: responseData.responses?.[0]?.answers?.[0] || null,
       });
 
       const response = await axios.post(
@@ -301,6 +491,17 @@ export const staffEvaluationsApi = {
       );
 
       console.log("Evaluation response submission result:", response.data);
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+
+      // Validate response status
+      if (response.status !== 200 && response.status !== 201) {
+        console.warn("Unexpected response status:", response.status);
+        return {
+          success: false,
+          error: `Unexpected response status: ${response.status}`,
+        };
+      }
 
       // Mark evaluation as completed in local storage
       try {
@@ -319,18 +520,8 @@ export const staffEvaluationsApi = {
         console.warn("Failed to update completion status:", storageError);
       }
 
-      // Sync with HR system (don't fail if this fails)
-      try {
-        await hrEvaluationsApi.syncStaffSubmission(
-          evaluationId,
-          responseData,
-          accessToken
-        );
-        console.log("Successfully synced submission with HR system");
-      } catch (syncError) {
-        console.warn("Failed to sync with HR system:", syncError);
-        // Don't fail the main submission
-      }
+      // The backend should handle the HR sync automatically
+      console.log("Submission completed - backend should sync with HR system");
 
       return {
         success: true,
