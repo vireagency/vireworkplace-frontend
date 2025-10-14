@@ -26,6 +26,7 @@ const initialState = {
     evaluations: 0,
     attendance: 0,
     messages: 0,
+    reports: 0,
   },
   loading: true,
   error: null,
@@ -178,6 +179,29 @@ export const StaffSidebarProvider = ({ children }) => {
     }
   }, []);
 
+  const fetchReportsCount = useCallback(async (apiClient) => {
+    try {
+      const response = await apiClient.get("/api/v1/dashboard/reports");
+      if (response.data && response.data.success) {
+        const reports = response.data.data || [];
+        // Count all reports for now
+        const totalCount = Array.isArray(reports) ? reports.length : 0;
+        console.log("📊 Reports count fetched (context):", totalCount);
+        return totalCount;
+      }
+      console.log("📊 Reports API returned no data (context), returning 0");
+      return 0;
+    } catch (error) {
+      // Silently fail if reports endpoint doesn't exist or has issues
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        console.log("📊 Reports endpoint not available (context), returning 0");
+      } else {
+        console.error("Error fetching reports count (context):", error.message);
+      }
+      return 0;
+    }
+  }, []);
+
   // Fetch all counts
   const fetchAllCounts = useCallback(
     async (force = false) => {
@@ -203,13 +227,19 @@ export const StaffSidebarProvider = ({ children }) => {
 
         const apiClient = createApiClient();
 
-        const [tasksCount, evaluationsCount, attendanceCount, messagesCount] =
-          await Promise.all([
-            fetchTasksCount(apiClient),
-            fetchEvaluationsCount(apiClient),
-            fetchAttendanceCount(apiClient),
-            fetchMessagesCount(apiClient),
-          ]);
+        const [
+          tasksCount,
+          evaluationsCount,
+          attendanceCount,
+          messagesCount,
+          reportsCount,
+        ] = await Promise.all([
+          fetchTasksCount(apiClient),
+          fetchEvaluationsCount(apiClient),
+          fetchAttendanceCount(apiClient),
+          fetchMessagesCount(apiClient),
+          fetchReportsCount(apiClient),
+        ]);
 
         // Debug logging
         console.log("Sidebar counts fetched:", {
@@ -217,6 +247,7 @@ export const StaffSidebarProvider = ({ children }) => {
           evaluations: evaluationsCount,
           attendance: attendanceCount,
           messages: messagesCount,
+          reports: reportsCount,
         });
 
         dispatch({
@@ -226,6 +257,7 @@ export const StaffSidebarProvider = ({ children }) => {
             evaluations: evaluationsCount,
             attendance: attendanceCount,
             messages: messagesCount,
+            reports: reportsCount,
           },
         });
       } catch (error) {
@@ -240,6 +272,7 @@ export const StaffSidebarProvider = ({ children }) => {
       fetchEvaluationsCount,
       fetchAttendanceCount,
       fetchMessagesCount,
+      fetchReportsCount,
       state.lastFetchTime,
       state.initialized,
     ]

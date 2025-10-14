@@ -1243,6 +1243,38 @@ export default function StaffEvaluationsPage() {
 
       if (response.data && (response.data.success || response.status === 200)) {
         toast.success("Evaluation response submitted successfully!");
+
+        // Mark evaluation as completed in local storage
+        try {
+          const completedEvaluations = JSON.parse(
+            localStorage.getItem("completedEvaluations") || "[]"
+          );
+          if (!completedEvaluations.includes(id)) {
+            completedEvaluations.push(id);
+            localStorage.setItem(
+              "completedEvaluations",
+              JSON.stringify(completedEvaluations)
+            );
+            console.log(`Marked evaluation ${id} as completed`);
+          }
+        } catch (storageError) {
+          console.warn("Failed to update completion status:", storageError);
+        }
+
+        // Trigger sidebar count refresh
+        try {
+          window.dispatchEvent(
+            new CustomEvent("evaluationCompleted", {
+              detail: { evaluationId: id },
+            })
+          );
+          console.log(
+            "Dispatched evaluationCompleted event for sidebar refresh"
+          );
+        } catch (eventError) {
+          console.warn("Failed to dispatch sidebar refresh event:", eventError);
+        }
+
         return true;
       } else {
         toast.error("Failed to submit evaluation response.");

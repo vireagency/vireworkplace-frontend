@@ -28,8 +28,15 @@ export const useStandardizedSidebar = () => {
       evaluations: counts.evaluations,
       attendance: counts.attendance,
       messages: counts.messages,
+      reports: counts.reports,
     }),
-    [counts.tasks, counts.evaluations, counts.attendance, counts.messages]
+    [
+      counts.tasks,
+      counts.evaluations,
+      counts.attendance,
+      counts.messages,
+      counts.reports,
+    ]
   );
 
   return {

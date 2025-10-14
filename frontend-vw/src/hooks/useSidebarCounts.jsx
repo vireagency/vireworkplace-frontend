@@ -15,6 +15,7 @@ export const useSidebarCounts = () => {
     evaluations: 0,
     attendance: 0,
     messages: 0,
+    reports: 0,
     loading: true,
     error: null,
   });
@@ -88,8 +89,17 @@ export const useSidebarCounts = () => {
             );
 
             // Only show evaluations that are NOT completed or submitted
+            // If it's in localStorage as completed, DON'T show it (even if API says pending)
             const shouldShow = !isCompleted && !isApiCompleted;
             console.log(`   → Should show: ${shouldShow}`);
+
+            // Additional check: if localStorage says completed, trust that over API status
+            if (isCompleted) {
+              console.log(
+                `   → Hidden because localStorage says it's completed`
+              );
+            }
+
             return shouldShow;
           });
 
@@ -154,6 +164,29 @@ export const useSidebarCounts = () => {
     }
   }, []);
 
+  const fetchReportsCount = useCallback(async (apiClient) => {
+    try {
+      const response = await apiClient.get("/api/v1/dashboard/reports");
+      if (response.data && response.data.success) {
+        const reportsData = response.data.data || [];
+        // Count all reports for now
+        const totalCount = reportsData.length;
+        console.log("📊 Reports count fetched:", totalCount);
+        return totalCount;
+      }
+      console.log("📊 Reports API returned no data, returning 0");
+      return 0;
+    } catch (error) {
+      // Silently fail if reports endpoint doesn't exist or has issues
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        console.log("📊 Reports endpoint not available, returning 0");
+      } else {
+        console.error("Error fetching reports count:", error.message);
+      }
+      return 0;
+    }
+  }, []);
+
   // Fetch all counts
   const fetchAllCounts = useCallback(
     async (force = false) => {
@@ -180,13 +213,19 @@ export const useSidebarCounts = () => {
 
         const apiClient = createApiClient();
 
-        const [tasksCount, evaluationsCount, attendanceCount, messagesCount] =
-          await Promise.all([
-            fetchTasksCount(apiClient),
-            fetchEvaluationsCount(apiClient),
-            fetchAttendanceCount(apiClient),
-            fetchMessagesCount(apiClient),
-          ]);
+        const [
+          tasksCount,
+          evaluationsCount,
+          attendanceCount,
+          messagesCount,
+          reportsCount,
+        ] = await Promise.all([
+          fetchTasksCount(apiClient),
+          fetchEvaluationsCount(apiClient),
+          fetchAttendanceCount(apiClient),
+          fetchMessagesCount(apiClient),
+          fetchReportsCount(apiClient),
+        ]);
 
         // Check if there are completed evaluations and adjust count accordingly
         const completedEvaluations = JSON.parse(
@@ -201,6 +240,7 @@ export const useSidebarCounts = () => {
           evaluations: finalEvaluationsCount,
           attendance: attendanceCount,
           messages: messagesCount,
+          reports: reportsCount,
           completedEvaluations: completedEvaluations.length,
           originalEvaluationsCount: evaluationsCount,
         });
@@ -210,6 +250,7 @@ export const useSidebarCounts = () => {
           evaluations: finalEvaluationsCount,
           attendance: attendanceCount,
           messages: messagesCount,
+          reports: reportsCount,
           loading: false,
           error: null,
         }));
@@ -232,6 +273,7 @@ export const useSidebarCounts = () => {
       fetchEvaluationsCount,
       fetchAttendanceCount,
       fetchMessagesCount,
+      fetchReportsCount,
     ]
   );
 
@@ -253,8 +295,10 @@ export const useSidebarCounts = () => {
         ...prev,
         evaluations: Math.max(0, prev.evaluations - 1), // Prevent negative counts
       }));
-      
-      console.log("✅ Decremented evaluation count by 1 for instant UI feedback");
+
+      console.log(
+        "✅ Decremented evaluation count by 1 for instant UI feedback"
+      );
 
       // Also refresh all counts in background to sync with API
       setTimeout(() => {
@@ -269,17 +313,56 @@ export const useSidebarCounts = () => {
         ...prev,
         evaluations: Math.max(0, prev.evaluations - 1), // Prevent negative counts
       }));
-      
+
       console.log("✅ Decremented evaluation count by 1 after deletion");
-      
+
       // Also refresh all counts in background to sync with API
       setTimeout(() => {
         fetchAllCounts(true);
       }, 2000); // Wait 2 seconds for backend to process
     };
 
+    // Listen for direct count updates from the Evaluations Overview page
+    // This ensures the sidebar count matches exactly what's shown on the page
+    const handleEvaluationsCountUpdate = (event) => {
+      const { total, completed, pending, source } = event.detail;
+      console.log(`📥 Received evaluations count update from ${source}:`, {
+        total,
+        completed,
+        pending,
+      });
+
+      // Update the sidebar count to match the page's calculation
+      setCounts((prev) => ({
+        ...prev,
+        evaluations: pending, // Use the exact pending count from the page
+      }));
+
+      console.log(
+        `✅ Sidebar count updated to ${pending} (${completed} completed out of ${total} total)`
+      );
+    };
+
+    // Listen for reports count updates from the Reports page
+    const handleReportsCountUpdate = (event) => {
+      const { count } = event.detail;
+      console.log(`📥 Received reports count update:`, count);
+
+      setCounts((prev) => ({
+        ...prev,
+        reports: count,
+      }));
+
+      console.log(`✅ Sidebar reports count updated to ${count}`);
+    };
+
     window.addEventListener("evaluationCompleted", handleEvaluationCompleted);
     window.addEventListener("evaluationDeleted", handleEvaluationDeleted);
+    window.addEventListener(
+      "evaluationsCountUpdate",
+      handleEvaluationsCountUpdate
+    );
+    window.addEventListener("reportsCountUpdate", handleReportsCountUpdate);
 
     return () => {
       window.removeEventListener(
@@ -287,6 +370,14 @@ export const useSidebarCounts = () => {
         handleEvaluationCompleted
       );
       window.removeEventListener("evaluationDeleted", handleEvaluationDeleted);
+      window.removeEventListener(
+        "evaluationsCountUpdate",
+        handleEvaluationsCountUpdate
+      );
+      window.removeEventListener(
+        "reportsCountUpdate",
+        handleReportsCountUpdate
+      );
     };
   }, [fetchAllCounts]);
 
@@ -334,43 +425,104 @@ export const useSidebarCounts = () => {
       setCounts((prev) => ({ ...prev, evaluations: 0 }));
     };
 
+    // Quick fix for current issue - manually set count based on completed reviews
+    window.fixEvaluationsCountNow = () => {
+      console.log(
+        "🔧 QUICK FIX: Setting evaluations count to 0 based on completed reviews..."
+      );
+      setCounts((prev) => ({ ...prev, evaluations: 0 }));
+      console.log("✅ Sidebar count set to 0 (all evaluations are completed)");
+    };
+
+    // Reset all evaluations data for testing
+    window.resetAllEvaluations = () => {
+      console.log("🔄 RESETTING ALL EVALUATIONS DATA...");
+
+      // Clear all localStorage data
+      localStorage.removeItem("completedEvaluations");
+      localStorage.removeItem("submittedEvaluations");
+      localStorage.removeItem("pendingEvaluationSubmissions");
+      localStorage.setItem("completedEvaluations", JSON.stringify([]));
+      localStorage.setItem("submittedEvaluations", JSON.stringify([]));
+      localStorage.setItem("pendingEvaluationSubmissions", JSON.stringify([]));
+
+      // Reset sidebar count
+      setCounts((prev) => ({ ...prev, evaluations: 0 }));
+
+      // Dispatch reset event
+      try {
+        window.dispatchEvent(
+          new CustomEvent("evaluationsReset", {
+            detail: { timestamp: new Date().toISOString() },
+          })
+        );
+      } catch (error) {
+        console.warn("Failed to dispatch reset event:", error);
+      }
+
+      console.log("✅ All evaluations data reset successfully!");
+      console.log("🔄 Refreshing page in 2 seconds...");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    };
+
     window.testSidebarSync = async () => {
       console.log("🧪 Testing sidebar synchronization...");
-      const completed = JSON.parse(localStorage.getItem("completedEvaluations") || "[]");
+      const completed = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
       console.log("📱 Completed in localStorage:", completed.length);
-      
+
       // Fetch from API
       try {
         const apiClient = createApiClient();
-        const response = await apiClient.get("/api/v1/dashboard/staff/evaluations/reviews");
+        const response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews"
+        );
         if (response.data && response.data.success) {
-          const evaluationsData = response.data.data || response.data.evaluations || [];
+          const evaluationsData =
+            response.data.data || response.data.evaluations || [];
           console.log("🌐 Total from API:", evaluationsData.length);
-          
-          const pending = evaluationsData.filter(evaluation => {
+
+          const pending = evaluationsData.filter((evaluation) => {
             const evalId = evaluation.id || evaluation._id;
             const isCompleted = completed.includes(evalId);
-            const isApiCompleted = evaluation.status === "completed" || evaluation.status === "submitted";
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
             return !isCompleted && !isApiCompleted;
           });
-          
-          console.log("✅ Pending evaluations (should match sidebar):", pending.length);
-          console.log("📊 Calculation: " + evaluationsData.length + " total - " + completed.length + " completed = " + pending.length + " pending");
+
+          console.log(
+            "✅ Pending evaluations (should match sidebar):",
+            pending.length
+          );
+          console.log(
+            "📊 Calculation: " +
+              evaluationsData.length +
+              " total - " +
+              completed.length +
+              " completed = " +
+              pending.length +
+              " pending"
+          );
           console.log("🎯 Current sidebar showing:", counts.evaluations);
-          
+
           if (pending.length !== counts.evaluations) {
             console.warn("⚠️ MISMATCH DETECTED! Forcing refresh...");
             fetchAllCounts(true);
           } else {
             console.log("✅ Sidebar is in sync!");
           }
-          
+
           return {
             totalFromAPI: evaluationsData.length,
             completedLocal: completed.length,
             pendingCalculated: pending.length,
             currentSidebarCount: counts.evaluations,
-            inSync: pending.length === counts.evaluations
+            inSync: pending.length === counts.evaluations,
           };
         }
       } catch (error) {
@@ -383,33 +535,41 @@ export const useSidebarCounts = () => {
       const completed = JSON.parse(
         localStorage.getItem("completedEvaluations") || "[]"
       );
-      console.log("📱 Completed evaluations in localStorage:", completed.length);
-      
+      console.log(
+        "📱 Completed evaluations in localStorage:",
+        completed.length
+      );
+
       // Fetch from API to get accurate count
       try {
         const apiClient = createApiClient();
-        const response = await apiClient.get("/api/v1/dashboard/staff/evaluations/reviews");
+        const response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews"
+        );
         if (response.data && response.data.success) {
-          const evaluationsData = response.data.data || response.data.evaluations || [];
+          const evaluationsData =
+            response.data.data || response.data.evaluations || [];
           console.log("🌐 Total evaluations from API:", evaluationsData.length);
-          
+
           // Filter out completed ones
-          const pending = evaluationsData.filter(evaluation => {
+          const pending = evaluationsData.filter((evaluation) => {
             const evalId = evaluation.id || evaluation._id;
             const isCompleted = completed.includes(evalId);
-            const isApiCompleted = evaluation.status === "completed" || evaluation.status === "submitted";
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
             return !isCompleted && !isApiCompleted;
           });
-          
+
           console.log("✅ Pending evaluations calculated:", pending.length);
           console.log("🔧 Setting sidebar count to:", pending.length);
-          
+
           setCounts((prev) => ({ ...prev, evaluations: pending.length }));
-          
+
           return {
             totalFromAPI: evaluationsData.length,
             completedLocal: completed.length,
-            newSidebarCount: pending.length
+            newSidebarCount: pending.length,
           };
         }
       } catch (error) {

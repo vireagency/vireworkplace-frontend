@@ -26,14 +26,17 @@ const evaluationTypes = {
   "project-based": "Project-based",
 };
 
+// Get current year dynamically
+const currentYear = new Date().getFullYear();
+
 const evaluationPeriods = {
-  "q1-2024": "Q1 2024 (Jan - Mar)",
-  "q2-2024": "Q2 2024 (Apr - Jun)",
-  "q3-2024": "Q3 2024 (Jul - Sep)",
-  "q4-2024": "Q4 2024 (Oct - Dec)",
-  "h1-2024": "H1 2024 (Jan - Jun)",
-  "h2-2024": "H2 2024 (Jul - Dec)",
-  "fy-2024": "FY 2024 (Full Year)",
+  [`q1-${currentYear}`]: `Q1 ${currentYear} (Jan - Mar)`,
+  [`q2-${currentYear}`]: `Q2 ${currentYear} (Apr - Jun)`,
+  [`q3-${currentYear}`]: `Q3 ${currentYear} (Jul - Sep)`,
+  [`q4-${currentYear}`]: `Q4 ${currentYear} (Oct - Dec)`,
+  [`h1-${currentYear}`]: `H1 ${currentYear} (Jan - Jun)`,
+  [`h2-${currentYear}`]: `H2 ${currentYear} (Jul - Dec)`,
+  [`fy-${currentYear}`]: `FY ${currentYear} (Full Year)`,
   custom: "Custom Period",
 };
 

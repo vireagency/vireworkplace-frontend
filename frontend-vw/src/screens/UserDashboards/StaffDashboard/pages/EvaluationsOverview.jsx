@@ -167,16 +167,24 @@ const EvaluationsOverview = () => {
         }));
 
         // Filter out submitted/completed evaluations
-        const pendingEvaluations = standardizedEvaluations.filter((evaluation) => {
-          const evaluationId = evaluation.id || evaluation._id || evaluation.evaluationId;
-          const isCompleted = staffEvaluationsApi.isEvaluationCompleted(evaluationId);
-          const isApiCompleted = evaluation.status === "completed" || evaluation.status === "submitted";
-          
-          // Only show evaluations that are NOT completed or submitted
-          return !isCompleted && !isApiCompleted;
-        });
+        const pendingEvaluations = standardizedEvaluations.filter(
+          (evaluation) => {
+            const evaluationId =
+              evaluation.id || evaluation._id || evaluation.evaluationId;
+            const isCompleted =
+              staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
 
-        console.log(`Filtered evaluations: ${pendingEvaluations.length} pending out of ${standardizedEvaluations.length} total`);
+            // Only show evaluations that are NOT completed or submitted
+            return !isCompleted && !isApiCompleted;
+          }
+        );
+
+        console.log(
+          `Filtered evaluations: ${pendingEvaluations.length} pending out of ${standardizedEvaluations.length} total`
+        );
 
         // Sort evaluations by creation date (newest first)
         const sortedEvaluations = pendingEvaluations.sort((a, b) => {
@@ -238,7 +246,49 @@ const EvaluationsOverview = () => {
           reviewsDue,
           completed,
           avgRating,
+          totalEvaluations: standardizedEvaluations.length,
+          pendingForSidebar: pendingEvaluations.length,
         });
+
+        // Broadcast the accurate pending count to the sidebar
+        // This ensures sidebar count matches what we show on the page
+        try {
+          window.dispatchEvent(
+            new CustomEvent("evaluationsCountUpdate", {
+              detail: {
+                total: standardizedEvaluations.length,
+                completed: completed,
+                pending: pendingEvaluations.length,
+                source: "EvaluationsOverview",
+              },
+            })
+          );
+          console.log(
+            `📢 Broadcasted sidebar count update: ${pendingEvaluations.length} pending (${completed} completed out of ${standardizedEvaluations.length} total)`
+          );
+
+          // Also try the direct sidebar update function if it exists
+          if (window.fixEvaluationsCount) {
+            console.log(
+              "🔧 Also calling fixEvaluationsCount for immediate update..."
+            );
+            setTimeout(() => {
+              window.fixEvaluationsCount();
+            }, 500);
+          }
+
+          // Force sidebar refresh using the hook's refresh function
+          if (window.forceRefreshSidebarCount) {
+            console.log(
+              "🔄 Also calling forceRefreshSidebarCount for immediate update..."
+            );
+            setTimeout(() => {
+              window.forceRefreshSidebarCount();
+            }, 1000);
+          }
+        } catch (eventError) {
+          console.warn("Failed to broadcast count update:", eventError);
+        }
 
         // Only log for auto-refresh, don't show toast
         if (isRefresh && !document.hidden) {
@@ -248,36 +298,57 @@ const EvaluationsOverview = () => {
         }
       } else {
         console.error("API returned error:", result.error);
-        
+
         // Check if it's a 403 permission error
-        if (result.error && (result.error.includes("Access denied") || result.error.includes("permission") || result.error.includes("403"))) {
-          console.error("⚠️ BACKEND PERMISSION ERROR: Staff user doesn't have permission to access evaluations API");
-          console.error("⚠️ This needs to be fixed on the backend by granting staff users access to /api/v1/dashboard/staff/evaluations/reviews");
-          
+        if (
+          result.error &&
+          (result.error.includes("Access denied") ||
+            result.error.includes("permission") ||
+            result.error.includes("403"))
+        ) {
+          console.error(
+            "⚠️ BACKEND PERMISSION ERROR: Staff user doesn't have permission to access evaluations API"
+          );
+          console.error(
+            "⚠️ This needs to be fixed on the backend by granting staff users access to /api/v1/dashboard/staff/evaluations/reviews"
+          );
+
           // Check localStorage for submitted evaluations
           const submittedEvaluations = JSON.parse(
             localStorage.getItem("submittedEvaluations") || "[]"
           );
-          
+
           if (submittedEvaluations.length > 0) {
-            console.log("📋 Found submitted evaluations in localStorage:", submittedEvaluations);
+            console.log(
+              "📋 Found submitted evaluations in localStorage:",
+              submittedEvaluations
+            );
             if (!isRefresh) {
-              toast.warning("Backend permission issue. Contact your administrator.");
+              toast.warning(
+                "Backend permission issue. Contact your administrator."
+              );
             }
           }
         }
-        
+
         if (isRefresh) {
           // Only show error toast for refresh if it's a real error (not just no evaluations)
           if (result.error && !result.error.includes("No evaluations")) {
             // Don't show toast for permission errors on auto-refresh
-            if (!result.error.includes("Access denied") && !result.error.includes("permission")) {
+            if (
+              !result.error.includes("Access denied") &&
+              !result.error.includes("permission")
+            ) {
               toast.error("Failed to refresh evaluations");
             }
           }
         } else {
           // Don't show error toast for permission errors (already handled above)
-          if (!result.error || (!result.error.includes("Access denied") && !result.error.includes("permission"))) {
+          if (
+            !result.error ||
+            (!result.error.includes("Access denied") &&
+              !result.error.includes("permission"))
+          ) {
             toast.error(result.error || "Failed to fetch evaluations");
           }
         }
@@ -325,7 +396,29 @@ const EvaluationsOverview = () => {
         fetchEvaluations(true);
       }, 10000); // 10 seconds for more frequent updates
 
-      return () => clearInterval(interval);
+      // Listen for evaluation completion events to refresh immediately
+      const handleEvaluationCompleted = () => {
+        console.log("🔄 Evaluation completed - refreshing evaluations list...");
+        fetchEvaluations(true);
+      };
+
+      // Listen for evaluation reset events
+      const handleEvaluationsReset = () => {
+        console.log("🔄 Evaluations reset - refreshing evaluations list...");
+        fetchEvaluations(true);
+      };
+
+      window.addEventListener("evaluationCompleted", handleEvaluationCompleted);
+      window.addEventListener("evaluationsReset", handleEvaluationsReset);
+
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener(
+          "evaluationCompleted",
+          handleEvaluationCompleted
+        );
+        window.removeEventListener("evaluationsReset", handleEvaluationsReset);
+      };
     }
   }, [accessToken]);
 

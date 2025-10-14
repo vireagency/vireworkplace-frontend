@@ -520,6 +520,18 @@ export const staffEvaluationsApi = {
         console.warn("Failed to update completion status:", storageError);
       }
 
+      // Trigger sidebar count refresh
+      try {
+        window.dispatchEvent(
+          new CustomEvent("evaluationCompleted", {
+            detail: { evaluationId: evaluationId },
+          })
+        );
+        console.log("Dispatched evaluationCompleted event for sidebar refresh");
+      } catch (eventError) {
+        console.warn("Failed to dispatch sidebar refresh event:", eventError);
+      }
+
       // The backend should handle the HR sync automatically
       console.log("Submission completed - backend should sync with HR system");
 

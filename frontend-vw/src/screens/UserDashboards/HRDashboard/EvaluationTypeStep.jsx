@@ -1,61 +1,83 @@
-import React, { useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock } from 'lucide-react';
+import React, { useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar, Clock } from "lucide-react";
 
 const evaluationTypes = [
   {
-    id: 'annual',
-    title: 'Annual',
-    description: 'Yearly performance review',
+    id: "annual",
+    title: "Annual",
+    description: "Yearly performance review",
   },
   {
-    id: 'quarterly',
-    title: 'Quarterly',
-    description: 'Quarterly performance check-in',
+    id: "quarterly",
+    title: "Quarterly",
+    description: "Quarterly performance check-in",
   },
   {
-    id: 'probationary',
-    title: 'Probationary',
-    description: 'New hire performance review',
+    id: "probationary",
+    title: "Probationary",
+    description: "New hire performance review",
   },
   {
-    id: 'project-based',
-    title: 'Project-based',
-    description: 'Project-specific performance review',
+    id: "project-based",
+    title: "Project-based",
+    description: "Project-specific performance review",
   },
 ];
 
+// Get current year dynamically
+const currentYear = new Date().getFullYear();
+
 const evaluationPeriods = [
-  { value: 'q1-2024', label: 'Q1 2024 (Jan - Mar)' },
-  { value: 'q2-2024', label: 'Q2 2024 (Apr - Jun)' },
-  { value: 'q3-2024', label: 'Q3 2024 (Jul - Sep)' },
-  { value: 'q4-2024', label: 'Q4 2024 (Oct - Dec)' },
-  { value: 'h1-2024', label: 'H1 2024 (Jan - Jun)' },
-  { value: 'h2-2024', label: 'H2 2024 (Jul - Dec)' },
-  { value: 'fy-2024', label: 'FY 2024 (Full Year)' },
-  { value: 'custom', label: 'Custom Period' },
+  { value: `q1-${currentYear}`, label: `Q1 ${currentYear} (Jan - Mar)` },
+  { value: `q2-${currentYear}`, label: `Q2 ${currentYear} (Apr - Jun)` },
+  { value: `q3-${currentYear}`, label: `Q3 ${currentYear} (Jul - Sep)` },
+  { value: `q4-${currentYear}`, label: `Q4 ${currentYear} (Oct - Dec)` },
+  { value: `h1-${currentYear}`, label: `H1 ${currentYear} (Jan - Jun)` },
+  { value: `h2-${currentYear}`, label: `H2 ${currentYear} (Jul - Dec)` },
+  { value: `fy-${currentYear}`, label: `FY ${currentYear} (Full Year)` },
+  { value: "custom", label: "Custom Period" },
 ];
 
 export default function EvaluationTypeStep({ data, onUpdate }) {
-  const handleTypeChange = useCallback((value) => {
-    console.log('Type change triggered:', value);
-    onUpdate({ type: value });
-  }, [onUpdate]);
+  const handleTypeChange = useCallback(
+    (value) => {
+      console.log("Type change triggered:", value);
+      onUpdate({ type: value });
+    },
+    [onUpdate]
+  );
 
-  const handlePeriodChange = useCallback((value) => {
-    onUpdate({ period: value });
-  }, [onUpdate]);
+  const handlePeriodChange = useCallback(
+    (value) => {
+      onUpdate({ period: value });
+    },
+    [onUpdate]
+  );
 
   return (
-    <div className="space-y-8" style={{'--card': 'oklch(1 0 0)', '--card-foreground': 'oklch(0.145 0 0)'}}>
+    <div
+      className="space-y-8"
+      style={{
+        "--card": "oklch(1 0 0)",
+        "--card-foreground": "oklch(0.145 0 0)",
+      }}
+    >
       {/* Header */}
       <div className="space-y-2">
         <h2 className="text-2xl font-bold text-gray-900">New Evaluation</h2>
         <p className="text-gray-600">
-          Set up the basic parameters for your evaluation form. Choose the type and time period that best fits your needs.
+          Set up the basic parameters for your evaluation form. Choose the type
+          and time period that best fits your needs.
         </p>
       </div>
 
@@ -64,7 +86,9 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
           {/* Evaluation Type Section */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-900">Evaluation Type</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Evaluation Type
+              </h3>
               <p className="text-sm text-gray-600">
                 Select the type of evaluation you want to create.
               </p>
@@ -80,20 +104,20 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
                   key={type.id}
                   className={`flex items-center space-x-4 rounded-lg border p-4 transition-colors cursor-pointer ${
                     data.type === type.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
                   }`}
                   onClick={() => {
-                    console.log('Direct click on type:', type.id);
+                    console.log("Direct click on type:", type.id);
                     handleTypeChange(type.id);
                   }}
                 >
-                  <RadioGroupItem 
-                    value={type.id} 
+                  <RadioGroupItem
+                    value={type.id}
                     id={type.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('RadioGroupItem click:', type.id);
+                      console.log("RadioGroupItem click:", type.id);
                     }}
                   />
                   <div className="flex-1 space-y-1">
@@ -113,20 +137,22 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
           {/* Evaluation Period Section */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-900">Evaluation Period</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Evaluation Period
+              </h3>
               <p className="text-sm text-gray-600">
                 Choose the time period this evaluation will cover.
               </p>
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="period-select" className="text-sm font-medium text-gray-900">
+              <Label
+                htmlFor="period-select"
+                className="text-sm font-medium text-gray-900"
+              >
                 Select Period
               </Label>
-              <Select
-                value={data.period}
-                onValueChange={handlePeriodChange}
-              >
+              <Select value={data.period} onValueChange={handlePeriodChange}>
                 <SelectTrigger className="w-full max-w-md bg-white text-gray-900 border-gray-300 cursor-pointer">
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-4 h-4 text-gray-500" />
@@ -135,7 +161,11 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
                 </SelectTrigger>
                 <SelectContent className="bg-white text-gray-900 border border-gray-200 shadow-lg">
                   {evaluationPeriods.map((period) => (
-                    <SelectItem key={period.value} value={period.value} className="hover:bg-green-500 focus:bg-green-500 cursor-pointer">
+                    <SelectItem
+                      key={period.value}
+                      value={period.value}
+                      className="hover:bg-green-500 focus:bg-green-500 cursor-pointer"
+                    >
                       {period.label}
                     </SelectItem>
                   ))}
@@ -154,8 +184,18 @@ export default function EvaluationTypeStep({ data, onUpdate }) {
                     Evaluation Configuration
                   </h4>
                   <p className="text-sm text-blue-700">
-                    You've selected a <strong>{evaluationTypes.find(t => t.id === data.type)?.title}</strong> evaluation 
-                    for <strong>{evaluationPeriods.find(p => p.value === data.period)?.label}</strong>.
+                    You've selected a{" "}
+                    <strong>
+                      {evaluationTypes.find((t) => t.id === data.type)?.title}
+                    </strong>{" "}
+                    evaluation for{" "}
+                    <strong>
+                      {
+                        evaluationPeriods.find((p) => p.value === data.period)
+                          ?.label
+                      }
+                    </strong>
+                    .
                   </p>
                   <p className="text-xs text-blue-600 mt-2">
                     You can modify these settings later if needed.

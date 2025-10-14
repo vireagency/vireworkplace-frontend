@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StaffDashboardLayout from "@/components/dashboard/StaffDashboardLayout";
 import { staffDashboardConfig } from "@/config/dashboardConfigs";
 import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { reportsApi } from "@/services/reportsApi";
+import { toast } from "sonner";
 import {
   Search,
   Filter,
@@ -50,224 +53,186 @@ import {
   TableCell,
 } from "@/components/ui/table";
 
-// My Reports data
-const myReportsData = [
-  {
-    id: 1,
-    report: "Q4 Performance Review Summary",
-    type: "Performance",
-    typeIcon: BarChart3,
-    department: "Engineering",
-    priority: "high",
-    status: "completed",
-    author: "John Smith",
-    created: "Jan 15, 2024",
-    dueDate: "Jan 30, 2024",
-  },
-  {
-    id: 2,
-    report: "December Attendance Analysis",
-    type: "Attendance",
-    typeIcon: Users,
-    department: "Engineering",
-    priority: "medium",
-    status: "in progress",
-    author: "John Smith",
-    created: "Jan 10, 2024",
-    dueDate: "Jan 25, 2024",
-  },
-  {
-    id: 3,
-    report: "Monthly Task Completion Report",
-    type: "General",
-    typeIcon: FileText,
-    department: "Engineering",
-    priority: "low",
-    status: "draft",
-    author: "John Smith",
-    created: "Jan 12, 2024",
-    dueDate: "Jan 20, 2024",
-  },
-];
+// Data will be fetched from API
 
-// Employee Reports data
-const employeeReportsData = [
-  {
-    id: 1,
-    report: "Team Collaboration Metrics",
-    type: "Performance",
-    typeIcon: BarChart3,
-    department: "Engineering",
-    priority: "medium",
-    status: "completed",
-    author: "Sarah Johnson",
-    created: "Jan 14, 2024",
-    dueDate: "Jan 28, 2024",
-  },
-  {
-    id: 2,
-    report: "Project Status Update",
-    type: "General",
-    typeIcon: FileText,
-    department: "Engineering",
-    priority: "low",
-    status: "in progress",
-    author: "Mike Chen",
-    created: "Jan 11, 2024",
-    dueDate: "Jan 26, 2024",
-  },
-];
-
-// Overtime Reports data
-const overtimeReportsData = [
-  {
-    id: 1,
-    employeeId: "EMP001",
-    department: "Engineering",
-    date: "Jan 15, 2024",
-    regularHours: "8h",
-    overtimeHours: "4h",
-    totalHours: "12h",
-    reason: "Critical bug fix for production deploy...",
-    manager: "Sarah Johnson",
-  },
-  {
-    id: 2,
-    employeeId: "EMP002",
-    department: "Engineering",
-    date: "Jan 14, 2024",
-    regularHours: "8h",
-    overtimeHours: "3h",
-    totalHours: "11h",
-    reason: "Project deadline preparation",
-    manager: "Mike Chen",
-  },
-];
-
-const myReportsSummaryCards = [
-  {
-    title: "TOTAL REPORTS",
-    value: "3",
-    change: "+25%",
-    trend: "up",
-    icon: IconTrendingUp,
-    color: "green",
-  },
-  {
-    title: "PENDING REPORTS",
-    value: "1",
-    change: "+10%",
-    trend: "down",
-    icon: IconTrendingDown,
-    color: "red",
-  },
-  {
-    title: "COMPLETED REPORTS",
-    value: "1",
-    change: "+20%",
-    trend: "up",
-    icon: IconTrendingUp,
-    color: "green",
-  },
-  {
-    title: "OVERDUE REPORTS",
-    value: "0",
-    change: "-5%",
-    trend: "down",
-    icon: IconTrendingDown,
-    color: "red",
-  },
-];
-
-const employeeReportsSummaryCards = [
-  {
-    title: "TOTAL REPORTS",
-    value: "2",
-    change: "+15%",
-    trend: "up",
-    icon: IconTrendingUp,
-    color: "green",
-  },
-  {
-    title: "PENDING REPORTS",
-    value: "1",
-    change: "+5%",
-    trend: "down",
-    icon: IconTrendingDown,
-    color: "red",
-  },
-  {
-    title: "COMPLETED REPORTS",
-    value: "1",
-    change: "+25%",
-    trend: "up",
-    icon: IconTrendingUp,
-    color: "green",
-  },
-  {
-    title: "OVERDUE REPORTS",
-    value: "0",
-    change: "-10%",
-    trend: "down",
-    icon: IconTrendingDown,
-    color: "red",
-  },
-];
-
-const overtimeReportsSummaryCards = [
-  {
-    title: "TOTAL REPORTS",
-    value: "2",
-    change: "+20%",
-    trend: "up",
-    icon: IconTrendingUp,
-    color: "green",
-  },
-  {
-    title: "PENDING REPORTS",
-    value: "0",
-    change: "-15%",
-    trend: "down",
-    icon: IconTrendingDown,
-    color: "red",
-  },
-  {
-    title: "COMPLETED REPORTS",
-    value: "2",
-    change: "+30%",
-    trend: "up",
-    icon: IconTrendingUp,
-    color: "green",
-  },
-  {
-    title: "OVERDUE REPORTS",
-    value: "0",
-    change: "-5%",
-    trend: "down",
-    icon: IconTrendingDown,
-    color: "red",
-  },
-];
+// Summary cards will be calculated from API data
 
 export default function StaffReportsPage() {
   const { sidebarConfig } = useStandardizedSidebar();
+  const { user, accessToken } = useAuth();
+
+  // State management
   const [activeTab, setActiveTab] = useState("my-reports");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    title: "",
-    type: "",
-    department: "",
-    priority: "",
-    dueDate: "",
-    description: "",
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // API data state
+  const [reports, setReports] = useState([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalReports: 0,
   });
 
+  const [formData, setFormData] = useState({
+    reportTitle: "",
+    reportType: "",
+    department: "",
+    priorityLevel: "",
+    dueDate: "",
+    reportDescription: "",
+    recipients: [],
+  });
+
+  // View modal state
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  // Fetch reports from API
+  const fetchReports = async (params = {}) => {
+    if (!accessToken) return;
+
+    setLoading(true);
+    try {
+      const queryParams = {
+        page: params.page || 1,
+        limit: params.limit || 10,
+        department: departmentFilter !== "all" ? departmentFilter : undefined,
+        priorityLevel: typeFilter !== "all" ? typeFilter : undefined,
+        ...params,
+      };
+
+      console.log("Fetching reports with params:", queryParams);
+      const result = await reportsApi.getAllReports(queryParams, accessToken);
+
+      if (result.success) {
+        const reportsData = result.data.data || result.data || [];
+        setReports(reportsData);
+
+        // Update pagination info
+        if (result.data.pagination) {
+          setPagination(result.data.pagination);
+        }
+
+        console.log("Reports fetched successfully:", reportsData.length);
+        console.log("Reports data:", reportsData);
+
+        // Dispatch event for sidebar count update
+        // Count all reports regardless of status for now
+        const pendingCount = reportsData.length;
+
+        window.dispatchEvent(
+          new CustomEvent("reportsCountUpdate", {
+            detail: { count: pendingCount },
+          })
+        );
+      } else {
+        console.error("Failed to fetch reports:", result.error);
+        toast.error(result.error || "Failed to fetch reports");
+      }
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      toast.error("Error fetching reports");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    console.log("📊 StaffReportsPage mounted, accessToken:", !!accessToken);
+    if (accessToken) {
+      fetchReports();
+    }
+  }, [accessToken, departmentFilter, typeFilter]);
+
+  // Create new report
+  const createReport = async (reportData) => {
+    if (!accessToken) return { success: false, error: "No access token" };
+
+    setSubmitting(true);
+    try {
+      console.log("Creating report with data:", reportData);
+      const result = await reportsApi.createReport(reportData, accessToken);
+
+      if (result.success) {
+        toast.success("Report created successfully!");
+        // Refresh the reports list
+        await fetchReports();
+        return { success: true, data: result.data };
+      } else {
+        console.error("Failed to create report:", result.error);
+        toast.error(result.error || "Failed to create report");
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("Error creating report:", error);
+      toast.error("Error creating report");
+      return { success: false, error: error.message };
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // View report details
+  const handleViewReport = async (reportId) => {
+    if (!accessToken) return;
+
+    try {
+      console.log(`Viewing report with ID: ${reportId}`);
+      const result = await reportsApi.getReportById(reportId, accessToken);
+
+      if (result.success) {
+        console.log("Report details:", result.data);
+        setSelectedReport(result.data.data);
+        setIsViewModalOpen(true);
+      } else {
+        console.error("Failed to fetch report details:", result.error);
+        toast.error(result.error || "Failed to fetch report details");
+      }
+    } catch (error) {
+      console.error("Error fetching report details:", error);
+      toast.error("Error fetching report details");
+    }
+  };
+
+  // Delete report
+  const handleDeleteReport = async (reportId) => {
+    if (!accessToken) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this report? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      console.log(`Deleting report with ID: ${reportId}`);
+      const result = await reportsApi.deleteReport(reportId, accessToken);
+
+      if (result.success) {
+        toast.success("Report deleted successfully!");
+        // Refresh the reports list
+        await fetchReports();
+      } else {
+        console.error("Failed to delete report:", result.error);
+        toast.error(result.error || "Failed to delete report");
+      }
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      toast.error("Error deleting report");
+    }
+  };
+
   const getPriorityColor = (priority) => {
-    switch (priority) {
+    const priorityLower = priority?.toLowerCase();
+    switch (priorityLower) {
+      case "critical":
+        return "bg-red-200 text-red-900";
       case "high":
         return "bg-red-100 text-red-800";
       case "medium":
@@ -280,11 +245,16 @@ export default function StaffReportsPage() {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    const statusLower = status?.toLowerCase();
+    switch (statusLower) {
       case "completed":
+      case "submitted":
         return "bg-green-100 text-green-800";
       case "in progress":
+      case "in_progress":
         return "bg-blue-100 text-blue-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
       case "draft":
         return "bg-gray-100 text-gray-800";
       case "overdue":
@@ -313,12 +283,13 @@ export default function StaffReportsPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setFormData({
-      title: "",
-      type: "",
+      reportTitle: "",
+      reportType: "",
       department: "",
-      priority: "",
+      priorityLevel: "",
       dueDate: "",
-      description: "",
+      reportDescription: "",
+      recipients: [],
     });
   };
 
@@ -329,37 +300,90 @@ export default function StaffReportsPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log("Form submitted:", formData);
-    handleCloseModal();
+
+    // Validate required fields
+    if (!formData.reportTitle || !formData.reportDescription) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Create the report
+    const result = await createReport(formData);
+
+    if (result.success) {
+      handleCloseModal();
+    }
+  };
+
+  // Calculate summary stats from API data
+  const calculateSummaryStats = () => {
+    const totalReports = reports.length;
+    const completedReports = reports.filter(
+      (report) => report.status === "completed" || report.status === "submitted"
+    ).length;
+    const pendingReports = reports.filter(
+      (report) => report.status === "pending" || report.status === "in_progress"
+    ).length;
+    const overdueReports = reports.filter((report) => {
+      if (!report.dueDate) return false;
+      return (
+        new Date(report.dueDate) < new Date() && report.status !== "completed"
+      );
+    }).length;
+
+    return {
+      total: totalReports,
+      completed: completedReports,
+      pending: pendingReports,
+      overdue: overdueReports,
+    };
   };
 
   const getCurrentData = () => {
-    switch (activeTab) {
-      case "my-reports":
-        return myReportsData;
-      case "employee-reports":
-        return employeeReportsData;
-      case "overtime-reports":
-        return overtimeReportsData;
-      default:
-        return myReportsData;
-    }
+    // For now, return API data for all tabs
+    // You can add different logic for different tabs later
+    return reports;
   };
 
   const getCurrentSummaryCards = () => {
-    switch (activeTab) {
-      case "my-reports":
-        return myReportsSummaryCards;
-      case "employee-reports":
-        return employeeReportsSummaryCards;
-      case "overtime-reports":
-        return overtimeReportsSummaryCards;
-      default:
-        return myReportsSummaryCards;
-    }
+    const stats = calculateSummaryStats();
+
+    return [
+      {
+        title: "TOTAL REPORTS",
+        value: stats.total.toString(),
+        change: "+25%",
+        trend: "up",
+        icon: IconTrendingUp,
+        color: "green",
+      },
+      {
+        title: "PENDING REPORTS",
+        value: stats.pending.toString(),
+        change: "+10%",
+        trend: "down",
+        icon: IconTrendingDown,
+        color: "red",
+      },
+      {
+        title: "COMPLETED REPORTS",
+        value: stats.completed.toString(),
+        change: "+20%",
+        trend: "up",
+        icon: IconTrendingUp,
+        color: "green",
+      },
+      {
+        title: "OVERDUE REPORTS",
+        value: stats.overdue.toString(),
+        change: "-5%",
+        trend: "down",
+        icon: IconTrendingDown,
+        color: "red",
+      },
+    ];
   };
 
   const getTableTitle = () => {
@@ -390,32 +414,32 @@ export default function StaffReportsPage() {
   };
 
   const filteredReports = getCurrentData().filter((report) => {
-    if (activeTab === "overtime-reports") {
-      // Overtime reports filtering
-      const matchesSearch =
-        report.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.manager.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDepartment =
-        departmentFilter === "all" ||
-        report.department.toLowerCase() === departmentFilter.toLowerCase();
+    // API data filtering
+    const matchesSearch =
+      searchQuery === "" ||
+      (report.reportTitle &&
+        report.reportTitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (report.author &&
+        report.author.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (report.department &&
+        report.department.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      return matchesSearch && matchesDepartment;
-    } else {
-      // Regular reports filtering
-      const matchesSearch =
-        report.report.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.department.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType =
-        typeFilter === "all" ||
-        report.type.toLowerCase() === typeFilter.toLowerCase();
-      const matchesStatus =
-        statusFilter === "all" ||
-        report.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesType =
+      typeFilter === "all" ||
+      (report.reportType &&
+        report.reportType.toLowerCase() === typeFilter.toLowerCase());
 
-      return matchesSearch && matchesType && matchesStatus;
-    }
+    const matchesStatus =
+      statusFilter === "all" ||
+      (report.status &&
+        report.status.toLowerCase() === statusFilter.toLowerCase());
+
+    const matchesDepartment =
+      departmentFilter === "all" ||
+      (report.department &&
+        report.department.toLowerCase() === departmentFilter.toLowerCase());
+
+    return matchesSearch && matchesType && matchesStatus && matchesDepartment;
   });
 
   return (
@@ -470,647 +494,700 @@ export default function StaffReportsPage() {
           </TabsList>
 
           {/* My Reports Tab Content */}
-          {activeTab === "my-reports" && (
-            <TabsContent value="my-reports" className="mt-8">
-              {/* Summary Cards */}
-              <div>
-                <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                  {myReportsSummaryCards.map((card, index) => (
-                    <Card key={index} className="@container/card relative">
-                      <CardHeader>
-                        <CardDescription>{card.title}</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                          {card.value}
-                        </CardTitle>
-                      </CardHeader>
-                      <div className="absolute bottom-3 right-3">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            card.color === "green"
-                              ? "text-green-600 bg-green-50"
-                              : "text-red-600 bg-red-50"
-                          }
-                        >
-                          {renderIcon(
-                            card.icon,
-                            card.color === "green"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          )}
-                          {card.change}
-                        </Badge>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reports Table Section */}
-              <div className="mt-6">
-                <div className="bg-white rounded-lg border p-6">
-                  {/* Table Header */}
-                  <div className="mb-6">
-                    <div className="mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        My Reports
-                      </h3>
-                      <div className="flex items-center gap-64">
-                        <p className="text-sm text-gray-500">3 reports</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Search and Filter Bar */}
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder="Search reports..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Filter className="w-4 h-4 text-gray-400" />
-                      <Select value={typeFilter} onValueChange={setTypeFilter}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="All Types" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Types</SelectItem>
-                          <SelectItem value="performance">
-                            Performance
-                          </SelectItem>
-                          <SelectItem value="attendance">Attendance</SelectItem>
-                          <SelectItem value="incident">Incident</SelectItem>
-                          <SelectItem value="general">General</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={setStatusFilter}
+          <TabsContent value="my-reports" className="mt-8">
+            {/* Summary Cards */}
+            <div>
+              <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                {getCurrentSummaryCards().map((card, index) => (
+                  <Card key={index} className="@container/card relative">
+                    <CardHeader>
+                      <CardDescription>{card.title}</CardDescription>
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                        {card.value}
+                      </CardTitle>
+                    </CardHeader>
+                    <div className="absolute bottom-3 right-3">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          card.color === "green"
+                            ? "text-green-600 bg-green-50"
+                            : "text-red-600 bg-red-50"
+                        }
                       >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="All Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="in progress">
-                            In Progress
-                          </SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="overdue">Overdue</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        {renderIcon(
+                          card.icon,
+                          card.color === "green"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        )}
+                        {card.change}
+                      </Badge>
                     </div>
-                  </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
-                  {/* Reports Table */}
-                  <div className="overflow-x-auto">
-                    <Table className="w-full">
-                      <TableHeader>
-                        <TableRow className="border-b border-gray-200">
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Report
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Type
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Department
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Priority
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Status
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Author
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Created
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Due Date
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="divide-y divide-gray-200">
-                        {filteredReports.map((report) => {
-                          const IconComponent = report.typeIcon;
-                          return (
-                            <TableRow
-                              key={report.id}
-                              className="hover:bg-gray-50"
-                            >
-                              <TableCell className="py-4 px-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {report.report}
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <div className="flex items-center">
-                                  {renderIcon(IconComponent)}
-                                  <span className="text-sm text-gray-900">
-                                    {report.type}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.department}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
-                                    report.priority
-                                  )}`}
-                                >
-                                  {report.priority}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                    report.status
-                                  )}`}
-                                >
-                                  {report.status}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.author}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.created}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.dueDate}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <div className="flex items-center space-x-2">
-                                  <button className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors">
-                                    <Eye className="w-4 h-4 text-black" />
-                                  </button>
-                                  <button className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors">
-                                    <Download className="w-4 h-4 text-black" />
-                                  </button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+            {/* Reports Table Section */}
+            <div className="mt-6">
+              <div className="bg-white rounded-lg border p-6">
+                {/* Table Header */}
+                <div className="mb-6">
+                  <div className="mb-2">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      My Reports
+                    </h3>
+                    <div className="flex items-center gap-64">
+                      <p className="text-sm text-gray-500">3 reports</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-          )}
 
-          {/* Employee Reports Tab Content */}
-          {activeTab === "employee-reports" && (
-            <TabsContent value="employee-reports" className="mt-8">
-              {/* Summary Cards */}
-              <div>
-                <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                  {employeeReportsSummaryCards.map((card, index) => (
-                    <Card key={index} className="@container/card relative">
-                      <CardHeader>
-                        <CardDescription>{card.title}</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                          {card.value}
-                        </CardTitle>
-                      </CardHeader>
-                      <div className="absolute bottom-3 right-3">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            card.color === "green"
-                              ? "text-green-600 bg-green-50"
-                              : "text-red-600 bg-red-50"
-                          }
-                        >
-                          {renderIcon(
-                            card.icon,
-                            card.color === "green"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          )}
-                          {card.change}
-                        </Badge>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reports Table Section */}
-              <div className="mt-6">
-                <div className="bg-white rounded-lg border p-6">
-                  {/* Table Header */}
-                  <div className="mb-6">
-                    <div className="mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        Reports from Team Members
-                      </h3>
-                      <div className="flex items-center gap-64">
-                        <p className="text-sm text-gray-500">2 reports</p>
-                      </div>
-                    </div>
+                {/* Search and Filter Bar */}
+                <div className="flex items-center space-x-4 mb-6">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search reports..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-
-                  {/* Search and Filter Bar */}
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder="Search reports..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Filter className="w-4 h-4 text-gray-400" />
-                      <Select value={typeFilter} onValueChange={setTypeFilter}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="All Types" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Types</SelectItem>
-                          <SelectItem value="performance">
-                            Performance
-                          </SelectItem>
-                          <SelectItem value="attendance">Attendance</SelectItem>
-                          <SelectItem value="incident">Incident</SelectItem>
-                          <SelectItem value="general">General</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={setStatusFilter}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="All Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="in progress">
-                            In Progress
-                          </SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="overdue">Overdue</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Reports Table */}
-                  <div className="overflow-x-auto">
-                    <Table className="w-full">
-                      <TableHeader>
-                        <TableRow className="border-b border-gray-200">
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Report
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Type
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Department
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Priority
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Status
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Author
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Created
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Due Date
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="divide-y divide-gray-200">
-                        {filteredReports.map((report) => {
-                          const IconComponent = report.typeIcon;
-                          return (
-                            <TableRow
-                              key={report.id}
-                              className="hover:bg-gray-50"
-                            >
-                              <TableCell className="py-4 px-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {report.report}
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <div className="flex items-center">
-                                  {renderIcon(IconComponent)}
-                                  <span className="text-sm text-gray-900">
-                                    {report.type}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.department}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
-                                    report.priority
-                                  )}`}
-                                >
-                                  {report.priority}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                    report.status
-                                  )}`}
-                                >
-                                  {report.status}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.author}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.created}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <span className="text-sm text-gray-900">
-                                  {report.dueDate}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-4 px-4">
-                                <div className="flex items-center space-x-2">
-                                  <button className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors">
-                                    <Eye className="w-4 h-4 text-black" />
-                                  </button>
-                                  <button className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors">
-                                    <Download className="w-4 h-4 text-black" />
-                                  </button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                  <div className="flex items-center space-x-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="performance">Performance</SelectItem>
+                        <SelectItem value="attendance">Attendance</SelectItem>
+                        <SelectItem value="incident">Incident</SelectItem>
+                        <SelectItem value="general">General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="All Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="in progress">In Progress</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-          )}
 
-          {/* Overtime Reports Tab Content */}
-          {activeTab === "overtime-reports" && (
-            <TabsContent value="overtime-reports" className="mt-8">
-              {/* Summary Cards */}
-              <div>
-                <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                  {overtimeReportsSummaryCards.map((card, index) => (
-                    <Card key={index} className="@container/card relative">
-                      <CardHeader>
-                        <CardDescription>{card.title}</CardDescription>
-                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                          {card.value}
-                        </CardTitle>
-                      </CardHeader>
-                      <div className="absolute bottom-3 right-3">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            card.color === "green"
-                              ? "text-green-600 bg-green-50"
-                              : "text-red-600 bg-red-50"
-                          }
-                        >
-                          {renderIcon(
-                            card.icon,
-                            card.color === "green"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          )}
-                          {card.change}
-                        </Badge>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Overtime Reports Table Section */}
-              <div className="mt-6">
-                <div className="bg-white rounded-lg border p-6">
-                  {/* Table Header */}
-                  <div className="mb-6">
-                    <div className="mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        Team Overtime Reports
-                      </h3>
-                      <div className="flex items-center gap-64">
-                        <p className="text-sm text-gray-500">
-                          2 overtime records
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Search and Filter Bar */}
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder={getSearchPlaceholder()}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Filter className="w-4 h-4 text-gray-400" />
-                      <Select
-                        value={departmentFilter}
-                        onValueChange={setDepartmentFilter}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="All Department" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Department</SelectItem>
-                          <SelectItem value="engineering">
-                            Engineering
-                          </SelectItem>
-                          <SelectItem value="operations">Operations</SelectItem>
-                          <SelectItem value="customer support">
-                            Customer Support
-                          </SelectItem>
-                          <SelectItem value="finance">Finance</SelectItem>
-                          <SelectItem value="marketing">Marketing</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Overtime Reports Table */}
-                  <div className="overflow-x-auto">
-                    <Table className="w-full">
-                      <TableHeader>
-                        <TableRow className="border-b border-gray-200">
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Employee ID
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Department
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Date
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Regular Hours
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Overtime Hours
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Total Hours
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Reason
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Manager
-                          </TableHead>
-                          <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="divide-y divide-gray-200">
-                        {filteredReports.map((report) => (
+                {/* Reports Table */}
+                <div className="overflow-x-auto">
+                  <Table className="w-full">
+                    <TableHeader>
+                      <TableRow className="border-b border-gray-200">
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Report
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Type
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Department
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Priority
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Author
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Created
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Due Date
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-200">
+                      {filteredReports.map((report) => {
+                        const IconComponent = report.typeIcon || FileText;
+                        return (
                           <TableRow
-                            key={report.id}
+                            key={report._id || report.id}
                             className="hover:bg-gray-50"
                           >
                             <TableCell className="py-4 px-4">
                               <div className="text-sm font-medium text-gray-900">
-                                {report.employeeId}
+                                {report.reportTitle ||
+                                  report.report ||
+                                  "Untitled Report"}
                               </div>
                             </TableCell>
                             <TableCell className="py-4 px-4">
-                              <span className="text-sm text-gray-900">
-                                {report.department}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4 px-4">
-                              <span className="text-sm text-gray-900">
-                                {report.date}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4 px-4">
                               <div className="flex items-center">
-                                <svg
-                                  className="w-4 h-4 text-gray-400 mr-2"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
+                                {renderIcon(IconComponent)}
                                 <span className="text-sm text-gray-900">
-                                  {report.regularHours}
+                                  {report.reportType ||
+                                    report.type ||
+                                    "General"}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell className="py-4 px-4">
-                              <div className="flex items-center">
-                                <svg
-                                  className="w-4 h-4 text-orange-500 mr-2"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                              <span className="text-sm text-gray-900">
+                                {report.department || "N/A"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                                  report.priorityLevel || report.priority
+                                )}`}
+                              >
+                                {report.priorityLevel ||
+                                  report.priority ||
+                                  "Medium"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                                  report.status
+                                )}`}
+                              >
+                                {report.status || "draft"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.author?.firstName &&
+                                report.author?.lastName
+                                  ? `${report.author.firstName} ${report.author.lastName}`
+                                  : report.author?.firstName ||
+                                    report.author?.lastName ||
+                                    "Unknown"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.createdAt
+                                  ? new Date(
+                                      report.createdAt
+                                    ).toLocaleDateString()
+                                  : report.created || "N/A"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.dueDate
+                                  ? new Date(
+                                      report.dueDate
+                                    ).toLocaleDateString()
+                                  : "No due date"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() =>
+                                    handleViewReport(report._id || report.id)
+                                  }
+                                  className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                  title="View report"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                                <span className="text-sm text-orange-500 font-medium">
-                                  {report.overtimeHours}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4 px-4">
-                              <span className="text-sm text-gray-900">
-                                {report.totalHours}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4 px-4">
-                              <span className="text-sm text-gray-900">
-                                {report.reason}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4 px-4">
-                              <span className="text-sm text-gray-900">
-                                {report.manager}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4 px-4">
-                              <div className="flex items-center justify-end">
-                                <button className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors">
-                                  <MessageSquare className="w-4 h-4 text-red-500" />
+                                  <Eye className="w-4 h-4 text-black" />
                                 </button>
+                                {(report.author?._id === user?._id ||
+                                  report.author === user?._id) && (
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteReport(
+                                        report._id || report.id
+                                      )
+                                    }
+                                    className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
+                                    title="Delete report"
+                                  >
+                                    <X className="w-4 h-4 text-red-600" />
+                                  </button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
-            </TabsContent>
-          )}
+            </div>
+          </TabsContent>
+
+          {/* Employee Reports Tab Content */}
+          <TabsContent value="employee-reports" className="mt-8">
+            {/* Summary Cards */}
+            <div>
+              <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                {getCurrentSummaryCards().map((card, index) => (
+                  <Card key={index} className="@container/card relative">
+                    <CardHeader>
+                      <CardDescription>{card.title}</CardDescription>
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                        {card.value}
+                      </CardTitle>
+                    </CardHeader>
+                    <div className="absolute bottom-3 right-3">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          card.color === "green"
+                            ? "text-green-600 bg-green-50"
+                            : "text-red-600 bg-red-50"
+                        }
+                      >
+                        {renderIcon(
+                          card.icon,
+                          card.color === "green"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        )}
+                        {card.change}
+                      </Badge>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Reports Table Section */}
+            <div className="mt-6">
+              <div className="bg-white rounded-lg border p-6">
+                {/* Table Header */}
+                <div className="mb-6">
+                  <div className="mb-2">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Reports from Team Members
+                    </h3>
+                    <div className="flex items-center gap-64">
+                      <p className="text-sm text-gray-500">2 reports</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search and Filter Bar */}
+                <div className="flex items-center space-x-4 mb-6">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search reports..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="performance">Performance</SelectItem>
+                        <SelectItem value="attendance">Attendance</SelectItem>
+                        <SelectItem value="incident">Incident</SelectItem>
+                        <SelectItem value="general">General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="All Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="in progress">In Progress</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Reports Table */}
+                <div className="overflow-x-auto">
+                  <Table className="w-full">
+                    <TableHeader>
+                      <TableRow className="border-b border-gray-200">
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Report
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Type
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Department
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Priority
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Author
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Created
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Due Date
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-200">
+                      {filteredReports.map((report) => {
+                        const IconComponent = report.typeIcon || FileText;
+                        return (
+                          <TableRow
+                            key={report._id || report.id}
+                            className="hover:bg-gray-50"
+                          >
+                            <TableCell className="py-4 px-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {report.reportTitle ||
+                                  report.report ||
+                                  "Untitled Report"}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <div className="flex items-center">
+                                {renderIcon(IconComponent)}
+                                <span className="text-sm text-gray-900">
+                                  {report.reportType ||
+                                    report.type ||
+                                    "General"}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.department || "N/A"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                                  report.priorityLevel || report.priority
+                                )}`}
+                              >
+                                {report.priorityLevel ||
+                                  report.priority ||
+                                  "Medium"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                                  report.status
+                                )}`}
+                              >
+                                {report.status || "draft"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.author?.firstName &&
+                                report.author?.lastName
+                                  ? `${report.author.firstName} ${report.author.lastName}`
+                                  : report.author?.firstName ||
+                                    report.author?.lastName ||
+                                    "Unknown"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.createdAt
+                                  ? new Date(
+                                      report.createdAt
+                                    ).toLocaleDateString()
+                                  : report.created || "N/A"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <span className="text-sm text-gray-900">
+                                {report.dueDate
+                                  ? new Date(
+                                      report.dueDate
+                                    ).toLocaleDateString()
+                                  : "No due date"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 px-4">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() =>
+                                    handleViewReport(report._id || report.id)
+                                  }
+                                  className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                  title="View report"
+                                >
+                                  <Eye className="w-4 h-4 text-black" />
+                                </button>
+                                {(report.author?._id === user?._id ||
+                                  report.author === user?._id) && (
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteReport(
+                                        report._id || report.id
+                                      )
+                                    }
+                                    className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
+                                    title="Delete report"
+                                  >
+                                    <X className="w-4 h-4 text-red-600" />
+                                  </button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Overtime Reports Tab Content */}
+          <TabsContent value="overtime-reports" className="mt-8">
+            {/* Summary Cards */}
+            <div>
+              <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                {getCurrentSummaryCards().map((card, index) => (
+                  <Card key={index} className="@container/card relative">
+                    <CardHeader>
+                      <CardDescription>{card.title}</CardDescription>
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                        {card.value}
+                      </CardTitle>
+                    </CardHeader>
+                    <div className="absolute bottom-3 right-3">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          card.color === "green"
+                            ? "text-green-600 bg-green-50"
+                            : "text-red-600 bg-red-50"
+                        }
+                      >
+                        {renderIcon(
+                          card.icon,
+                          card.color === "green"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        )}
+                        {card.change}
+                      </Badge>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Overtime Reports Table Section */}
+            <div className="mt-6">
+              <div className="bg-white rounded-lg border p-6">
+                {/* Table Header */}
+                <div className="mb-6">
+                  <div className="mb-2">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Team Overtime Reports
+                    </h3>
+                    <div className="flex items-center gap-64">
+                      <p className="text-sm text-gray-500">
+                        2 overtime records
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search and Filter Bar */}
+                <div className="flex items-center space-x-4 mb-6">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder={getSearchPlaceholder()}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <Select
+                      value={departmentFilter}
+                      onValueChange={setDepartmentFilter}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="All Department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Department</SelectItem>
+                        <SelectItem value="engineering">Engineering</SelectItem>
+                        <SelectItem value="operations">Operations</SelectItem>
+                        <SelectItem value="customer support">
+                          Customer Support
+                        </SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Overtime Reports Table */}
+                <div className="overflow-x-auto">
+                  <Table className="w-full">
+                    <TableHeader>
+                      <TableRow className="border-b border-gray-200">
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Employee ID
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Department
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Date
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Regular Hours
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Overtime Hours
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Total Hours
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Reason
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Manager
+                        </TableHead>
+                        <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-200">
+                      {filteredReports.map((report) => (
+                        <TableRow key={report.id} className="hover:bg-gray-50">
+                          <TableCell className="py-4 px-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {report.employeeId}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <span className="text-sm text-gray-900">
+                              {report.department}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <span className="text-sm text-gray-900">
+                              {report.date}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <div className="flex items-center">
+                              <svg
+                                className="w-4 h-4 text-gray-400 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <span className="text-sm text-gray-900">
+                                {report.regularHours}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <div className="flex items-center">
+                              <svg
+                                className="w-4 h-4 text-orange-500 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <span className="text-sm text-orange-500 font-medium">
+                                {report.overtimeHours}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <span className="text-sm text-gray-900">
+                              {report.totalHours}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <span className="text-sm text-gray-900">
+                              {report.reason}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <span className="text-sm text-gray-900">
+                              {report.manager}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4 px-4">
+                            <div className="flex items-center justify-end">
+                              <button className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors">
+                                <MessageSquare className="w-4 h-4 text-red-500" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1142,9 +1219,9 @@ export default function StaffReportsPage() {
                     <Input
                       type="text"
                       placeholder="Enter report title"
-                      value={formData.title}
+                      value={formData.reportTitle}
                       onChange={(e) =>
-                        handleInputChange("title", e.target.value)
+                        handleInputChange("reportTitle", e.target.value)
                       }
                       className="w-full"
                       required
@@ -1157,19 +1234,19 @@ export default function StaffReportsPage() {
                       Report Type *
                     </label>
                     <Select
-                      value={formData.type}
+                      value={formData.reportType}
                       onValueChange={(value) =>
-                        handleInputChange("type", value)
+                        handleInputChange("reportType", value)
                       }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select report type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="performance">Performance</SelectItem>
-                        <SelectItem value="attendance">Attendance</SelectItem>
-                        <SelectItem value="incident">Incident</SelectItem>
-                        <SelectItem value="general">General</SelectItem>
+                        <SelectItem value="Performance">Performance</SelectItem>
+                        <SelectItem value="Attendance">Attendance</SelectItem>
+                        <SelectItem value="Incident">Incident</SelectItem>
+                        <SelectItem value="General">General</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1209,18 +1286,19 @@ export default function StaffReportsPage() {
                       Priority Level
                     </label>
                     <Select
-                      value={formData.priority}
+                      value={formData.priorityLevel}
                       onValueChange={(value) =>
-                        handleInputChange("priority", value)
+                        handleInputChange("priorityLevel", value)
                       }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Critical">Critical</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1247,9 +1325,9 @@ export default function StaffReportsPage() {
                 </label>
                 <textarea
                   placeholder="Describe the purpose and content of this report..."
-                  value={formData.description}
+                  value={formData.reportDescription}
                   onChange={(e) =>
-                    handleInputChange("description", e.target.value)
+                    handleInputChange("reportDescription", e.target.value)
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   rows={4}
@@ -1269,13 +1347,149 @@ export default function StaffReportsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="px-6 bg-[#00db12] hover:bg-[#00c010] text-white"
+                  disabled={submitting}
+                  className="px-6 bg-[#00db12] hover:bg-[#00c010] text-white disabled:opacity-50"
                 >
-                  Create Report
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Report"
+                  )}
                 </Button>
               </div>
             </form>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Report Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[20px] font-bold text-[#0d141c]">
+              Report Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="space-y-6">
+              {/* Report Header */}
+              <div className="border-b pb-4">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {selectedReport.reportTitle}
+                </h2>
+                <div className="flex flex-wrap gap-3">
+                  <Badge
+                    className={getPriorityColor(selectedReport.priorityLevel)}
+                  >
+                    {selectedReport.priorityLevel} Priority
+                  </Badge>
+                  <Badge className={getStatusColor(selectedReport.status)}>
+                    {selectedReport.status}
+                  </Badge>
+                  <Badge variant="outline">{selectedReport.reportType}</Badge>
+                  <Badge variant="outline">{selectedReport.department}</Badge>
+                </div>
+              </div>
+
+              {/* Report Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Author</p>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.author?.firstName &&
+                    selectedReport.author?.lastName
+                      ? `${selectedReport.author.firstName} ${selectedReport.author.lastName}`
+                      : "Unknown"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Created Date
+                  </p>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.createdAt
+                      ? new Date(selectedReport.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Due Date</p>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.dueDate
+                      ? new Date(selectedReport.dueDate).toLocaleDateString()
+                      : "No due date"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    Last Updated
+                  </p>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.updatedAt
+                      ? new Date(selectedReport.updatedAt).toLocaleDateString()
+                      : "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Report Description */}
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-2">
+                  Description
+                </p>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {selectedReport.reportDescription ||
+                      "No description provided"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recipients */}
+              {selectedReport.recipients &&
+                selectedReport.recipients.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-2">
+                      Recipients
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedReport.recipients.map((recipient, index) => (
+                        <Badge key={index} variant="secondary">
+                          {recipient.firstName && recipient.lastName
+                            ? `${recipient.firstName} ${recipient.lastName}`
+                            : recipient.email || "Unknown"}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsViewModalOpen(false)}
+                >
+                  Close
+                </Button>
+                {(selectedReport.author?._id === user?._id ||
+                  selectedReport.author === user?._id) && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handleDeleteReport(selectedReport._id);
+                    }}
+                  >
+                    Delete Report
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </StaffDashboardLayout>
