@@ -95,11 +95,10 @@ export const AuthProvider = ({ children }) => {
 
           if (shouldLogout) {
             console.log("Token expired or invalid, logging out user");
-            console.log("But temporarily disabled for debugging");
-            // toast.error("Session expired. Please log in again.");
-            // signOut();
-            // // Redirect to landing page
-            // window.location.href = "/";
+            toast.error("Session expired. Please log in again.");
+            signOut();
+            // Redirect to landing page
+            window.location.href = "/";
           }
         }
         return Promise.reject(error);
@@ -118,10 +117,9 @@ export const AuthProvider = ({ children }) => {
         console.log("Token expired, logging out user");
         console.log("Access token:", accessToken.substring(0, 20) + "...");
         console.log("Token expiration check triggered");
-        console.log("But temporarily disabled for debugging");
-        // toast.error("Session expired. Please log in again.");
-        // signOut();
-        // window.location.href = "/";
+        toast.error("Session expired. Please log in again.");
+        signOut();
+        window.location.href = "/";
       }
     };
 
