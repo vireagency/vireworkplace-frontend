@@ -17,6 +17,9 @@ import {
   FileText,
   MessageSquare,
   X,
+  Pencil,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
@@ -276,12 +279,28 @@ export default function StaffReportsPage() {
   };
 
   // Modal handlers
-  const handleOpenModal = () => {
+  const handleOpenModal = (report = null) => {
+    if (report) {
+      // Editing existing report
+      setFormData({
+        reportTitle: report.reportTitle || "",
+        reportType: report.reportType || "",
+        department: report.department || "",
+        priorityLevel: report.priorityLevel || "",
+        dueDate: report.dueDate
+          ? new Date(report.dueDate).toISOString().split("T")[0]
+          : "",
+        reportDescription: report.reportDescription || "",
+        recipients: report.recipients?.map((r) => r._id || r) || [],
+      });
+      setSelectedReport(report);
+    }
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setSelectedReport(null);
     setFormData({
       reportTitle: "",
       reportType: "",
@@ -309,11 +328,29 @@ export default function StaffReportsPage() {
       return;
     }
 
-    // Create the report
-    const result = await createReport(formData);
+    // Check if we're editing or creating
+    if (selectedReport) {
+      // Update existing report
+      const result = await reportsApi.updateReport(
+        selectedReport._id,
+        formData,
+        accessToken
+      );
 
-    if (result.success) {
-      handleCloseModal();
+      if (result.success) {
+        toast.success("Report updated successfully!");
+        handleCloseModal();
+        fetchReports(); // Refresh the list
+      } else {
+        toast.error(result.error || "Failed to update report");
+      }
+    } else {
+      // Create new report
+      const result = await createReport(formData);
+
+      if (result.success) {
+        handleCloseModal();
+      }
     }
   };
 
@@ -712,17 +749,26 @@ export default function StaffReportsPage() {
                                 </button>
                                 {(report.author?._id === user?._id ||
                                   report.author === user?._id) && (
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteReport(
-                                        report._id || report.id
-                                      )
-                                    }
-                                    className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
-                                    title="Delete report"
-                                  >
-                                    <X className="w-4 h-4 text-red-600" />
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => handleOpenModal(report)}
+                                      className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                      title="Edit report"
+                                    >
+                                      <Pencil className="w-4 h-4 text-blue-600" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteReport(
+                                          report._id || report.id
+                                        )
+                                      }
+                                      className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
+                                      title="Delete report"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </TableCell>
@@ -955,17 +1001,26 @@ export default function StaffReportsPage() {
                                 </button>
                                 {(report.author?._id === user?._id ||
                                   report.author === user?._id) && (
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteReport(
-                                        report._id || report.id
-                                      )
-                                    }
-                                    className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
-                                    title="Delete report"
-                                  >
-                                    <X className="w-4 h-4 text-red-600" />
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => handleOpenModal(report)}
+                                      className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                      title="Edit report"
+                                    >
+                                      <Pencil className="w-4 h-4 text-blue-600" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteReport(
+                                          report._id || report.id
+                                        )
+                                      }
+                                      className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
+                                      title="Delete report"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </TableCell>
@@ -1197,11 +1252,12 @@ export default function StaffReportsPage() {
           <DialogHeader>
             <DialogTitle className="text-[20px] font-bold text-[#0d141c] flex items-center gap-2">
               <FileText className="size-5 text-[#00db12]" />
-              Create New Report
+              {selectedReport ? "Edit Report" : "Create New Report"}
             </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Fill in the details below to create a new report. All fields
-              marked with * are required.
+              Fill in the details below to{" "}
+              {selectedReport ? "update" : "create"} a report. All fields marked
+              with * are required.
             </DialogDescription>
           </DialogHeader>
 
@@ -1352,9 +1408,11 @@ export default function StaffReportsPage() {
                 >
                   {submitting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating...
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {selectedReport ? "Updating..." : "Creating..."}
                     </>
+                  ) : selectedReport ? (
+                    "Update Report"
                   ) : (
                     "Create Report"
                   )}
