@@ -1231,10 +1231,60 @@ export default function StaffEvaluationsPage() {
     try {
       if (!accessToken) throw new Error("No access token available.");
 
+      // Transform responses to the correct API format
+      const transformedResponses = responses.map((response) => {
+        // If response is already in the correct format, use it as is
+        if (response.sectionTitle && response.answers) {
+          return response;
+        }
+
+        // If response is in the old format (questionId -> answer), transform it
+        if (response.questionId && response.answer) {
+          return {
+            sectionTitle: "General Questions", // Default section title
+            answers: [
+              {
+                questionText:
+                  response.questionText || `Question ${response.questionId}`,
+                answer: response.answer,
+              },
+            ],
+          };
+        }
+
+        // If response is a simple key-value pair, transform it
+        const keys = Object.keys(response);
+        if (
+          keys.length === 1 &&
+          keys[0] !== "sectionTitle" &&
+          keys[0] !== "answers"
+        ) {
+          return {
+            sectionTitle: "General Questions",
+            answers: [
+              {
+                questionText: keys[0],
+                answer: response[keys[0]],
+              },
+            ],
+          };
+        }
+
+        return response;
+      });
+
       const payload = {
-        responses: responses || [],
+        responses: transformedResponses,
         comments: comments || "",
+        // Add timestamp to ensure uniqueness
+        submittedAt: new Date().toISOString(),
+        // Add evaluation context
+        evaluationId: id,
       };
+
+      console.log(`Submitting evaluation response for ID: ${id}`);
+      console.log("Original responses:", responses);
+      console.log("Transformed payload:", payload);
 
       const response = await apiClient.post(
         `/api/v1/dashboard/staff/evaluations/reviews/${id}/response`,
@@ -1255,21 +1305,62 @@ export default function StaffEvaluationsPage() {
               "completedEvaluations",
               JSON.stringify(completedEvaluations)
             );
-            console.log(`Marked evaluation ${id} as completed`);
+            console.log(
+              `✅ Marked evaluation ${id} as completed in localStorage`
+            );
+          } else {
+            console.log(`✅ Evaluation ${id} was already marked as completed`);
           }
+
+          // Also store the submission timestamp for additional verification
+          const submissionData = {
+            evaluationId: id,
+            submittedAt: new Date().toISOString(),
+            responseId: response.data?.data?._id || response.data?._id,
+            status: "submitted",
+          };
+
+          const submissionHistory = JSON.parse(
+            localStorage.getItem("evaluationSubmissions") || "[]"
+          );
+          submissionHistory.push(submissionData);
+          localStorage.setItem(
+            "evaluationSubmissions",
+            JSON.stringify(submissionHistory)
+          );
+
+          console.log(`✅ Stored submission data for evaluation ${id}`);
         } catch (storageError) {
           console.warn("Failed to update completion status:", storageError);
         }
 
-        // Trigger sidebar count refresh
+        // Trigger sidebar count refresh immediately
         try {
           window.dispatchEvent(
             new CustomEvent("evaluationCompleted", {
-              detail: { evaluationId: id },
+              detail: {
+                evaluationId: id,
+                timestamp: new Date().toISOString(),
+                responseData: response.data,
+              },
             })
           );
           console.log(
-            "Dispatched evaluationCompleted event for sidebar refresh"
+            "✅ Dispatched evaluationCompleted event for sidebar refresh"
+          );
+
+          // Also trigger a general count update event
+          window.dispatchEvent(
+            new CustomEvent("evaluationsCountUpdate", {
+              detail: {
+                source: "staffEvaluationPageSubmission",
+                evaluationId: id,
+                action: "completed",
+              },
+            })
+          );
+          console.log(
+            "✅ Dispatched evaluationsCountUpdate event for sidebar refresh"
           );
         } catch (eventError) {
           console.warn("Failed to dispatch sidebar refresh event:", eventError);

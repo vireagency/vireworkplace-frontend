@@ -109,7 +109,10 @@ export default function EvaluationCreator({ onBack }) {
           new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Backend expects both reviewDeadline and dueDate
         status: "pending", // Use valid enum value from the error message
         sections: transformedSections, // Use transformed sections
-        employees: evaluationData.selectedEmployees,
+        employees: evaluationData.selectedEmployees, // Array of employee IDs - backend should create individual evaluation instances for each
+        // IMPORTANT: Backend should create separate evaluation instances for each employee
+        // Each employee should get their own unique evaluation with their own response storage
+        createIndividualInstances: true, // Flag to ensure backend creates individual instances
       };
 
       console.log("Submitting evaluation with data:", requestBody);

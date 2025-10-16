@@ -48,7 +48,7 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { counts, loading: sidebarLoading } = useStaffSidebar();
+  const { counts, loading: sidebarLoading, isInitialLoad } = useStaffSidebar();
   // const { attendanceStatus } = useAttendanceStatus();
   const [isNavigating, setIsNavigating] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -97,6 +97,12 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
   // Get item count for badges from shared context
   const getItemCount = useCallback(
     (itemTitle) => {
+      // Don't show counts during initial load to prevent flashing incorrect numbers
+      if (isInitialLoad) {
+        console.log(`Badge for ${itemTitle}: 0 (initial load - hiding count)`);
+        return 0;
+      }
+
       // Map item titles to count keys
       const titleMapping = {
         Evaluations: "evaluations",
@@ -109,12 +115,27 @@ const StaffSidebarComponent = ({ config, onNavigate, ...props }) => {
       const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
       const count = counts[countKey] || 0;
 
+      // Special handling for evaluations - be extra conservative
+      if (itemTitle === "Evaluations") {
+        // Only show evaluation count if we're sure it's correct
+        // This prevents the flashing issue where it shows 2 then goes to 0
+        const hasReceivedUpdate = localStorage.getItem(
+          "evaluationsCountUpdated"
+        );
+        if (!hasReceivedUpdate) {
+          console.log(
+            `Badge for ${itemTitle}: 0 (no update received yet - being conservative)`
+          );
+          return 0;
+        }
+      }
+
       // Debug logging for badge counts
       console.log(`Badge for ${itemTitle} (key: ${countKey}):`, count);
 
       return count;
     },
-    [counts]
+    [counts, isInitialLoad]
   );
 
   // Handle attendance modal

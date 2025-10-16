@@ -60,59 +60,157 @@ export const useSidebarCounts = () => {
 
   const fetchEvaluationsCount = useCallback(async (apiClient) => {
     try {
-      console.log("🔍 Fetching evaluations count for sidebar...");
-      const response = await apiClient.get(
-        "/api/v1/dashboard/staff/evaluations/reviews"
+      console.log("🔍 Fetching REMAINING evaluations count for sidebar...");
+
+      // Debug localStorage first
+      const completedEvaluations = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
       );
+      console.log(
+        "🔍 Current completed evaluations in localStorage:",
+        completedEvaluations
+      );
+
+      // Try to fetch only pending evaluations first
+      let response;
+      try {
+        response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews",
+          {
+            params: {
+              status: "pending",
+            },
+          }
+        );
+        console.log(
+          "✅ Successfully fetched pending evaluations directly from API"
+        );
+      } catch (error) {
+        console.log(
+          "⚠️ API doesn't support status filter, fetching all evaluations"
+        );
+        // Fallback to fetching all evaluations if status filter is not supported
+        response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews"
+        );
+      }
       if (response.data && response.data.success) {
         const evaluationsData =
           response.data.data || response.data.evaluations || [];
 
         if (Array.isArray(evaluationsData)) {
-          console.log("📊 Sidebar count calculation:", {
+          console.log("📊 Sidebar REMAINING count calculation:", {
             totalEvaluations: evaluationsData.length,
+            apiResponseContainsOnlyPending:
+              response.config?.params?.status === "pending",
           });
 
-          const pendingEvaluations = evaluationsData.filter((evaluation) => {
-            const evaluationId = evaluation.id || evaluation._id;
-            // Use the EXACT same logic as EvaluationsOverview page
-            const isCompleted =
-              staffEvaluationsApi.isEvaluationCompleted(evaluationId);
-            const isApiCompleted =
-              evaluation.status === "completed" ||
-              evaluation.status === "submitted";
-
+          // If API returned only pending evaluations, use them directly
+          let remainingEvaluations;
+          if (response.config?.params?.status === "pending") {
             console.log(
-              `📋 Evaluation ${evaluationId}: completed=${isCompleted}, apiCompleted=${isApiCompleted}, status=${
-                evaluation.status
-              }, title=${evaluation.title || evaluation.formName}`
+              "✅ API returned only pending evaluations - using directly"
             );
+            remainingEvaluations = evaluationsData;
+          } else {
+            console.log(
+              "🔄 API returned all evaluations - filtering for remaining"
+            );
+            remainingEvaluations = evaluationsData.filter((evaluation) => {
+              const evaluationId = evaluation.id || evaluation._id;
 
-            // Only show evaluations that are NOT completed or submitted
-            // If it's in localStorage as completed, DON'T show it (even if API says pending)
-            const shouldShow = !isCompleted && !isApiCompleted;
-            console.log(`   → Should show: ${shouldShow}`);
+              // Check multiple completion indicators for robust detection
+              const isCompleted =
+                staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+              const isApiCompleted =
+                evaluation.status === "completed" ||
+                evaluation.status === "submitted";
+              const hasSubmittedResponse =
+                evaluation.responseId || evaluation.submittedAt;
 
-            // Additional check: if localStorage says completed, trust that over API status
-            if (isCompleted) {
+              // Check if there's a submission record in localStorage
+              let hasSubmissionRecord = false;
+              try {
+                const submissionHistory = JSON.parse(
+                  localStorage.getItem("evaluationSubmissions") || "[]"
+                );
+                hasSubmissionRecord = submissionHistory.some(
+                  (submission) => submission.evaluationId === evaluationId
+                );
+              } catch (error) {
+                console.warn("Error checking submission history:", error);
+              }
+
+              // If ANY indicator shows completion, don't count it as pending
+              const isActuallyCompleted =
+                isCompleted ||
+                isApiCompleted ||
+                hasSubmittedResponse ||
+                hasSubmissionRecord;
+
               console.log(
-                `   → Hidden because localStorage says it's completed`
+                `📋 Evaluation ${evaluationId}: completed=${isCompleted}, apiCompleted=${isApiCompleted}, hasResponse=${hasSubmittedResponse}, hasSubmissionRecord=${hasSubmissionRecord}, status=${
+                  evaluation.status
+                }, title=${evaluation.title || evaluation.formName}`
               );
-            }
+              console.log(`   → Full evaluation object:`, evaluation);
 
-            return shouldShow;
+              // Only count evaluations that are NOT completed in any way (REMAINING)
+              const isRemaining = !isActuallyCompleted;
+              console.log(`   → Is remaining: ${isRemaining}`);
+
+              // Log why it's being excluded from remaining count
+              if (isCompleted) {
+                console.log(
+                  `   → Excluded from remaining count - localStorage says it's completed`
+                );
+              }
+              if (isApiCompleted) {
+                console.log(
+                  `   → Excluded from remaining count - API says it's completed/submitted`
+                );
+              }
+              if (hasSubmittedResponse) {
+                console.log(
+                  `   → Excluded from remaining count - has a submitted response`
+                );
+              }
+              if (hasSubmissionRecord) {
+                console.log(
+                  `   → Excluded from remaining count - has a submission record in localStorage`
+                );
+              }
+
+              return isRemaining;
+            });
+          }
+
+          console.log("📊 Sidebar REMAINING count calculation results:", {
+            totalEvaluations: evaluationsData.length,
+            remainingEvaluations: remainingEvaluations.length,
+            completedEvaluations:
+              evaluationsData.length - remainingEvaluations.length,
+            remainingEvaluationIds: remainingEvaluations.map(
+              (e) => e.id || e._id
+            ),
+            allEvaluationIds: evaluationsData.map((e) => e.id || e._id),
+            allEvaluationStatuses: evaluationsData.map((e) => ({
+              id: e.id || e._id,
+              status: e.status,
+              title: e.title || e.formName,
+            })),
           });
 
           console.log(
-            `✅ Sidebar evaluations count: ${pendingEvaluations.length} pending out of ${evaluationsData.length} total`
+            `✅ Sidebar REMAINING evaluations count: ${remainingEvaluations.length} remaining out of ${evaluationsData.length} total`
           );
-          return pendingEvaluations.length;
+          return remainingEvaluations.length;
         }
       }
       console.log("⚠️ No evaluations data or API failed, returning 0");
       return 0;
     } catch (error) {
-      console.error("❌ Error fetching evaluations count:", error);
+      console.error("❌ Error fetching remaining evaluations count:", error);
 
       // On 403 error, also check localStorage for completed evaluations
       if (error.response?.status === 403) {
@@ -285,9 +383,10 @@ export const useSidebarCounts = () => {
 
   // Listen for evaluation completion and deletion events to refresh counts
   useEffect(() => {
-    const handleEvaluationCompleted = () => {
+    const handleEvaluationCompleted = (event) => {
       console.log(
-        "🔄 Evaluation completed event received, refreshing counts..."
+        "🔄 Evaluation completed event received, refreshing counts...",
+        event.detail
       );
 
       // Immediately decrement the count for instant feedback
@@ -302,8 +401,9 @@ export const useSidebarCounts = () => {
 
       // Also refresh all counts in background to sync with API
       setTimeout(() => {
+        console.log("🔄 Background refresh after evaluation completion...");
         fetchAllCounts(true);
-      }, 2000); // Wait 2 seconds for backend to process
+      }, 1000); // Reduced to 1 second for faster sync
     };
 
     const handleEvaluationDeleted = () => {
@@ -325,11 +425,12 @@ export const useSidebarCounts = () => {
     // Listen for direct count updates from the Evaluations Overview page
     // This ensures the sidebar count matches exactly what's shown on the page
     const handleEvaluationsCountUpdate = (event) => {
-      const { total, completed, pending, source } = event.detail;
+      const { total, completed, pending, source, action } = event.detail;
       console.log(`📥 Received evaluations count update from ${source}:`, {
         total,
         completed,
         pending,
+        action,
       });
 
       // Update the sidebar count to match the page's calculation
@@ -341,6 +442,16 @@ export const useSidebarCounts = () => {
       console.log(
         `✅ Sidebar count updated to ${pending} (${completed} completed out of ${total} total)`
       );
+
+      // If this is a completion action, also refresh counts after a short delay
+      if (action === "completed") {
+        setTimeout(() => {
+          console.log(
+            "🔄 Additional refresh after evaluationsCountUpdate completion..."
+          );
+          fetchAllCounts(true);
+        }, 500);
+      }
     };
 
     // Listen for reports count updates from the Reports page
@@ -432,6 +543,269 @@ export const useSidebarCounts = () => {
       );
       setCounts((prev) => ({ ...prev, evaluations: 0 }));
       console.log("✅ Sidebar count set to 0 (all evaluations are completed)");
+    };
+
+    // Emergency fix - force set to 0 and clear localStorage
+    window.emergencyFixEvaluations = () => {
+      console.log(
+        "🚨 EMERGENCY FIX: Setting evaluations to 0 and clearing localStorage..."
+      );
+      localStorage.setItem("completedEvaluations", "[]");
+      setCounts((prev) => ({ ...prev, evaluations: 0 }));
+      console.log("✅ Emergency fix applied - evaluations count set to 0");
+    };
+
+    window.clearCompletedEvaluations = () => {
+      console.log("🧹 Clearing completed evaluations from localStorage...");
+      localStorage.removeItem("completedEvaluations");
+      localStorage.removeItem("evaluationSubmissions");
+      console.log("✅ Cleared all evaluation data, refreshing counts...");
+      refreshEvaluationsCount();
+    };
+
+    // Smart fix - check if all evaluations are completed and set to 0
+    window.smartFixEvaluations = async () => {
+      console.log("🧠 SMART FIX: Checking if all evaluations are completed...");
+
+      if (!accessToken) {
+        console.log("❌ No access token available");
+        return;
+      }
+
+      try {
+        const apiClient = createApiClient();
+        let response;
+        try {
+          response = await apiClient.get(
+            "/api/v1/dashboard/staff/evaluations/reviews",
+            {
+              params: {
+                status: "pending",
+              },
+            }
+          );
+          console.log("✅ Smart fix: Fetched pending evaluations from API");
+        } catch (error) {
+          console.log(
+            "⚠️ Smart fix: API doesn't support status filter, fetching all evaluations"
+          );
+          response = await apiClient.get(
+            "/api/v1/dashboard/staff/evaluations/reviews"
+          );
+        }
+
+        if (response.data && response.data.success) {
+          const evaluationsData =
+            response.data.data || response.data.evaluations || [];
+
+          if (evaluationsData.length === 0) {
+            console.log("✅ No pending evaluations found - setting count to 0");
+            setCounts((prev) => ({ ...prev, evaluations: 0 }));
+            return;
+          }
+
+          // If API returned only pending evaluations, we know they're all remaining
+          if (response.config?.params?.status === "pending") {
+            console.log(
+              "✅ API returned only pending evaluations - setting count to actual pending count"
+            );
+            setCounts((prev) => ({
+              ...prev,
+              evaluations: evaluationsData.length,
+            }));
+            return;
+          }
+
+          // Check if all evaluations are completed
+          const completedEvaluations = JSON.parse(
+            localStorage.getItem("completedEvaluations") || "[]"
+          );
+          const submissionHistory = JSON.parse(
+            localStorage.getItem("evaluationSubmissions") || "[]"
+          );
+
+          const allCompleted = evaluationsData.every((evaluation) => {
+            const evaluationId = evaluation.id || evaluation._id;
+            const isCompleted =
+              staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
+            const hasSubmittedResponse =
+              evaluation.responseId || evaluation.submittedAt;
+            const hasSubmissionRecord = submissionHistory.some(
+              (submission) => submission.evaluationId === evaluationId
+            );
+            return (
+              isCompleted ||
+              isApiCompleted ||
+              hasSubmittedResponse ||
+              hasSubmissionRecord
+            );
+          });
+
+          if (allCompleted) {
+            console.log(
+              "✅ All evaluations are completed - setting count to 0"
+            );
+            setCounts((prev) => ({ ...prev, evaluations: 0 }));
+          } else {
+            console.log(
+              "⚠️ Some evaluations are still pending - refreshing count normally"
+            );
+            refreshEvaluationsCount();
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error in smart fix:", error);
+      }
+    };
+
+    window.debugEvaluationCount = () => {
+      console.log("🔍 Debug REMAINING evaluation count calculation...");
+      if (accessToken) {
+        const apiClient = createApiClient();
+        fetchEvaluationsCount(apiClient).then((count) => {
+          console.log(`🔍 Manual REMAINING evaluation count debug: ${count}`);
+        });
+      }
+    };
+
+    // New comprehensive debug function
+    window.debugEvaluationData = async () => {
+      console.log("🔍 COMPREHENSIVE EVALUATION DEBUG...");
+
+      if (!accessToken) {
+        console.log("❌ No access token available");
+        return;
+      }
+
+      const apiClient = createApiClient();
+
+      try {
+        // 1. Check localStorage data
+        const completedEvaluations = JSON.parse(
+          localStorage.getItem("completedEvaluations") || "[]"
+        );
+        const submissionHistory = JSON.parse(
+          localStorage.getItem("evaluationSubmissions") || "[]"
+        );
+
+        console.log("📊 LOCAL STORAGE DATA:");
+        console.log("  - Completed evaluations:", completedEvaluations);
+        console.log("  - Submission history:", submissionHistory);
+
+        // 2. Fetch API data
+        console.log("📊 FETCHING API DATA...");
+        let response;
+        try {
+          response = await apiClient.get(
+            "/api/v1/dashboard/staff/evaluations/reviews",
+            {
+              params: {
+                status: "pending",
+              },
+            }
+          );
+          console.log("✅ Debug: Fetched pending evaluations from API");
+        } catch (error) {
+          console.log(
+            "⚠️ Debug: API doesn't support status filter, fetching all evaluations"
+          );
+          response = await apiClient.get(
+            "/api/v1/dashboard/staff/evaluations/reviews"
+          );
+        }
+
+        if (response.data && response.data.success) {
+          const evaluationsData =
+            response.data.data || response.data.evaluations || [];
+
+          console.log("📊 API RESPONSE DATA:");
+          console.log(
+            "  - Total evaluations from API:",
+            evaluationsData.length
+          );
+          console.log("  - Full API response:", response.data);
+
+          // 3. Analyze each evaluation
+          evaluationsData.forEach((evaluation, index) => {
+            const evaluationId = evaluation.id || evaluation._id;
+            console.log(`📋 EVALUATION ${index + 1} (${evaluationId}):`);
+            console.log("  - Full object:", evaluation);
+            console.log("  - Status:", evaluation.status);
+            console.log("  - Response ID:", evaluation.responseId);
+            console.log("  - Submitted At:", evaluation.submittedAt);
+            console.log("  - Title:", evaluation.title || evaluation.formName);
+
+            // Check completion indicators
+            const isCompleted =
+              staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
+            const hasSubmittedResponse =
+              evaluation.responseId || evaluation.submittedAt;
+            const hasSubmissionRecord = submissionHistory.some(
+              (submission) => submission.evaluationId === evaluationId
+            );
+
+            console.log("  - Completion checks:");
+            console.log("    * localStorage completed:", isCompleted);
+            console.log("    * API completed:", isApiCompleted);
+            console.log("    * Has response:", hasSubmittedResponse);
+            console.log("    * Has submission record:", hasSubmissionRecord);
+
+            const isActuallyCompleted =
+              isCompleted ||
+              isApiCompleted ||
+              hasSubmittedResponse ||
+              hasSubmissionRecord;
+            console.log(
+              "  - FINAL RESULT - Is completed:",
+              isActuallyCompleted
+            );
+            console.log(
+              "  - Should be counted as remaining:",
+              !isActuallyCompleted
+            );
+          });
+
+          // 4. Calculate final count
+          const remainingCount = evaluationsData.filter((evaluation) => {
+            const evaluationId = evaluation.id || evaluation._id;
+            const isCompleted =
+              staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+            const isApiCompleted =
+              evaluation.status === "completed" ||
+              evaluation.status === "submitted";
+            const hasSubmittedResponse =
+              evaluation.responseId || evaluation.submittedAt;
+            const hasSubmissionRecord = submissionHistory.some(
+              (submission) => submission.evaluationId === evaluationId
+            );
+            const isActuallyCompleted =
+              isCompleted ||
+              isApiCompleted ||
+              hasSubmittedResponse ||
+              hasSubmissionRecord;
+            return !isActuallyCompleted;
+          }).length;
+
+          console.log("📊 FINAL CALCULATION:");
+          console.log(`  - Total evaluations: ${evaluationsData.length}`);
+          console.log(`  - Remaining evaluations: ${remainingCount}`);
+          console.log(
+            `  - Completed evaluations: ${
+              evaluationsData.length - remainingCount
+            }`
+          );
+        } else {
+          console.log("❌ API response failed:", response.data);
+        }
+      } catch (error) {
+        console.error("❌ Error in debug:", error);
+      }
     };
 
     // Reset all evaluations data for testing

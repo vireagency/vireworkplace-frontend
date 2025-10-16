@@ -447,8 +447,51 @@ export const staffEvaluationsApi = {
         };
       }
 
+      // Transform the response data to match the expected API format
+      // The API expects responses with sectionTitle and answers array
+      const transformedResponses = responseData.responses.map((response) => {
+        // If response is already in the correct format, use it as is
+        if (response.sectionTitle && response.answers) {
+          return response;
+        }
+
+        // If response is in the old format (questionId -> answer), transform it
+        if (response.questionId && response.answer) {
+          return {
+            sectionTitle: "General Questions", // Default section title
+            answers: [
+              {
+                questionText:
+                  response.questionText || `Question ${response.questionId}`,
+                answer: response.answer,
+              },
+            ],
+          };
+        }
+
+        // If response is a simple key-value pair, transform it
+        const keys = Object.keys(response);
+        if (
+          keys.length === 1 &&
+          keys[0] !== "sectionTitle" &&
+          keys[0] !== "answers"
+        ) {
+          return {
+            sectionTitle: "General Questions",
+            answers: [
+              {
+                questionText: keys[0],
+                answer: response[keys[0]],
+              },
+            ],
+          };
+        }
+
+        return response;
+      });
+
       // Validate response format - should have sectionTitle and answers
-      const hasValidFormat = responseData.responses.every(
+      const hasValidFormat = transformedResponses.every(
         (response) =>
           response.sectionTitle &&
           response.answers &&
@@ -462,25 +505,42 @@ export const staffEvaluationsApi = {
         console.warn(
           "Response format validation failed. Expected format: { sectionTitle, answers: [{ questionText, answer }] }"
         );
-        console.log("Current response format:", responseData.responses);
+        console.log("Current response format:", transformedResponses);
       }
 
+      // Prepare the final payload
+      const payload = {
+        responses: transformedResponses,
+        comments: responseData.comments || "",
+        // Add timestamp to ensure uniqueness
+        submittedAt: new Date().toISOString(),
+        // Add evaluation context
+        evaluationId: evaluationId,
+      };
+
       console.log(`Submitting evaluation response for ID: ${evaluationId}`);
-      console.log("Response data:", JSON.stringify(responseData, null, 2));
+      console.log(
+        "Original response data:",
+        JSON.stringify(responseData, null, 2)
+      );
+      console.log(
+        "Transformed response data:",
+        JSON.stringify(payload, null, 2)
+      );
       console.log("Response data structure:", {
-        hasResponses: Array.isArray(responseData.responses),
-        responsesCount: responseData.responses?.length || 0,
-        hasComments: !!responseData.comments,
-        commentsLength: responseData.comments?.length || 0,
-        sampleResponse: responseData.responses?.[0] || null,
-        sampleSectionTitle: responseData.responses?.[0]?.sectionTitle || null,
-        sampleAnswersCount: responseData.responses?.[0]?.answers?.length || 0,
-        sampleAnswer: responseData.responses?.[0]?.answers?.[0] || null,
+        hasResponses: Array.isArray(payload.responses),
+        responsesCount: payload.responses?.length || 0,
+        hasComments: !!payload.comments,
+        commentsLength: payload.comments?.length || 0,
+        sampleResponse: payload.responses?.[0] || null,
+        sampleSectionTitle: payload.responses?.[0]?.sectionTitle || null,
+        sampleAnswersCount: payload.responses?.[0]?.answers?.length || 0,
+        sampleAnswer: payload.responses?.[0]?.answers?.[0] || null,
       });
 
       const response = await axios.post(
         `${STAFF_EVALUATIONS_API_BASE}/${evaluationId}/response`,
-        responseData,
+        payload,
         {
           headers: {
             ...getAuthHeaders(accessToken),
@@ -514,20 +574,65 @@ export const staffEvaluationsApi = {
             "completedEvaluations",
             JSON.stringify(completedEvaluations)
           );
-          console.log(`Marked evaluation ${evaluationId} as completed`);
+          console.log(
+            `✅ Marked evaluation ${evaluationId} as completed in localStorage`
+          );
+        } else {
+          console.log(
+            `✅ Evaluation ${evaluationId} was already marked as completed`
+          );
         }
+
+        // Also store the submission timestamp for additional verification
+        const submissionData = {
+          evaluationId: evaluationId,
+          submittedAt: new Date().toISOString(),
+          responseId: response.data?.data?._id || response.data?._id,
+          status: "submitted",
+        };
+
+        const submissionHistory = JSON.parse(
+          localStorage.getItem("evaluationSubmissions") || "[]"
+        );
+        submissionHistory.push(submissionData);
+        localStorage.setItem(
+          "evaluationSubmissions",
+          JSON.stringify(submissionHistory)
+        );
+
+        console.log(`✅ Stored submission data for evaluation ${evaluationId}`);
       } catch (storageError) {
         console.warn("Failed to update completion status:", storageError);
       }
 
-      // Trigger sidebar count refresh
+      // Trigger sidebar count refresh immediately
       try {
         window.dispatchEvent(
           new CustomEvent("evaluationCompleted", {
-            detail: { evaluationId: evaluationId },
+            detail: {
+              evaluationId: evaluationId,
+              timestamp: new Date().toISOString(),
+              responseData: response.data,
+            },
           })
         );
-        console.log("Dispatched evaluationCompleted event for sidebar refresh");
+        console.log(
+          "✅ Dispatched evaluationCompleted event for sidebar refresh"
+        );
+
+        // Also trigger a general count update event
+        window.dispatchEvent(
+          new CustomEvent("evaluationsCountUpdate", {
+            detail: {
+              source: "staffEvaluationSubmission",
+              evaluationId: evaluationId,
+              action: "completed",
+            },
+          })
+        );
+        console.log(
+          "✅ Dispatched evaluationsCountUpdate event for sidebar refresh"
+        );
       } catch (eventError) {
         console.warn("Failed to dispatch sidebar refresh event:", eventError);
       }

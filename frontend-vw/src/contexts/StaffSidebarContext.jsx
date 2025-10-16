@@ -8,6 +8,7 @@ import React, {
 import { useAuth } from "@/hooks/useAuth";
 import { getApiUrl } from "@/config/apiConfig";
 import axios from "axios";
+import { staffEvaluationsApi } from "@/services/staffEvaluations";
 
 // Action types
 const SIDEBAR_ACTIONS = {
@@ -17,6 +18,7 @@ const SIDEBAR_ACTIONS = {
   UPDATE_COUNT: "UPDATE_COUNT",
   REFRESH_COUNTS: "REFRESH_COUNTS",
   SET_INITIALIZED: "SET_INITIALIZED",
+  SET_INITIAL_LOAD: "SET_INITIAL_LOAD",
 };
 
 // Initial state
@@ -32,6 +34,8 @@ const initialState = {
   error: null,
   initialized: false,
   lastFetchTime: 0,
+  // Add flag to prevent showing incorrect counts during initial load
+  isInitialLoad: true,
 };
 
 // Reducer
@@ -83,6 +87,12 @@ const sidebarReducer = (state, action) => {
         initialized: action.payload,
       };
 
+    case SIDEBAR_ACTIONS.SET_INITIAL_LOAD:
+      return {
+        ...state,
+        isInitialLoad: action.payload,
+      };
+
     default:
       return state;
   }
@@ -131,16 +141,147 @@ export const StaffSidebarProvider = ({ children }) => {
 
   const fetchEvaluationsCount = useCallback(async (apiClient) => {
     try {
-      const response = await apiClient.get(
-        "/api/v1/dashboard/staff/evaluations/reviews"
+      console.log(
+        "🔍 StaffSidebarContext: Fetching REMAINING evaluations count..."
       );
-      if (response.data && response.data.success) {
-        const evaluations = response.data.data || [];
-        return Array.isArray(evaluations) ? evaluations.length : 0;
+
+      // Debug localStorage first
+      const completedEvaluations = JSON.parse(
+        localStorage.getItem("completedEvaluations") || "[]"
+      );
+      console.log(
+        "🔍 StaffSidebarContext: Current completed evaluations in localStorage:",
+        completedEvaluations
+      );
+
+      // Try to fetch only pending evaluations first
+      let response;
+      try {
+        response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews",
+          {
+            params: { status: "pending" },
+          }
+        );
+        console.log(
+          "✅ StaffSidebarContext: Successfully fetched pending evaluations directly from API"
+        );
+      } catch (error) {
+        console.log(
+          "⚠️ StaffSidebarContext: API doesn't support status filter, fetching all evaluations"
+        );
+        response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews"
+        );
       }
-      return 0;
+
+      // Handle different response structures
+      let evaluationsData = [];
+      if (response.data) {
+        if (
+          response.data.success &&
+          response.data.data &&
+          Array.isArray(response.data.data)
+        ) {
+          evaluationsData = response.data.data;
+        } else if (
+          response.data.success &&
+          response.data.evaluations &&
+          Array.isArray(response.data.evaluations)
+        ) {
+          evaluationsData = response.data.evaluations;
+        } else if (Array.isArray(response.data)) {
+          evaluationsData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          evaluationsData = response.data.data;
+        } else if (
+          response.data.evaluations &&
+          Array.isArray(response.data.evaluations)
+        ) {
+          evaluationsData = response.data.evaluations;
+        }
+      }
+
+      console.log(
+        "🔍 StaffSidebarContext: Extracted evaluations data:",
+        evaluationsData
+      );
+
+      if (!Array.isArray(evaluationsData)) {
+        console.log(
+          "⚠️ StaffSidebarContext: No evaluations data or API failed, returning 0"
+        );
+        return 0;
+      }
+
+      console.log("📊 StaffSidebarContext: REMAINING count calculation:", {
+        totalEvaluations: evaluationsData.length,
+        apiResponseContainsOnlyPending:
+          response.config?.params?.status === "pending",
+      });
+
+      // If no evaluations at all, return 0 immediately
+      if (evaluationsData.length === 0) {
+        console.log(
+          "✅ StaffSidebarContext: No evaluations found - returning 0"
+        );
+        return 0;
+      }
+
+      // If API returned only pending evaluations, use them directly
+      let remainingEvaluations;
+      if (response.config?.params?.status === "pending") {
+        console.log(
+          "✅ StaffSidebarContext: API returned only pending evaluations - using directly"
+        );
+        remainingEvaluations = evaluationsData;
+      } else {
+        console.log(
+          "🔄 StaffSidebarContext: API returned all evaluations - filtering for remaining"
+        );
+        remainingEvaluations = evaluationsData.filter((evaluation) => {
+          const evaluationId = evaluation.id || evaluation._id;
+
+          // Use the same completion detection logic as the main page
+          const isCompleted =
+            staffEvaluationsApi.isEvaluationCompleted(evaluationId);
+          const isApiCompleted =
+            evaluation.status === "completed" ||
+            evaluation.status === "submitted";
+
+          // Only show evaluations that are NOT completed or submitted
+          const isRemaining = !isCompleted && !isApiCompleted;
+
+          console.log(
+            `📋 StaffSidebarContext: Evaluation ${evaluationId}: completed=${isCompleted}, apiCompleted=${isApiCompleted}, status=${
+              evaluation.status
+            }, title=${evaluation.title || evaluation.formName}`
+          );
+          console.log(`   → Is remaining: ${isRemaining}`);
+
+          return isRemaining;
+        });
+      }
+
+      console.log(
+        "📊 StaffSidebarContext: REMAINING count calculation results:",
+        {
+          totalEvaluations: evaluationsData.length,
+          remainingEvaluations: remainingEvaluations.length,
+          completedEvaluations:
+            evaluationsData.length - remainingEvaluations.length,
+        }
+      );
+
+      console.log(
+        `✅ StaffSidebarContext: REMAINING evaluations count: ${remainingEvaluations.length} remaining out of ${evaluationsData.length} total`
+      );
+      return remainingEvaluations.length;
     } catch (error) {
-      console.error("Error fetching evaluations count:", error);
+      console.error(
+        "❌ StaffSidebarContext: Error fetching remaining evaluations count:",
+        error
+      );
       return 0;
     }
   }, []);
@@ -254,15 +395,27 @@ export const StaffSidebarProvider = ({ children }) => {
           type: SIDEBAR_ACTIONS.SET_COUNTS,
           payload: {
             tasks: tasksCount,
-            evaluations: evaluationsCount,
+            evaluations: 0, // Always start with 0 for evaluations until main page broadcasts correct count
             attendance: attendanceCount,
             messages: messagesCount,
             reports: reportsCount,
           },
         });
+
+        // Mark initial load as complete
+        dispatch({
+          type: SIDEBAR_ACTIONS.SET_INITIAL_LOAD,
+          payload: false,
+        });
       } catch (error) {
         console.error("Error fetching sidebar counts:", error);
         dispatch({ type: SIDEBAR_ACTIONS.SET_ERROR, payload: error.message });
+
+        // Even on error, mark initial load as complete to prevent infinite loading
+        dispatch({
+          type: SIDEBAR_ACTIONS.SET_INITIAL_LOAD,
+          payload: false,
+        });
       }
     },
     [
@@ -309,11 +462,194 @@ export const StaffSidebarProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [accessToken, state.initialized, fetchAllCounts]);
 
+  // Listen for evaluation completion events to refresh counts
+  useEffect(() => {
+    const handleEvaluationCompleted = (event) => {
+      console.log(
+        "🔄 StaffSidebarContext: Evaluation completed event received, refreshing counts...",
+        event.detail
+      );
+
+      // Immediately decrement the count for instant feedback
+      dispatch({
+        type: SIDEBAR_ACTIONS.UPDATE_COUNT,
+        payload: {
+          key: "evaluations",
+          value: Math.max(0, state.counts.evaluations - 1),
+        },
+      });
+
+      console.log(
+        "✅ StaffSidebarContext: Decremented evaluation count by 1 for instant UI feedback"
+      );
+
+      // Also refresh all counts in background to sync with API
+      setTimeout(() => {
+        console.log(
+          "🔄 StaffSidebarContext: Background refresh after evaluation completion..."
+        );
+        fetchAllCounts(true);
+      }, 1000); // Wait 1 second for backend to process
+    };
+
+    const handleEvaluationsCountUpdate = (event) => {
+      const { total, completed, pending, source, action } = event.detail;
+      console.log(
+        `📥 StaffSidebarContext: Received evaluations count update from ${source}:`,
+        {
+          total,
+          completed,
+          pending,
+          action,
+        }
+      );
+
+      // Mark that we've received an evaluation count update
+      localStorage.setItem("evaluationsCountUpdated", "true");
+
+      // Update the sidebar count to match the page's calculation
+      dispatch({
+        type: SIDEBAR_ACTIONS.UPDATE_COUNT,
+        payload: { key: "evaluations", value: pending || 0 },
+      });
+
+      console.log(
+        `✅ StaffSidebarContext: Sidebar count updated to ${pending} (${completed} completed out of ${total} total)`
+      );
+
+      // If this is a completion action, also refresh counts after a short delay
+      if (action === "completed") {
+        setTimeout(() => {
+          console.log(
+            "🔄 StaffSidebarContext: Additional refresh after evaluationsCountUpdate completion..."
+          );
+          fetchAllCounts(true);
+        }, 500);
+      }
+    };
+
+    window.addEventListener("evaluationCompleted", handleEvaluationCompleted);
+    window.addEventListener(
+      "evaluationsCountUpdate",
+      handleEvaluationsCountUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "evaluationCompleted",
+        handleEvaluationCompleted
+      );
+      window.removeEventListener(
+        "evaluationsCountUpdate",
+        handleEvaluationsCountUpdate
+      );
+    };
+  }, [fetchAllCounts, state.counts.evaluations]);
+
+  // Add debug function to window for troubleshooting
+  useEffect(() => {
+    window.debugStaffSidebarCounts = async () => {
+      console.log("🔍 DEBUGGING STAFF SIDEBAR COUNTS...");
+      console.log("Current state:", {
+        counts: state.counts,
+        loading: state.loading,
+        initialized: state.initialized,
+        isInitialLoad: state.isInitialLoad,
+        error: state.error,
+      });
+
+      if (!accessToken) {
+        console.log("❌ No access token available");
+        return;
+      }
+
+      try {
+        const apiClient = createApiClient();
+
+        // Test the API call directly
+        console.log("🔍 Testing API call directly...");
+        const response = await apiClient.get(
+          "/api/v1/dashboard/staff/evaluations/reviews"
+        );
+        console.log("📊 Raw API response:", response.data);
+
+        // Test with status filter
+        try {
+          console.log("🔍 Testing API call with status=pending filter...");
+          const filteredResponse = await apiClient.get(
+            "/api/v1/dashboard/staff/evaluations/reviews",
+            {
+              params: { status: "pending" },
+            }
+          );
+          console.log("📊 Filtered API response:", filteredResponse.data);
+        } catch (error) {
+          console.log("⚠️ Status filter not supported:", error.message);
+        }
+
+        // Test the actual fetchEvaluationsCount function
+        console.log("🔍 Testing fetchEvaluationsCount function...");
+        const count = await fetchEvaluationsCount(apiClient);
+        console.log("📊 Final count returned:", count);
+
+        // Check localStorage
+        const completedEvaluations = JSON.parse(
+          localStorage.getItem("completedEvaluations") || "[]"
+        );
+        const submissionHistory = JSON.parse(
+          localStorage.getItem("evaluationSubmissions") || "[]"
+        );
+        console.log("📊 LocalStorage data:", {
+          completedEvaluations,
+          submissionHistory,
+        });
+      } catch (error) {
+        console.error("❌ Debug error:", error);
+      }
+    };
+
+    // Force set evaluations to 0
+    window.forceStaffEvaluationsZero = () => {
+      console.log("🔧 Force setting staff sidebar evaluations count to 0...");
+      dispatch({
+        type: SIDEBAR_ACTIONS.UPDATE_COUNT,
+        payload: { key: "evaluations", value: 0 },
+      });
+      console.log("✅ Staff sidebar evaluations count set to 0");
+    };
+
+    // Clear all evaluation data and refresh
+    window.clearStaffEvaluationData = () => {
+      console.log("🧹 Clearing all staff evaluation data...");
+      localStorage.removeItem("completedEvaluations");
+      localStorage.removeItem("evaluationSubmissions");
+      localStorage.removeItem("evaluationsCountUpdated");
+      console.log("✅ Cleared evaluation data, refreshing counts...");
+      fetchAllCounts(true);
+    };
+
+    // Reset evaluation count update flag
+    window.resetEvaluationCountFlag = () => {
+      console.log("🔄 Resetting evaluation count update flag...");
+      localStorage.removeItem("evaluationsCountUpdated");
+      console.log(
+        "✅ Evaluation count update flag reset - sidebar will be conservative again"
+      );
+    };
+  }, [
+    accessToken,
+    createApiClient,
+    fetchEvaluationsCount,
+    state,
+    fetchAllCounts,
+  ]);
+
   const contextValue = {
     counts: state.counts,
     loading: state.loading,
     error: state.error,
     initialized: state.initialized,
+    isInitialLoad: state.isInitialLoad,
     updateCount,
     refreshCounts,
     fetchAllCounts,
