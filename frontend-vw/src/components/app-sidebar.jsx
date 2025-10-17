@@ -74,6 +74,7 @@ import {
 // Custom authentication hook for user context
 import { useAuth } from "@/hooks/useAuth";
 import { getSidebarAvatarUrl } from "@/utils/avatarUtils";
+import { useHRSidebarCounts } from "@/hooks/useHRSidebarCounts";
 
 /**
  * AppSidebar Component
@@ -98,6 +99,9 @@ export function AppSidebar({
 }) {
   // Get current authenticated user and loading state
   const { user, loading } = useAuth();
+
+  // Get HR sidebar counts for HR users
+  const { counts: hrCounts } = useHRSidebarCounts();
 
   // ============================================================================
   // DEFAULT NAVIGATION CONFIGURATION
@@ -362,6 +366,7 @@ export function AppSidebar({
           teams={userData.teams}
           productivity={userData.productivity}
           company={userData.company}
+          counts={user?.role === "Human Resource Manager" ? hrCounts : {}}
         />
 
         {/* Documents navigation (Data Library, Reports, Word Assistant) */}

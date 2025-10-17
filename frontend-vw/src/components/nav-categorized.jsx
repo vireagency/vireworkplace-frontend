@@ -10,6 +10,13 @@
 import React from "react";
 
 // ============================================================================
+// UI COMPONENT IMPORTS
+// ============================================================================
+
+// Badge component for count displays
+import { Badge } from "@/components/ui/badge";
+
+// ============================================================================
 // ROUTING IMPORTS
 // ============================================================================
 
@@ -64,6 +71,7 @@ export function NavCategorized({
   teams = [], // Teams section navigation items
   productivity = [], // Productivity section navigation items
   company = [], // Company section navigation items
+  counts = {}, // Count data for badges
 }) {
   // ============================================================================
   // HOOKS
@@ -74,6 +82,41 @@ export function NavCategorized({
 
   // Current location for active state management
   const location = useLocation();
+
+  // ============================================================================
+  // HELPER FUNCTIONS
+  // ============================================================================
+
+  /**
+   * Get count for navigation item based on title
+   * @description Maps navigation item titles to count keys and returns the count
+   * @param {string} itemTitle - Navigation item title
+   * @returns {number} Count for the navigation item
+   */
+  const getItemCount = (itemTitle) => {
+    // Map item titles to count keys
+    const titleMapping = {
+      Evaluations: "evaluations",
+      Employees: "employees",
+      Messages: "messages",
+      Reports: "reports",
+      "Employee Management": "employees",
+      "Team Management": "employees",
+      Analytics: "reports",
+      "Performance Reports": "reports",
+    };
+
+    const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
+    const count = counts[countKey] || 0;
+
+    // Debug logging for badge counts
+    console.log(
+      `NavCategorized Badge for ${itemTitle} (key: ${countKey}):`,
+      count
+    );
+
+    return count;
+  };
 
   // ============================================================================
   // EVENT HANDLERS
@@ -126,6 +169,7 @@ export function NavCategorized({
               {analytics.map((item) => {
                 // Determine if current analytics item is active
                 const isActive = location.pathname === item.url;
+                const itemCount = getItemCount(item.title);
 
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -142,8 +186,21 @@ export function NavCategorized({
                       {/* Analytics item title */}
                       <span>{item.title}</span>
 
-                      {/* Optional badge for notifications or counts */}
-                      {item.badge && (
+                      {/* Dynamic badge for counts or static badge */}
+                      {itemCount > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className={`ml-auto h-6 px-2 text-sm font-bold min-w-[24px] flex items-center justify-center ${
+                            isActive
+                              ? "bg-green-500 text-white border-green-500"
+                              : "bg-red-500 text-white border-red-500"
+                          }`}
+                        >
+                          {itemCount > 99 ? "99+" : itemCount}
+                        </Badge>
+                      )}
+                      {/* Fallback to static badge if no count and badge exists */}
+                      {itemCount === 0 && item.badge && (
                         <span className="ml-auto px-2 py-0.5 text-xs font-medium text-blue-600 border border-blue-600 rounded-full">
                           {item.badge}
                         </span>
@@ -176,6 +233,7 @@ export function NavCategorized({
               {teams.map((item) => {
                 // Determine if current teams item is active
                 const isActive = location.pathname === item.url;
+                const itemCount = getItemCount(item.title);
 
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -191,6 +249,20 @@ export function NavCategorized({
 
                       {/* Teams item title */}
                       <span>{item.title}</span>
+
+                      {/* Dynamic badge for counts */}
+                      {itemCount > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className={`ml-auto h-6 px-2 text-sm font-bold min-w-[24px] flex items-center justify-center ${
+                            isActive
+                              ? "bg-green-500 text-white border-green-500"
+                              : "bg-red-500 text-white border-red-500"
+                          }`}
+                        >
+                          {itemCount > 99 ? "99+" : itemCount}
+                        </Badge>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -269,6 +341,7 @@ export function NavCategorized({
               {company.map((item) => {
                 // Determine if current company item is active
                 const isActive = location.pathname === item.url;
+                const itemCount = getItemCount(item.title);
 
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -284,6 +357,20 @@ export function NavCategorized({
 
                       {/* Company item title */}
                       <span>{item.title}</span>
+
+                      {/* Dynamic badge for counts */}
+                      {itemCount > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className={`ml-auto h-6 px-2 text-sm font-bold min-w-[24px] flex items-center justify-center ${
+                            isActive
+                              ? "bg-green-500 text-white border-green-500"
+                              : "bg-red-500 text-white border-red-500"
+                          }`}
+                        >
+                          {itemCount > 99 ? "99+" : itemCount}
+                        </Badge>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

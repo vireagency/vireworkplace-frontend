@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getSidebarAvatarUrl } from "@/utils/avatarUtils";
 import { NavUser } from "@/components/nav-user";
 import { NavSecondary } from "@/components/nav-secondary";
+import { useHRSidebarCounts } from "@/hooks/useHRSidebarCounts";
 
 /**
  * HRSidebar Component
@@ -40,7 +41,12 @@ const HRSidebarComponent = ({ config, onNavigate, ...props }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { counts, loading: sidebarLoading } = useHRSidebarCounts();
   const [isNavigating, setIsNavigating] = useState(false);
+
+  // Debug logging for counts
+  console.log("HRSidebar - Received counts:", counts);
+  console.log("HRSidebar - Sidebar loading:", sidebarLoading);
 
   // Handle navigation with proper state management
   const handleNavigation = useCallback(
@@ -79,12 +85,31 @@ const HRSidebarComponent = ({ config, onNavigate, ...props }) => {
     [location.pathname]
   );
 
-  // Get item count for badges
-  const getItemCount = useCallback((itemTitle) => {
-    // For now, return 0 for all items
-    // This can be enhanced later with actual count data
-    return 0;
-  }, []);
+  // Get item count for badges from HR sidebar counts
+  const getItemCount = useCallback(
+    (itemTitle) => {
+      // Map item titles to count keys
+      const titleMapping = {
+        Evaluations: "evaluations",
+        Employees: "employees",
+        Messages: "messages",
+        Reports: "reports",
+        "Employee Management": "employees",
+        "Team Management": "employees",
+        Analytics: "reports",
+        "Performance Reports": "reports",
+      };
+
+      const countKey = titleMapping[itemTitle] || itemTitle.toLowerCase();
+      const count = counts[countKey] || 0;
+
+      // Debug logging for badge counts
+      console.log(`HR Badge for ${itemTitle} (key: ${countKey}):`, count);
+
+      return count;
+    },
+    [counts]
+  );
 
   // Render navigation item
   const renderNavItem = useCallback(
@@ -102,7 +127,7 @@ const HRSidebarComponent = ({ config, onNavigate, ...props }) => {
               isActive ? "text-[#00DB12] bg-green-50" : "",
               isNavigating && "opacity-50 pointer-events-none"
             )}
-            disabled={isNavigating}
+            disabled={isNavigating || sidebarLoading}
           >
             {Icon && <Icon />}
             <span>{item.title}</span>
@@ -123,7 +148,7 @@ const HRSidebarComponent = ({ config, onNavigate, ...props }) => {
         </SidebarMenuItem>
       );
     },
-    [isActiveItem, getItemCount, handleNavigation, isNavigating]
+    [isActiveItem, getItemCount, handleNavigation, isNavigating, sidebarLoading]
   );
 
   // Render navigation section
