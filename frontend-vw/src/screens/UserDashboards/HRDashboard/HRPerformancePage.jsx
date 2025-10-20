@@ -1109,6 +1109,156 @@ export default function HRPerformancePage() {
               </div>
             ) : performanceTrends ? (
               <>
+                {/* Department Performance Comparison Card */}
+                <div className="mb-8">
+                  <Card>
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-lg font-semibold text-slate-900">
+                        Department Performance Comparison
+                      </CardTitle>
+                      <p className="text-sm text-slate-600">
+                        Comprehensive view of performance metrics across all
+                        departments
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Bar Chart */}
+                      <div className="h-80 bg-slate-50 rounded-lg p-6 mb-6">
+                        <div className="flex items-end justify-around gap-2 h-full px-4">
+                          {performanceTrends?.OverallDepartmentPerformance?.map(
+                            (dept) => {
+                              // Convert score (0-5) to percentage for visualization
+                              const performancePercent =
+                                (dept.avgScore / 5) * 100;
+                              // Generate realistic variations for other metrics based on performance score
+                              const satisfactionPercent = Math.max(
+                                60,
+                                Math.min(
+                                  95,
+                                  performancePercent + (Math.random() * 10 - 5)
+                                )
+                              );
+                              const productivityPercent = Math.max(
+                                65,
+                                Math.min(
+                                  98,
+                                  performancePercent + (Math.random() * 8 - 4)
+                                )
+                              );
+                              const retentionPercent = Math.max(
+                                70,
+                                Math.min(
+                                  95,
+                                  performancePercent + (Math.random() * 6 - 3)
+                                )
+                              );
+
+                              return (
+                                <div
+                                  key={dept.department}
+                                  className="flex flex-col items-center h-full flex-1 max-w-[80px]"
+                                >
+                                  <div className="flex items-end gap-1 h-full mb-2">
+                                    <div
+                                      className="w-6 bg-blue-300 rounded-t transition-all hover:bg-blue-400"
+                                      style={{
+                                        height: `${satisfactionPercent}%`,
+                                      }}
+                                      title={`Employee Satisfaction: ${satisfactionPercent.toFixed(
+                                        0
+                                      )}%`}
+                                    ></div>
+                                    <div
+                                      className="w-6 bg-purple-500 rounded-t transition-all hover:bg-purple-600"
+                                      style={{
+                                        height: `${performancePercent}%`,
+                                      }}
+                                      title={`Performance Score: ${performancePercent.toFixed(
+                                        0
+                                      )}%`}
+                                    ></div>
+                                    <div
+                                      className="w-6 bg-orange-500 rounded-t transition-all hover:bg-orange-600"
+                                      style={{
+                                        height: `${productivityPercent}%`,
+                                      }}
+                                      title={`Productivity Index: ${productivityPercent.toFixed(
+                                        0
+                                      )}%`}
+                                    ></div>
+                                    <div
+                                      className="w-6 bg-green-500 rounded-t transition-all hover:bg-green-600"
+                                      style={{ height: `${retentionPercent}%` }}
+                                      title={`Retention Rate: ${retentionPercent.toFixed(
+                                        0
+                                      )}%`}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-slate-500 text-center mt-2 truncate w-full">
+                                    {dept.department}
+                                  </span>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Chart Legend */}
+                      <div className="flex items-center justify-center gap-8 mb-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
+                          <span className="text-slate-600">
+                            Employee Satisfaction
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                          <span className="text-slate-600">
+                            Performance Score
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                          <span className="text-slate-600">
+                            Productivity Index
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-slate-600">Retention Rate</span>
+                        </div>
+                      </div>
+
+                      {/* Summary */}
+                      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600">Top Performer:</span>
+                          <span className="font-semibold text-green-600">
+                            {performanceTrends?.TopPerformingDepartment
+                              ?.department || "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600">Overall Index:</span>
+                          <span className="font-semibold text-blue-600">
+                            {performanceTrends?.OverallPerformanceIndex?.toFixed(
+                              1
+                            ) || "N/A"}
+                            /5.0
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600">Period:</span>
+                          <span className="font-semibold text-purple-600">
+                            {performanceTrends?.period || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
                 {/* First Row - Three Performance Cards */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                   {/* Overall Performance Index Card */}
@@ -1617,144 +1767,7 @@ export default function HRPerformancePage() {
               </Card>
             </div>
 
-            {/* Third Row - Department Performance Comparison Card */}
-            <div className="mb-8">
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
-                    Department Performance Comparison
-                  </CardTitle>
-                  <p className="text-sm text-slate-600">
-                    Comprehensive view of performance metrics across all
-                    departments
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {/* Bar Chart */}
-                  <div className="h-80 bg-slate-50 rounded-lg p-6 mb-6">
-                    <div className="flex items-end justify-around gap-2 h-full px-4">
-                      {performanceTrends?.OverallDepartmentPerformance?.map(
-                        (dept) => {
-                          // Convert score (0-5) to percentage for visualization
-                          const performancePercent = (dept.avgScore / 5) * 100;
-                          // Generate realistic variations for other metrics based on performance score
-                          const satisfactionPercent = Math.max(
-                            60,
-                            Math.min(
-                              95,
-                              performancePercent + (Math.random() * 10 - 5)
-                            )
-                          );
-                          const productivityPercent = Math.max(
-                            65,
-                            Math.min(
-                              98,
-                              performancePercent + (Math.random() * 8 - 4)
-                            )
-                          );
-                          const retentionPercent = Math.max(
-                            70,
-                            Math.min(
-                              95,
-                              performancePercent + (Math.random() * 6 - 3)
-                            )
-                          );
-
-                          return (
-                            <div
-                              key={dept.department}
-                              className="flex flex-col items-center h-full flex-1 max-w-[80px]"
-                            >
-                              <div className="flex items-end gap-1 h-full mb-2">
-                                <div
-                                  className="w-6 bg-blue-300 rounded-t transition-all hover:bg-blue-400"
-                                  style={{ height: `${satisfactionPercent}%` }}
-                                  title={`Employee Satisfaction: ${satisfactionPercent.toFixed(
-                                    0
-                                  )}%`}
-                                ></div>
-                                <div
-                                  className="w-6 bg-purple-500 rounded-t transition-all hover:bg-purple-600"
-                                  style={{ height: `${performancePercent}%` }}
-                                  title={`Performance Score: ${performancePercent.toFixed(
-                                    0
-                                  )}%`}
-                                ></div>
-                                <div
-                                  className="w-6 bg-orange-500 rounded-t transition-all hover:bg-orange-600"
-                                  style={{ height: `${productivityPercent}%` }}
-                                  title={`Productivity Index: ${productivityPercent.toFixed(
-                                    0
-                                  )}%`}
-                                ></div>
-                                <div
-                                  className="w-6 bg-green-500 rounded-t transition-all hover:bg-green-600"
-                                  style={{ height: `${retentionPercent}%` }}
-                                  title={`Retention Rate: ${retentionPercent.toFixed(
-                                    0
-                                  )}%`}
-                                ></div>
-                              </div>
-                              <span className="text-xs text-slate-500 text-center mt-2 truncate w-full">
-                                {dept.department}
-                              </span>
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Chart Legend */}
-                  <div className="flex items-center justify-center gap-8 mb-6 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
-                      <span className="text-slate-600">
-                        Employee Satisfaction
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span className="text-slate-600">Performance Score</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-slate-600">Productivity Index</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-slate-600">Retention Rate</span>
-                    </div>
-                  </div>
-
-                  {/* Summary */}
-                  <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-600">Top Performer:</span>
-                      <span className="font-semibold text-green-600">
-                        {performanceTrends?.TopPerformingDepartment
-                          ?.department || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-600">Overall Index:</span>
-                      <span className="font-semibold text-blue-600">
-                        {performanceTrends?.OverallPerformanceIndex?.toFixed(
-                          1
-                        ) || "N/A"}
-                        /5.0
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-600">Period:</span>
-                      <span className="font-semibold text-purple-600">
-                        {performanceTrends?.period || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Third Row - Department Performance Comparison Card moved to top */}
           </TabsContent>
 
           {/* Goals Tab Content */}

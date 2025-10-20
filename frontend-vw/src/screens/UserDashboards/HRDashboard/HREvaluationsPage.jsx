@@ -20,6 +20,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
 import evaluationsApi from "@/services/evaluations";
@@ -714,6 +715,7 @@ export default function HREvaluationsPage() {
   console.log("HREvaluationsPage component is rendering");
 
   const { accessToken, user } = useAuth();
+  const navigate = useNavigate();
   console.log("Access token:", accessToken ? "Present" : "Missing");
   console.log("User:", user);
   const [activeTab, setActiveTab] = useState("overview");
@@ -1912,6 +1914,7 @@ export default function HREvaluationsPage() {
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-2 h-auto py-3"
+                      onClick={() => toast.info("Feature coming soon")}
                     >
                       <Star className="h-4 w-4" />
                       Schedule Team Reviews
@@ -1919,6 +1922,7 @@ export default function HREvaluationsPage() {
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-2 h-auto py-3"
+                      onClick={() => toast.info("Feature coming soon")}
                     >
                       <ScrollText className="h-4 w-4" />
                       Generate Performance Reports
@@ -1926,6 +1930,7 @@ export default function HREvaluationsPage() {
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-2 h-auto py-3"
+                      onClick={() => toast.info("Feature coming soon")}
                     >
                       <HeartPulse className="h-4 w-4" />
                       Send Feedback Requests
@@ -1933,6 +1938,9 @@ export default function HREvaluationsPage() {
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-2 h-auto py-3"
+                      onClick={() =>
+                        navigate("/human-resource-manager/performance")
+                      }
                     >
                       <Users className="h-4 w-4" />
                       View Team Analytics
