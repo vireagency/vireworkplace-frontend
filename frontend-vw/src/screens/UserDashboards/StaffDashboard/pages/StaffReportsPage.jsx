@@ -5,6 +5,7 @@ import { useStandardizedSidebar } from "@/hooks/useStandardizedSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { reportsApi } from "@/services/reportsApi";
 import { toast } from "sonner";
+import { log, logError } from "@/utils/logger";
 import {
   Search,
   Filter,
@@ -117,7 +118,7 @@ export default function StaffReportsPage() {
         ...params,
       };
 
-      console.log("Fetching reports with params:", queryParams);
+      log("Fetching reports with params:", queryParams);
       const result = await reportsApi.getAllReports(queryParams, accessToken);
 
       if (result.success) {
@@ -140,8 +141,8 @@ export default function StaffReportsPage() {
           );
         }
 
-        console.log("Reports fetched successfully:", reportsData.length);
-        console.log("Reports data:", reportsData);
+        log("Reports fetched successfully:", reportsData.length);
+        log("Reports data:", reportsData);
 
         // Dispatch event for sidebar count update - count only unread reports
         const allReports = append ? [...reports, ...reportsData] : reportsData;

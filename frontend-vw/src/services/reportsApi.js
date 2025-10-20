@@ -13,6 +13,7 @@
 
 import axios from "axios";
 import { apiConfig } from "@/config/apiConfig";
+import { log, logError } from "@/utils/logger";
 
 // Base URL for reports API
 const REPORTS_API_BASE = `${apiConfig.baseURL}/dashboard/reports`;
@@ -41,7 +42,7 @@ export const reportsApi = {
     try {
       // Validate required fields
       if (!reportData.reportTitle || !reportData.reportDescription) {
-        console.error("Missing required fields:", {
+        logError("Missing required fields:", {
           reportTitle: !!reportData.reportTitle,
           reportDescription: !!reportData.reportDescription,
         });
@@ -66,21 +67,21 @@ export const reportsApi = {
         mappedData.dueDate = reportData.dueDate;
       }
 
-      console.log("Creating report with data:", mappedData);
-      console.log("Recipients:", mappedData.recipients);
-      console.log("Access token present:", !!accessToken);
+      log("Creating report with data:", mappedData);
+      log("Recipients:", mappedData.recipients);
+      log("Access token present:", !!accessToken);
 
       const response = await axios.post(REPORTS_API_BASE, mappedData, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Report creation response:", response.data);
+      log("Report creation response:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Error creating report:", error);
-      console.error("Error response data:", error.response?.data);
-      console.error("Error status:", error.response?.status);
-      console.error("Error message:", error.message);
+      logError("Error creating report:", error);
+      logError("Error response data:", error.response?.data);
+      logError("Error status:", error.response?.status);
+      logError("Error message:", error.message);
 
       // Return more detailed error information
       const errorMessage =
@@ -123,21 +124,21 @@ export const reportsApi = {
       const url = `${REPORTS_API_BASE}${
         queryParams.toString() ? `?${queryParams.toString()}` : ""
       }`;
-      console.log("Fetching reports from:", url);
+      log("Fetching reports from:", url);
 
       const response = await axios.get(url, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("All reports response:", response.data);
+      log("All reports response:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Error fetching reports:", error);
-      console.error("Error response:", error.response?.data);
+      logError("Error fetching reports:", error);
+      logError("Error response:", error.response?.data);
 
       // Treat 404 as "no reports found" rather than an error
       if (error.response?.status === 404) {
-        console.log("No reports found (404), returning empty data");
+        log("No reports found (404), returning empty data");
         return {
           success: true,
           data: {
@@ -163,15 +164,15 @@ export const reportsApi = {
    */
   getReportById: async (reportId, accessToken) => {
     try {
-      console.log(`Fetching report with ID: ${reportId}`);
+      log(`Fetching report with ID: ${reportId}`);
       const response = await axios.get(`${REPORTS_API_BASE}/${reportId}`, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Single report response:", response.data);
+      log("Single report response:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error(
+      logError(
         "Error fetching report:",
         error.response?.data || error.message
       );
@@ -213,7 +214,7 @@ export const reportsApi = {
         mappedData.dueDate = reportData.dueDate;
       }
 
-      console.log(`Updating report ${reportId} with data:`, mappedData);
+      log(`Updating report ${reportId} with data:`, mappedData);
 
       const response = await axios.patch(
         `${REPORTS_API_BASE}/${reportId}`,
@@ -223,10 +224,10 @@ export const reportsApi = {
         }
       );
 
-      console.log("Report update response:", response.data);
+      log("Report update response:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error(
+      logError(
         "Error updating report:",
         error.response?.data || error.message
       );
@@ -245,15 +246,15 @@ export const reportsApi = {
    */
   deleteReport: async (reportId, accessToken) => {
     try {
-      console.log(`Deleting report with ID: ${reportId}`);
+      log(`Deleting report with ID: ${reportId}`);
       const response = await axios.delete(`${REPORTS_API_BASE}/${reportId}`, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Report deletion response:", response.data);
+      log("Report deletion response:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error(
+      logError(
         "Error deleting report:",
         error.response?.data || error.message
       );

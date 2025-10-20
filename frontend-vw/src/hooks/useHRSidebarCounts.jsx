@@ -20,7 +20,7 @@ export const useHRSidebarCounts = () => {
 
   // Use ref to prevent unnecessary re-renders
   const lastFetchTime = useRef(0);
-  const FETCH_INTERVAL = 300000; // 5 minutes
+  const FETCH_INTERVAL = 30000; // 30 seconds - more frequent updates
   const isInitialized = useRef(false);
 
   // Create API client
@@ -207,6 +207,19 @@ export const useHRSidebarCounts = () => {
     return () => clearInterval(interval);
   }, [fetchCounts]);
 
+  // Manual refresh function
+  const refreshCounts = useCallback(() => {
+    lastFetchTime.current = 0; // Force refresh
+    fetchCounts();
+  }, [fetchCounts]);
+
+  // Force immediate refresh function
+  const forceRefreshCounts = useCallback(() => {
+    lastFetchTime.current = 0;
+    isInitialized.current = false;
+    fetchCounts();
+  }, [fetchCounts]);
+
   // Listen for HR-specific events to refresh counts
   useEffect(() => {
     const handleEvaluationCreated = (event) => {
@@ -214,9 +227,15 @@ export const useHRSidebarCounts = () => {
         "🔄 HR evaluation created event received, refreshing counts...",
         event.detail
       );
+      // Immediate count update
+      setCounts((prev) => ({
+        ...prev,
+        evaluations: prev.evaluations + 1,
+      }));
+      // Also refresh from API after a short delay
       setTimeout(() => {
-        fetchCounts();
-      }, 1000);
+        forceRefreshCounts();
+      }, 500);
     };
 
     const handleEmployeeAdded = (event) => {
@@ -224,9 +243,15 @@ export const useHRSidebarCounts = () => {
         "🔄 Employee added event received, refreshing counts...",
         event.detail
       );
+      // Immediate count update
+      setCounts((prev) => ({
+        ...prev,
+        employees: prev.employees + 1,
+      }));
+      // Also refresh from API after a short delay
       setTimeout(() => {
-        fetchCounts();
-      }, 1000);
+        forceRefreshCounts();
+      }, 500);
     };
 
     const handleMessageReceived = (event) => {
@@ -234,8 +259,14 @@ export const useHRSidebarCounts = () => {
         "🔄 New message received event, refreshing counts...",
         event.detail
       );
+      // Immediate count update
+      setCounts((prev) => ({
+        ...prev,
+        messages: prev.messages + 1,
+      }));
+      // Also refresh from API after a short delay
       setTimeout(() => {
-        fetchCounts();
+        forceRefreshCounts();
       }, 500);
     };
 
@@ -244,9 +275,31 @@ export const useHRSidebarCounts = () => {
         "🔄 Report generated event received, refreshing counts...",
         event.detail
       );
+      // Immediate count update
+      setCounts((prev) => ({
+        ...prev,
+        reports: prev.reports + 1,
+      }));
+      // Also refresh from API after a short delay
       setTimeout(() => {
-        fetchCounts();
-      }, 1000);
+        forceRefreshCounts();
+      }, 500);
+    };
+
+    const handleEvaluationCompleted = (event) => {
+      console.log(
+        "🔄 Evaluation completed event received, updating counts...",
+        event.detail
+      );
+      // Immediate count decrease
+      setCounts((prev) => ({
+        ...prev,
+        evaluations: Math.max(0, prev.evaluations - 1),
+      }));
+      // Also refresh from API after a short delay
+      setTimeout(() => {
+        forceRefreshCounts();
+      }, 500);
     };
 
     // Listen for HR-specific events
@@ -254,6 +307,7 @@ export const useHRSidebarCounts = () => {
     window.addEventListener("employeeAdded", handleEmployeeAdded);
     window.addEventListener("messageReceived", handleMessageReceived);
     window.addEventListener("reportGenerated", handleReportGenerated);
+    window.addEventListener("evaluationCompleted", handleEvaluationCompleted);
 
     return () => {
       window.removeEventListener(
@@ -263,14 +317,12 @@ export const useHRSidebarCounts = () => {
       window.removeEventListener("employeeAdded", handleEmployeeAdded);
       window.removeEventListener("messageReceived", handleMessageReceived);
       window.removeEventListener("reportGenerated", handleReportGenerated);
+      window.removeEventListener(
+        "evaluationCompleted",
+        handleEvaluationCompleted
+      );
     };
-  }, [fetchCounts]);
-
-  // Manual refresh function
-  const refreshCounts = useCallback(() => {
-    lastFetchTime.current = 0; // Force refresh
-    fetchCounts();
-  }, [fetchCounts]);
+  }, [fetchCounts, forceRefreshCounts]);
 
   // Add global debugging functions for HR sidebar
   useEffect(() => {
@@ -349,6 +401,7 @@ export const useHRSidebarCounts = () => {
   return {
     counts,
     refreshCounts,
+    forceRefreshCounts,
     loading: counts.loading,
   };
 };
