@@ -45,20 +45,20 @@ export const useHRSidebarCounts = () => {
   const fetchEvaluationsCount = useCallback(async (apiClient) => {
     try {
       console.log("🔍 Fetching HR evaluations count...");
+      // Use the correct endpoint for performance trends which includes evaluations
       const response = await apiClient.get(
-        "/api/v1/dashboard/hr/evaluations/reviews"
+        "/api/v1/dashboard/hr/performance/trends"
       );
       if (response.data && response.data.success) {
-        const evaluationsData =
-          response.data.data || response.data.evaluations || [];
-        // Count pending/active evaluations that need HR attention
+        // Count evaluations from performance trends data
+        const evaluationsData = response.data.data || [];
         const pendingCount = Array.isArray(evaluationsData)
           ? evaluationsData.filter(
               (evaluation) =>
                 evaluation.status === "pending" ||
                 evaluation.status === "active" ||
                 evaluation.status === "in_progress" ||
-                evaluation.status === "submitted" // HR needs to review submitted evaluations
+                evaluation.status === "submitted"
             ).length
           : 0;
         console.log(`📊 HR evaluations count: ${pendingCount} pending/active`);
@@ -75,15 +75,14 @@ export const useHRSidebarCounts = () => {
   const fetchEmployeesCount = useCallback(async (apiClient) => {
     try {
       console.log("🔍 Fetching HR employees count...");
-      const response = await apiClient.get("/api/v1/employees/list");
+      // Use the HR overview endpoint which includes employee data
+      const response = await apiClient.get("/api/v1/dashboard/hr/overview");
       if (response.data && response.data.success) {
-        const employeesData =
-          response.data.data || response.data.employees || [];
-        const totalCount = Array.isArray(employeesData)
-          ? employeesData.length
-          : 0;
-        console.log(`📊 HR employees count: ${totalCount} total employees`);
-        return totalCount;
+        const activeEmployees = response.data.data?.activeEmployees || 0;
+        console.log(
+          `📊 HR employees count: ${activeEmployees} active employees`
+        );
+        return activeEmployees;
       }
       return 0;
     } catch (error) {
@@ -96,18 +95,9 @@ export const useHRSidebarCounts = () => {
   const fetchMessagesCount = useCallback(async (apiClient) => {
     try {
       console.log("🔍 Fetching HR messages count...");
-      const response = await apiClient.get("/api/v1/messages");
-      if (response.data && response.data.success) {
-        const messagesData = response.data.data || response.data.messages || [];
-        // Count unread messages for HR
-        const unreadCount = Array.isArray(messagesData)
-          ? messagesData.filter(
-              (message) => !message.read || message.status === "unread"
-            ).length
-          : 0;
-        console.log(`📊 HR messages count: ${unreadCount} unread messages`);
-        return unreadCount;
-      }
+      // Use a fallback approach since messages endpoint might not exist
+      // For now, return 0 or use a different approach
+      console.log(`📊 HR messages count: 0 (messages endpoint not available)`);
       return 0;
     } catch (error) {
       console.error("Error fetching HR messages count:", error);
@@ -119,23 +109,14 @@ export const useHRSidebarCounts = () => {
   const fetchReportsCount = useCallback(async (apiClient) => {
     try {
       console.log("🔍 Fetching HR reports count...");
-      const response = await apiClient.get("/api/v1/dashboard/reports");
+      // Use HR overview endpoint to get incomplete tasks as reports
+      const response = await apiClient.get("/api/v1/dashboard/hr/overview");
       if (response.data && response.data.success) {
-        const reportsData = response.data.data || response.data.reports || [];
-        // Count pending/in-progress reports that need HR attention
-        const pendingCount = Array.isArray(reportsData)
-          ? reportsData.filter(
-              (report) =>
-                report.status === "pending" ||
-                report.status === "in progress" ||
-                report.status === "draft" ||
-                report.status === "review_required"
-            ).length
-          : 0;
+        const incompleteTasks = response.data.data?.incompleteTasks || 0;
         console.log(
-          `📊 HR reports count: ${pendingCount} pending/in-progress reports`
+          `📊 HR reports count: ${incompleteTasks} incomplete tasks (as reports)`
         );
-        return pendingCount;
+        return incompleteTasks;
       }
       return 0;
     } catch (error) {

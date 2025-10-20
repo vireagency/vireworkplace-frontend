@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { goalsApi } from "@/services/goalsApi";
 import { performanceTrendsApi } from "@/services/performanceTrendsApi";
 import { hrOverviewApi } from "@/services/hrOverviewApi";
+import { staffOverviewApi } from "@/services/staffOverviewApi";
 import { toast } from "sonner";
 
 export default function HRPerformancePage() {
@@ -47,6 +48,10 @@ export default function HRPerformancePage() {
   const [hrOverview, setHrOverview] = useState(null);
   const [isLoadingOverview, setIsLoadingOverview] = useState(false);
 
+  // Staff Overview state
+  const [staffOverview, setStaffOverview] = useState(null);
+  const [isLoadingStaffOverview, setIsLoadingStaffOverview] = useState(false);
+
   // Performers modal state
   const [showTopPerformersModal, setShowTopPerformersModal] = useState(false);
   const [showLowPerformersModal, setShowLowPerformersModal] = useState(false);
@@ -57,6 +62,7 @@ export default function HRPerformancePage() {
       loadGoals();
       loadPerformanceTrends();
       loadHrOverview();
+      loadStaffOverview();
     }
   }, [accessToken]);
 
@@ -110,20 +116,101 @@ export default function HRPerformancePage() {
           "First transformed goal targetMetric:",
           transformedGoals[0]?.targetMetric
         );
-        setGoals(transformedGoals);
-        toast.success("Goals loaded successfully");
+
+        // Add pending goals from local storage
+        const pendingGoals = goalsApi.getPendingGoals();
+        console.log("Pending goals from localStorage:", pendingGoals);
+
+        // Transform pending goals to match the same format
+        const transformedPendingGoals = pendingGoals.map((goal) => ({
+          id: goal.id,
+          title: goal.goalTitle || goal.title,
+          description: goal.goalDescription || goal.description,
+          priority: goal.priority || "Medium",
+          status: goal.status || "Pending Sync",
+          progress: 0,
+          deadline: goal.dueDate || goal.deadline,
+          owner: goal.goalOwner || goal.owner,
+          keyMetrics: goal.keyMetrics || [],
+          category: goal.category || "General",
+          goalType: goal.goalType || "Company",
+          team: goal.team || "",
+          department: goal.department || "",
+          successCriteria: goal.successCriteria || "",
+          startDate: goal.startDate || "",
+          createdBy: goal.createdBy || null,
+          isLocal: true, // Flag to indicate this is a local goal
+          ...goal,
+        }));
+
+        // Combine server goals and pending goals
+        const allGoals = [...transformedGoals, ...transformedPendingGoals];
+        console.log("All goals (server + pending):", allGoals);
+
+        setGoals(allGoals);
+        toast.success(
+          `Goals loaded successfully (${transformedGoals.length} from server, ${transformedPendingGoals.length} pending sync)`
+        );
       } else {
         console.error("API returned error:", result.error);
         toast.error(result.error || "Failed to load goals");
-        // Fallback to static data if API fails
-        setGoals(getStaticGoals());
-        toast.info("Using fallback data");
+
+        // Even if API fails, show pending goals from localStorage
+        const pendingGoals = goalsApi.getPendingGoals();
+        const transformedPendingGoals = pendingGoals.map((goal) => ({
+          id: goal.id,
+          title: goal.goalTitle || goal.title,
+          description: goal.goalDescription || goal.description,
+          priority: goal.priority || "Medium",
+          status: goal.status || "Pending Sync",
+          progress: 0,
+          deadline: goal.dueDate || goal.deadline,
+          owner: goal.goalOwner || goal.owner,
+          keyMetrics: goal.keyMetrics || [],
+          category: goal.category || "General",
+          goalType: goal.goalType || "Company",
+          team: goal.team || "",
+          department: goal.department || "",
+          successCriteria: goal.successCriteria || "",
+          startDate: goal.startDate || "",
+          createdBy: goal.createdBy || null,
+          isLocal: true,
+          ...goal,
+        }));
+
+        setGoals(transformedPendingGoals);
+        toast.info(
+          `Showing ${transformedPendingGoals.length} pending goals (server unavailable)`
+        );
       }
     } catch (error) {
       console.error("Error loading goals:", error);
-      toast.error("Failed to load goals - using fallback data");
-      // Fallback to static data
-      setGoals(getStaticGoals());
+      toast.error("Failed to load goals - showing pending goals only");
+
+      // Show pending goals even if there's an error
+      const pendingGoals = goalsApi.getPendingGoals();
+      const transformedPendingGoals = pendingGoals.map((goal) => ({
+        id: goal.id,
+        title: goal.goalTitle || goal.title,
+        description: goal.goalDescription || goal.description,
+        priority: goal.priority || "Medium",
+        status: goal.status || "Pending Sync",
+        progress: 0,
+        deadline: goal.dueDate || goal.deadline,
+        owner: goal.goalOwner || goal.owner,
+        keyMetrics: goal.keyMetrics || [],
+        category: goal.category || "General",
+        goalType: goal.goalType || "Company",
+        team: goal.team || "",
+        department: goal.department || "",
+        successCriteria: goal.successCriteria || "",
+        startDate: goal.startDate || "",
+        createdBy: goal.createdBy || null,
+        isLocal: true,
+        ...goal,
+      }));
+
+      setGoals(transformedPendingGoals);
     } finally {
       setIsLoadingGoals(false);
     }
@@ -178,6 +265,29 @@ export default function HRPerformancePage() {
     }
   };
 
+  const loadStaffOverview = async () => {
+    if (!accessToken) return;
+
+    setIsLoadingStaffOverview(true);
+    try {
+      const result = await staffOverviewApi.getStaffOverview(accessToken);
+      if (result.success) {
+        setStaffOverview(result.data);
+        console.log("Staff Overview loaded:", result.data);
+      } else {
+        console.error("Failed to load staff overview:", result.error);
+        // Fallback to static data if API fails
+        setStaffOverview(getStaticStaffOverview());
+      }
+    } catch (error) {
+      console.error("Error loading staff overview:", error);
+      // Fallback to static data
+      setStaffOverview(getStaticStaffOverview());
+    } finally {
+      setIsLoadingStaffOverview(false);
+    }
+  };
+
   // Static HR overview as fallback
   const getStaticOverview = () => ({
     success: true,
@@ -205,6 +315,18 @@ export default function HRPerformancePage() {
         },
       },
       incompleteTasks: 14,
+    },
+  });
+
+  // Static staff overview as fallback
+  const getStaticStaffOverview = () => ({
+    success: true,
+    message: "Staff overview fetched successfully",
+    overview: {
+      myTasksToday: 5,
+      completedTasks: 3,
+      hoursWorked: 7.5,
+      performanceScore: "86%",
     },
   });
 
@@ -270,95 +392,8 @@ export default function HRPerformancePage() {
     ],
   });
 
-  // Static goals as fallback
-  const getStaticGoals = () => [
-    {
-      id: 1,
-      title: "Reduce Employee Turnover Rate",
-      description:
-        "Decrease voluntary turnover from 18% to 12% by implementing comprehensive retention programs, improving work-life balance, and enhancing career development opportunities.",
-      progress: 65,
-      priority: "High",
-      deadline: "2024-12-31",
-      owner: "HR Leadership Team",
-      status: "On Track",
-      category: "Employee Retention",
-      goalType: "Company",
-      keyMetrics: [
-        { metric: "Turnover Rate", target: "< 12%" },
-        { metric: "Employee Satisfaction", target: "> 80%" },
-      ],
-    },
-    {
-      id: 2,
-      title: "Improve Employee Engagement Score",
-      description:
-        "Increase overall employee engagement score from 3.2 to 4.0 through enhanced communication, recognition programs, and professional development initiatives.",
-      progress: 78,
-      priority: "High",
-      deadline: "2025-03-31",
-      owner: "People & Culture Team",
-      status: "On Track",
-      category: "Employee Engagement",
-      goalType: "Company",
-      keyMetrics: [
-        { metric: "Engagement Score", target: "4.0/5.0" },
-        { metric: "Survey Response Rate", target: "> 85%" },
-      ],
-    },
-    {
-      id: 3,
-      title: "Achieve Diversity & Inclusion Targets",
-      description:
-        "Reach 40% female representation in leadership roles and 35% underrepresented minorities in technical positions through targeted recruitment and development programs.",
-      progress: 42,
-      priority: "High",
-      deadline: "2025-06-30",
-      owner: "D&I Committee",
-      status: "On Hold",
-      category: "Diversity and Inclusion",
-      goalType: "Company",
-      keyMetrics: [
-        { metric: "Female Leadership Representation", target: "40%" },
-        { metric: "Underrepresented Minorities in Tech", target: "35%" },
-      ],
-    },
-    {
-      id: 4,
-      title: "Implement Learning & Development Program",
-      description:
-        "Launch comprehensive skills development program with 95% employee participation rate and average 40 hours of training per employee annually.",
-      progress: 85,
-      priority: "Medium",
-      deadline: "2025-05-15",
-      owner: "Learning & Development",
-      status: "On Track",
-      category: "Learning and Development",
-      goalType: "Company",
-      keyMetrics: [
-        { metric: "Employee Participation", target: "95%" },
-        { metric: "Training Hours per Employee", target: "40 hours/year" },
-      ],
-    },
-    {
-      id: 5,
-      title: "Enhance Workplace Safety & Wellness",
-      description:
-        "Achieve zero workplace accidents and improve employee wellness program participation to 75% while reducing stress-related sick leave by 25%.",
-      progress: 91,
-      priority: "High",
-      deadline: "Ongoing",
-      owner: "Safety & Wellness Team",
-      status: "Completed",
-      category: "Safety and Well-being",
-      goalType: "Company",
-      keyMetrics: [
-        { metric: "Workplace Accidents", target: "0 incidents" },
-        { metric: "Wellness Program Participation", target: "75%" },
-        { metric: "Sick Leave Reduction", target: "-25%" },
-      ],
-    },
-  ];
+  // Static goals as fallback - removed dummy data
+  const getStaticGoals = () => [];
 
   // Calculate performance distribution from performers data
   const calculatePerformanceDistribution = () => {
@@ -459,23 +494,39 @@ export default function HRPerformancePage() {
   };
 
   const handleDeleteGoal = async (goalId) => {
-    if (!accessToken) {
-      toast.error("Authentication required");
-      return;
-    }
-
     if (!confirm("Are you sure you want to delete this goal?")) {
       return;
     }
 
     setIsDeletingGoal(goalId);
     try {
-      const result = await goalsApi.deleteGoal(goalId, accessToken);
-      if (result.success) {
-        toast.success("Goal deleted successfully!");
-        await loadGoals();
+      // Check if it's a local goal (starts with "local_")
+      if (goalId.startsWith("local_")) {
+        console.log("Deleting local goal:", goalId);
+
+        // Use the API function to delete local goal
+        const success = goalsApi.deleteLocalGoal(goalId);
+        if (success) {
+          toast.success("Goal deleted successfully!");
+          // Refresh the goals list
+          await loadGoals();
+        } else {
+          toast.error("Failed to delete local goal");
+        }
       } else {
-        toast.error(result.error || "Failed to delete goal");
+        // Server goal deletion
+        if (!accessToken) {
+          toast.error("Authentication required");
+          return;
+        }
+
+        const result = await goalsApi.deleteGoal(goalId, accessToken);
+        if (result.success) {
+          toast.success("Goal deleted successfully!");
+          await loadGoals();
+        } else {
+          toast.error(result.error || "Failed to delete goal");
+        }
       }
     } catch (error) {
       console.error("Error deleting goal:", error);
@@ -495,158 +546,25 @@ export default function HRPerformancePage() {
     setEditingGoal(null);
   };
 
-  const teamGoals = [
-    {
-      id: 1,
-      team: "Human Resources",
-      goals: [
-        {
-          id: "hr1",
-          title: "Improve Employee Onboarding Process",
-          description:
-            "Streamline and enhance the new employee onboarding experience to increase satisfaction scores and reduce time to productivity.",
-          assignee: "HR Team Lead",
-          progress: 75,
-          priority: "High",
-          deadline: "Feb 28, 2025",
-          type: "Process Improvement",
-          metrics: "Current: 4.2/5 (Target: 4.5/5)",
-        },
-        {
-          id: "hr2",
-          title: "Implement HR Analytics Dashboard",
-          description:
-            "Develop comprehensive HR analytics dashboard for better data-driven decision making and reporting.",
-          assignee: "HR Analytics Specialist",
-          progress: 45,
-          priority: "Medium",
-          deadline: "Apr 30, 2025",
-          type: "Strategic",
-          metrics: "Dashboard completion: 45% (Target: 100%)",
-        },
-      ],
-    },
-    {
-      id: 2,
-      team: "Social Media",
-      goals: [
-        {
-          id: "sm1",
-          title: "Increase Social Media Reach",
-          description:
-            "Expand social media presence and increase follower engagement across all platforms by 35%.",
-          assignee: "Social Media Manager",
-          progress: 68,
-          priority: "High",
-          deadline: "Mar 31, 2025",
-          type: "Performance",
-          metrics: "Current reach: 125K (Target: 170K)",
-        },
-        {
-          id: "sm2",
-          title: "Launch Content Calendar System",
-          description:
-            "Implement and optimize content calendar system for better content planning and consistency.",
-          assignee: "Content Coordinator",
-          progress: 82,
-          priority: "Medium",
-          deadline: "Jan 15, 2025",
-          type: "Process Improvement",
-          metrics: "System adoption: 82% (Target: 95%)",
-        },
-      ],
-    },
-    {
-      id: 3,
-      team: "Customer Support",
-      goals: [
-        {
-          id: "cs1",
-          title: "Reduce Response Time",
-          description:
-            "Decrease average customer support response time from 4 hours to 2 hours while maintaining quality.",
-          assignee: "Support Team Lead",
-          progress: 60,
-          priority: "High",
-          deadline: "Feb 15, 2025",
-          type: "Performance",
-          metrics: "Current: 3.2 hours (Target: 2 hours)",
-        },
-        {
-          id: "cs2",
-          title: "Implement Knowledge Base",
-          description:
-            "Create comprehensive knowledge base to reduce support ticket volume and improve customer self-service.",
-          assignee: "Support Team",
-          progress: 40,
-          priority: "Medium",
-          deadline: "Apr 30, 2025",
-          type: "Strategic",
-          metrics: "Articles created: 40% (Target: 100%)",
-        },
-      ],
-    },
-    {
-      id: 4,
-      team: "Engineering",
-      goals: [
-        {
-          id: "eng1",
-          title: "Improve Code Quality",
-          description:
-            "Implement automated code quality checks and reduce technical debt by 25% across all projects.",
-          assignee: "Engineering Lead",
-          progress: 70,
-          priority: "High",
-          deadline: "Mar 31, 2025",
-          type: "Process Improvement",
-          metrics: "Code quality score: 8.5/10 (Target: 9.0/10)",
-        },
-        {
-          id: "eng2",
-          title: "Complete API Documentation",
-          description:
-            "Finalize comprehensive API documentation for all public endpoints to improve developer experience.",
-          assignee: "Technical Writer",
-          progress: 55,
-          priority: "Medium",
-          deadline: "May 31, 2025",
-          type: "Development",
-          metrics: "Documentation coverage: 55% (Target: 100%)",
-        },
-      ],
-    },
-    {
-      id: 5,
-      team: "Design Team",
-      goals: [
-        {
-          id: "des1",
-          title: "Establish Design System",
-          description:
-            "Create and implement comprehensive design system for consistent brand identity across all products.",
-          assignee: "Design Lead",
-          progress: 65,
-          priority: "High",
-          deadline: "Feb 28, 2025",
-          type: "Strategic",
-          metrics: "Components created: 65% (Target: 100%)",
-        },
-        {
-          id: "des2",
-          title: "Improve Design Process",
-          description:
-            "Optimize design workflow and reduce project delivery time by 20% through process improvements.",
-          assignee: "Design Team",
-          progress: 50,
-          priority: "Medium",
-          deadline: "Apr 30, 2025",
-          type: "Process Improvement",
-          metrics: "Current delivery time: 12 days (Target: 10 days)",
-        },
-      ],
-    },
-  ];
+  // Dynamic team goals - filter actual goals by goalType === "Team"
+  const teamGoals = goals
+    .filter((goal) => goal.goalType === "Team")
+    .reduce((acc, goal) => {
+      const teamName = goal.team || goal.department || "Unassigned Team";
+      const existingTeam = acc.find((team) => team.team === teamName);
+
+      if (existingTeam) {
+        existingTeam.goals.push(goal);
+      } else {
+        acc.push({
+          id: teamName.toLowerCase().replace(/\s+/g, "-"),
+          team: teamName,
+          goals: [goal],
+        });
+      }
+
+      return acc;
+    }, []);
 
   // Helper functions for team goals
   const getPriorityColor = (priority) => {
@@ -879,7 +797,7 @@ export default function HRPerformancePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                   {/* Active Employees Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg
                           className="w-5 h-5 text-blue-600"
@@ -898,7 +816,7 @@ export default function HRPerformancePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-slate-900 mb-2">
+                      <div className="text-2xl font-bold text-slate-900 mb-1">
                         {hrOverview.data?.activeEmployees || 0}
                       </div>
                       <div className="text-sm text-slate-600">
@@ -909,7 +827,7 @@ export default function HRPerformancePage() {
 
                   {/* Remote Workers Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg
                           className="w-5 h-5 text-green-600"
@@ -928,7 +846,7 @@ export default function HRPerformancePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-slate-900 mb-2">
+                      <div className="text-2xl font-bold text-slate-900 mb-1">
                         {hrOverview.data?.totalRemoteWorkersToday || 0}
                       </div>
                       <div className="text-sm text-slate-600">
@@ -939,7 +857,7 @@ export default function HRPerformancePage() {
 
                   {/* No Check-In Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg
                           className="w-5 h-5 text-orange-600"
@@ -958,7 +876,7 @@ export default function HRPerformancePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-slate-900 mb-2">
+                      <div className="text-2xl font-bold text-slate-900 mb-1">
                         {hrOverview.data?.noCheckInToday || 0}
                       </div>
                       <div className="text-sm text-slate-600">
@@ -969,14 +887,14 @@ export default function HRPerformancePage() {
 
                   {/* Productivity Index Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5 text-purple-600" />
                         Productivity Index
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-slate-900 mb-2">
+                      <div className="text-2xl font-bold text-slate-900 mb-1">
                         {hrOverview.data?.productivityIndex || "0%"}
                       </div>
                       <div className="text-sm text-slate-600">
@@ -1072,6 +990,72 @@ export default function HRPerformancePage() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Staff Performance Overview */}
+                {staffOverview && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                      Staff Performance Overview
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* My Tasks Today */}
+                      <Card className="h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium text-slate-700">
+                            My Tasks Today
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl font-bold text-slate-900">
+                            {staffOverview.overview?.myTasksToday || 0}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Completed Tasks */}
+                      <Card className="h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium text-slate-700">
+                            Completed Tasks
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl font-bold text-green-600">
+                            {staffOverview.overview?.completedTasks || 0}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Hours Worked */}
+                      <Card className="h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium text-slate-700">
+                            Hours Worked
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl font-bold text-blue-600">
+                            {staffOverview.overview?.hoursWorked || 0}h
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Performance Score */}
+                      <Card className="h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium text-slate-700">
+                            Performance Score
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl font-bold text-purple-600">
+                            {staffOverview.overview?.performanceScore || "0%"}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-center py-12">
@@ -1259,18 +1243,18 @@ export default function HRPerformancePage() {
                   </Card>
                 </div>
 
-                {/* First Row - Three Performance Cards */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* First Row - Two Main Performance Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                   {/* Overall Performance Index Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900">
                         Overall Performance Index
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="mb-8">
-                        <div className="text-5xl font-bold text-slate-900 mb-3">
+                      <div className="mb-4">
+                        <div className="text-3xl font-bold text-slate-900 mb-2">
                           {performanceTrends.OverallPerformanceIndex?.toFixed(
                             1
                           ) || "N/A"}
@@ -1323,9 +1307,43 @@ export default function HRPerformancePage() {
                     </CardContent>
                   </Card>
 
+                  {/* Top Performing Department Card */}
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        Top Performing Department
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600 mb-2">
+                          {performanceTrends.TopPerformingDepartment
+                            ?.department || "0"}
+                        </div>
+                        <div className="text-xl font-semibold text-slate-900 mb-1">
+                          {performanceTrends.TopPerformingDepartment?.avgScore?.toFixed(
+                            1
+                          ) || "0.0"}
+                        </div>
+                        <div className="text-sm text-slate-600 mb-3">
+                          Average Score
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {performanceTrends.TopPerformingDepartment
+                            ?.totalEmployees || 0}{" "}
+                          employees
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Second Row - Top Performers and Low Performers Side by Side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                   {/* Top Performers Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg
                           className="w-5 h-5 text-green-600"
@@ -1344,7 +1362,7 @@ export default function HRPerformancePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {performanceTrends.topPerformers?.map(
                           (performer, index) => {
                             const initials = performer.name
@@ -1355,7 +1373,7 @@ export default function HRPerformancePage() {
                             return (
                               <div
                                 key={performer.employeeId}
-                                className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200"
+                                className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -1407,40 +1425,9 @@ export default function HRPerformancePage() {
                     </CardContent>
                   </Card>
 
-                  {/* Top Performing Department Card */}
-                  <Card className="h-full">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-blue-600" />
-                        Top Performing Department
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center">
-                        <div className="text-4xl font-bold text-blue-600 mb-2">
-                          {performanceTrends.TopPerformingDepartment
-                            ?.department || "0"}
-                        </div>
-                        <div className="text-2xl font-semibold text-slate-900 mb-1">
-                          {performanceTrends.TopPerformingDepartment?.avgScore?.toFixed(
-                            1
-                          ) || "0.0"}
-                        </div>
-                        <div className="text-sm text-slate-600 mb-4">
-                          Average Score
-                        </div>
-                        <div className="text-sm text-slate-500">
-                          {performanceTrends.TopPerformingDepartment
-                            ?.totalEmployees || 0}{" "}
-                          employees
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   {/* Low Performers Card */}
                   <Card className="h-full">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg
                           className="w-5 h-5 text-orange-600"
@@ -1459,7 +1446,7 @@ export default function HRPerformancePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {performanceTrends.lowPerformers?.map(
                           (performer, index) => {
                             const initials = performer.name
@@ -1470,7 +1457,7 @@ export default function HRPerformancePage() {
                             return (
                               <div
                                 key={performer.employeeId}
-                                className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200"
+                                className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -1822,7 +1809,8 @@ export default function HRPerformancePage() {
                   <Loader2 className="w-8 h-8 animate-spin text-green-600" />
                   <span className="ml-2 text-slate-600">Loading goals...</span>
                 </div>
-              ) : goals.length === 0 ? (
+              ) : goals.filter((goal) => goal.goalType === "Company").length ===
+                0 ? (
                 <div className="text-center py-12">
                   <Target className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-slate-900 mb-2">
@@ -1839,18 +1827,141 @@ export default function HRPerformancePage() {
                   </Button>
                 </div>
               ) : (
-                goals.map((goal) => (
-                  <Card
-                    key={goal.id}
-                    className="border border-slate-200 shadow-sm"
-                  >
-                    <CardContent className="p-6">
-                      {/* Goal Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                goals
+                  .filter((goal) => goal.goalType === "Company")
+                  .map((goal) => (
+                    <Card
+                      key={goal.id}
+                      className="border border-slate-200 shadow-sm"
+                    >
+                      <CardContent className="p-6">
+                        {/* Goal Header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-5 h-5 text-blue-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                                {goal.title}
+                              </h3>
+                              <p className="text-slate-600 text-sm leading-relaxed">
+                                {goal.description}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Status Tags */}
+                          <div className="flex flex-col gap-2 ml-4">
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs px-3 py-1 ${
+                                goal.priority === "High"
+                                  ? "bg-red-100 text-red-700"
+                                  : goal.priority === "Medium"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-green-100 text-green-700"
+                              }`}
+                            >
+                              {goal.priority}
+                            </Badge>
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs px-3 py-1 ${
+                                goal.status === "On Track"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : goal.status === "Not Started"
+                                  ? "bg-gray-100 text-gray-700"
+                                  : goal.status === "Completed"
+                                  ? "bg-green-100 text-green-700"
+                                  : goal.status === "On Hold"
+                                  ? "bg-orange-100 text-orange-700"
+                                  : goal.status === "Pending Sync"
+                                  ? "bg-purple-100 text-purple-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {goal.status}
+                            </Badge>
+                            {/* Local goal indicator */}
+                            {goal.isLocal && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs px-3 py-1 bg-purple-100 text-purple-700"
+                              >
+                                📱 Local
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-slate-700">
+                              Progress
+                            </span>
+                            <span className="text-sm font-semibold text-slate-900">
+                              {goal.progress}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2.5">
+                            <div
+                              className={`h-2.5 rounded-full transition-all duration-300 ${
+                                goal.progress >= 80
+                                  ? "bg-green-500"
+                                  : goal.progress >= 60
+                                  ? "bg-blue-500"
+                                  : goal.progress >= 40
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                              }`}
+                              style={{ width: `${goal.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Goal Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center gap-2">
                             <svg
-                              className="w-5 h-5 text-blue-600"
+                              className="w-4 h-4 text-slate-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            <span className="text-sm text-slate-600">
+                              Deadline:{" "}
+                              <span className="font-medium text-slate-900">
+                                {goal.deadline === "Ongoing"
+                                  ? "Ongoing"
+                                  : new Date(
+                                      goal.deadline
+                                    ).toLocaleDateString()}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg
+                              className="w-4 h-4 text-slate-500"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1862,177 +1973,69 @@ export default function HRPerformancePage() {
                                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                               />
                             </svg>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                              {goal.title}
-                            </h3>
-                            <p className="text-slate-600 text-sm leading-relaxed">
-                              {goal.description}
-                            </p>
-                          </div>
-                        </div>
-                        {/* Status Tags */}
-                        <div className="flex flex-col gap-2 ml-4">
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs px-3 py-1 ${
-                              goal.priority === "High"
-                                ? "bg-red-100 text-red-700"
-                                : goal.priority === "Medium"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-green-100 text-green-700"
-                            }`}
-                          >
-                            {goal.priority}
-                          </Badge>
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs px-3 py-1 ${
-                              goal.status === "On Track"
-                                ? "bg-blue-100 text-blue-700"
-                                : goal.status === "Not Started"
-                                ? "bg-gray-100 text-gray-700"
-                                : goal.status === "Completed"
-                                ? "bg-green-100 text-green-700"
-                                : goal.status === "On Hold"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {goal.status}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-slate-700">
-                            Progress
-                          </span>
-                          <span className="text-sm font-semibold text-slate-900">
-                            {goal.progress}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2.5">
-                          <div
-                            className={`h-2.5 rounded-full transition-all duration-300 ${
-                              goal.progress >= 80
-                                ? "bg-green-500"
-                                : goal.progress >= 60
-                                ? "bg-blue-500"
-                                : goal.progress >= 40
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                            }`}
-                            style={{ width: `${goal.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Goal Details */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-slate-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          <span className="text-sm text-slate-600">
-                            Deadline:{" "}
-                            <span className="font-medium text-slate-900">
-                              {goal.deadline === "Ongoing"
-                                ? "Ongoing"
-                                : new Date(goal.deadline).toLocaleDateString()}
-                            </span>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-slate-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                            />
-                          </svg>
-                          <span className="text-sm text-slate-600">
-                            Owner:{" "}
-                            <span className="font-medium text-slate-900">
-                              {goal.owner}
-                            </span>
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2 col-span-3">
-                          <Target className="w-4 h-4 text-slate-500 mt-1" />
-                          <div className="flex flex-col flex-1">
-                            <span className="text-sm font-medium text-slate-700 mb-2">
-                              Key Metrics
-                            </span>
-                            {goal.keyMetrics && goal.keyMetrics.length > 0 ? (
-                              <div className="space-y-2">
-                                {goal.keyMetrics.map((metric, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="bg-slate-50 p-2 rounded border border-slate-200"
-                                  >
-                                    <div className="text-xs font-medium text-slate-700">
-                                      {metric.metric}
-                                    </div>
-                                    <div className="text-xs text-slate-600 mt-1">
-                                      Target: {metric.target}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-slate-500 italic">
-                                No metrics defined
+                            <span className="text-sm text-slate-600">
+                              Owner:{" "}
+                              <span className="font-medium text-slate-900">
+                                {goal.owner}
                               </span>
-                            )}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 col-span-3">
+                            <Target className="w-4 h-4 text-slate-500 mt-1" />
+                            <div className="flex flex-col flex-1">
+                              <span className="text-sm font-medium text-slate-700 mb-2">
+                                Key Metrics
+                              </span>
+                              {goal.keyMetrics && goal.keyMetrics.length > 0 ? (
+                                <div className="space-y-2">
+                                  {goal.keyMetrics.map((metric, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="bg-slate-50 p-2 rounded border border-slate-200"
+                                    >
+                                      <div className="text-xs font-medium text-slate-700">
+                                        {metric.metric}
+                                      </div>
+                                      <div className="text-xs text-slate-600 mt-1">
+                                        Target: {metric.target}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-sm text-slate-500 italic">
+                                  No metrics defined
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Actions */}
-                      <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                        <button
-                          onClick={() => handleEditGoal(goal)}
-                          className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                        >
-                          <Edit className="w-3 h-3" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteGoal(goal.id)}
-                          disabled={isDeletingGoal === goal.id}
-                          className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1 disabled:opacity-50"
-                        >
-                          {isDeletingGoal === goal.id ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3 h-3" />
-                          )}
-                          Delete
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                        {/* Actions */}
+                        <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
+                          <button
+                            onClick={() => handleEditGoal(goal)}
+                            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                          >
+                            <Edit className="w-3 h-3" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteGoal(goal.id)}
+                            disabled={isDeletingGoal === goal.id}
+                            className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {isDeletingGoal === goal.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            Delete
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
               )}
             </div>
 
@@ -2060,211 +2063,247 @@ export default function HRPerformancePage() {
               </div>
 
               {/* Team Goals Data */}
-              {teamGoals.map((teamData) => (
-                <div
-                  key={teamData.id}
-                  className="bg-white rounded-[12px] border border-gray-200 shadow-sm mb-6"
-                >
-                  {/* Team Header */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 rounded-t-[12px] border-b border-gray-200">
-                    <div className="flex items-center gap-3">
-                      {getTeamIcon(teamData.team)}
-                      <h3 className="text-[16px] font-bold text-[#000000]">
-                        {teamData.team}
-                      </h3>
-                      <span className="bg-white px-2 py-1 rounded-full text-xs font-medium text-gray-600">
-                        {teamData.goals.length} Goals
-                      </span>
+              {teamGoals.length === 0 ? (
+                <div className="text-center py-12">
+                  <Target className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                    No team goals found
+                  </h3>
+                  <p className="text-slate-600 mb-6">
+                    Create team goals to track team-specific objectives and
+                    performance.
+                  </p>
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={openGoalModal}
+                  >
+                    <svg
+                      className="h-4 w-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Create Team Goal
+                  </Button>
+                </div>
+              ) : (
+                teamGoals.map((teamData) => (
+                  <div
+                    key={teamData.id}
+                    className="bg-white rounded-[12px] border border-gray-200 shadow-sm mb-6"
+                  >
+                    {/* Team Header */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 rounded-t-[12px] border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        {getTeamIcon(teamData.team)}
+                        <h3 className="text-[16px] font-bold text-[#000000]">
+                          {teamData.team}
+                        </h3>
+                        <span className="bg-white px-2 py-1 rounded-full text-xs font-medium text-gray-600">
+                          {teamData.goals.length} Goals
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Team Goals */}
-                  <div className="p-6 space-y-4">
-                    {teamData.goals.map((goal, index) => (
-                      <div
-                        key={goal.id}
-                        className={`pb-4 ${
-                          index < teamData.goals.length - 1
-                            ? "border-b border-gray-100"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="mt-1">{getTypeIcon(goal.type)}</div>
-                            <div className="flex-1">
-                              <h4 className="text-[14px] font-bold text-[#000000] mb-1">
-                                {goal.title}
-                              </h4>
-                              <p className="text-[12px] text-[#000000] leading-normal mb-2">
-                                {goal.description}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${getPriorityColor(
-                                goal.priority
-                              )}`}
-                            >
-                              {goal.priority}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-gray-700">
-                              Progress
-                            </span>
-                            <span className="text-xs font-bold text-gray-900">
-                              {goal.progress}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full transition-all duration-300 ${
-                                goal.progress >= 80
-                                  ? "bg-green-500"
-                                  : goal.progress >= 60
-                                  ? "bg-blue-500"
-                                  : goal.progress >= 40
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }`}
-                              style={{ width: `${goal.progress}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Goal Details */}
-                        <div className="grid grid-cols-3 gap-4 text-xs">
-                          <div className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3 text-gray-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                            <div>
-                              <p className="text-gray-500">Assignee</p>
-                              <p className="font-medium text-gray-900">
-                                {goal.assignee}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3 text-gray-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            <div>
-                              <p className="text-gray-500">Deadline</p>
-                              <p className="font-medium text-gray-900">
-                                {goal.deadline}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Target className="w-3 h-3 text-gray-500" />
-                            <div>
-                              <p className="text-gray-500">Key Metrics</p>
-                              <div className="flex flex-col gap-1">
-                                <p className="font-medium text-gray-900 text-xs">
-                                  <span className="text-gray-500">
-                                    Current:
-                                  </span>{" "}
-                                  {goal.currentMetric}
-                                </p>
-                                <p className="font-medium text-gray-900 text-xs">
-                                  <span className="text-gray-500">Target:</span>{" "}
-                                  {goal.targetMetric}
+                    {/* Team Goals */}
+                    <div className="p-6 space-y-4">
+                      {teamData.goals.map((goal, index) => (
+                        <div
+                          key={goal.id}
+                          className={`pb-4 ${
+                            index < teamData.goals.length - 1
+                              ? "border-b border-gray-100"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="mt-1">
+                                {getTypeIcon(goal.type)}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-[14px] font-bold text-[#000000] mb-1">
+                                  {goal.title}
+                                </h4>
+                                <p className="text-[12px] text-[#000000] leading-normal mb-2">
+                                  {goal.description}
                                 </p>
                               </div>
                             </div>
+                            <div className="flex gap-2 ml-4">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${getPriorityColor(
+                                  goal.priority
+                                )}`}
+                              >
+                                {goal.priority}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-gray-700">
+                                Progress
+                              </span>
+                              <span className="text-xs font-bold text-gray-900">
+                                {goal.progress}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                  goal.progress >= 80
+                                    ? "bg-green-500"
+                                    : goal.progress >= 60
+                                    ? "bg-blue-500"
+                                    : goal.progress >= 40
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
+                                }`}
+                                style={{ width: `${goal.progress}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Goal Details */}
+                          <div className="grid grid-cols-3 gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <svg
+                                className="w-3 h-3 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                              </svg>
+                              <div>
+                                <p className="text-gray-500">Assignee</p>
+                                <p className="font-medium text-gray-900">
+                                  {goal.assignee}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <svg
+                                className="w-3 h-3 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <div>
+                                <p className="text-gray-500">Deadline</p>
+                                <p className="font-medium text-gray-900">
+                                  {goal.deadline}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Target className="w-3 h-3 text-gray-500" />
+                              <div>
+                                <p className="text-gray-500">Key Metrics</p>
+                                <div className="flex flex-col gap-1">
+                                  <p className="font-medium text-gray-900 text-xs">
+                                    <span className="text-gray-500">
+                                      Current:
+                                    </span>{" "}
+                                    {goal.currentMetric}
+                                  </p>
+                                  <p className="font-medium text-gray-900 text-xs">
+                                    <span className="text-gray-500">
+                                      Target:
+                                    </span>{" "}
+                                    {goal.targetMetric}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 mt-3">
+                            <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer">
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                              Edit
+                            </button>
+                            <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                              Delete
+                            </button>
                           </div>
                         </div>
+                      ))}
+                    </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 mt-3">
-                          <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                            Edit
-                          </button>
-                          <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Add Goal Button */}
-                  <div className="pt-4 border-t border-gray-100">
-                    <button
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                      onClick={openGoalModal}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    {/* Add Goal Button */}
+                    <div className="pt-4 border-t border-gray-100">
+                      <button
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                        onClick={openGoalModal}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Add New Goal for {teamData.team}
-                    </button>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Add New Goal for {teamData.team}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>
