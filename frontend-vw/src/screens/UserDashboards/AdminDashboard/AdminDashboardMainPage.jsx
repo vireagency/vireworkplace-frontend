@@ -17,6 +17,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getApiUrl } from "@/config/apiConfig";
 import { toast } from "sonner";
+import { adminOverviewApi } from "@/services/adminOverviewApi";
+import { attendanceApi } from "@/services/attendanceApi";
+import AttendanceManager from "@/components/attendance/AttendanceManager";
+import AttendanceStats from "@/components/attendance/AttendanceStats";
+import AttendanceTest from "@/components/attendance/AttendanceTest";
 import {
   Table,
   TableHeader,
@@ -94,6 +99,21 @@ export default function AdminDashboardMainPage() {
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [overviewError, setOverviewError] = useState(null);
 
+  // State for analytics data
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState(null);
+
+  // State for real-time tracker data
+  const [realtimeData, setRealtimeData] = useState(null);
+  const [loadingRealtime, setLoadingRealtime] = useState(false);
+  const [realtimeError, setRealtimeError] = useState(null);
+
+  // State for attendance data
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [attendanceError, setAttendanceError] = useState(null);
+
   // Fetch employees from API
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -164,8 +184,18 @@ export default function AdminDashboardMainPage() {
         setLoadingOverview(true);
         console.log("Fetching admin overview data...");
 
-        // For now, use static data - can be replaced with actual API call
-        setOverviewData(getStaticOverviewData());
+        const result = await adminOverviewApi.getOverview(accessToken);
+
+        if (result.success) {
+          setOverviewData(result.data);
+          console.log("Admin overview data loaded:", result.data);
+        } else {
+          console.error("Failed to fetch admin overview:", result.error);
+          setOverviewError(result.error);
+          toast.error("Failed to load overview data");
+          // Fallback to static data
+          setOverviewData(getStaticOverviewData());
+        }
       } catch (error) {
         console.error("Error fetching admin overview:", error);
         setOverviewError("Failed to load overview data");
@@ -178,6 +208,102 @@ export default function AdminDashboardMainPage() {
     };
 
     fetchOverview();
+  }, [accessToken]);
+
+  // Fetch analytics data
+  const fetchAnalytics = async (timeRange = "12months") => {
+    if (!accessToken) return;
+
+    try {
+      setLoadingAnalytics(true);
+      console.log("Fetching analytics data...", timeRange);
+
+      const result = await adminOverviewApi.getAnalytics(
+        accessToken,
+        timeRange
+      );
+
+      if (result.success) {
+        setAnalyticsData(result.data);
+        console.log("Analytics data loaded:", result.data);
+      } else {
+        console.error("Failed to fetch analytics:", result.error);
+        setAnalyticsError(result.error);
+        toast.error("Failed to load analytics data");
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      setAnalyticsError("Failed to load analytics data");
+      toast.error("Failed to load analytics data");
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  // Fetch real-time tracker data
+  const fetchRealtimeData = async (timeRange = "7days") => {
+    if (!accessToken) return;
+
+    try {
+      setLoadingRealtime(true);
+      console.log("Fetching real-time data...", timeRange);
+
+      const result = await adminOverviewApi.getRealtimeData(
+        accessToken,
+        timeRange
+      );
+
+      if (result.success) {
+        setRealtimeData(result.data);
+        console.log("Real-time data loaded:", result.data);
+      } else {
+        console.error("Failed to fetch real-time data:", result.error);
+        setRealtimeError(result.error);
+        toast.error("Failed to load real-time data");
+      }
+    } catch (error) {
+      console.error("Error fetching real-time data:", error);
+      setRealtimeError("Failed to load real-time data");
+      toast.error("Failed to load real-time data");
+    } finally {
+      setLoadingRealtime(false);
+    }
+  };
+
+  // Fetch attendance data
+  const fetchAttendanceData = async () => {
+    if (!accessToken) return;
+
+    try {
+      setLoadingAttendance(true);
+      console.log("Fetching attendance data...");
+
+      const result = await attendanceApi.getOverview(accessToken);
+
+      if (result.success) {
+        setAttendanceData(result.data);
+        console.log("Attendance data loaded:", result.data);
+      } else {
+        console.error("Failed to fetch attendance data:", result.error);
+        setAttendanceError(result.error);
+        toast.error("Failed to load attendance data");
+      }
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      setAttendanceError("Failed to load attendance data");
+      toast.error("Failed to load attendance data");
+    } finally {
+      setLoadingAttendance(false);
+    }
+  };
+
+  // Fetch all dashboard data on component mount
+  useEffect(() => {
+    if (accessToken) {
+      fetchAnalytics("12months");
+      fetchRealtimeData("7days");
+      fetchAttendanceData();
+    }
   }, [accessToken]);
 
   // Static overview data as fallback
@@ -225,6 +351,16 @@ export default function AdminDashboardMainPage() {
     navigate("/admin/employees");
   };
 
+  // Handle time range changes for analytics
+  const handleAnalyticsTimeRangeChange = (timeRange) => {
+    fetchAnalytics(timeRange);
+  };
+
+  // Handle time range changes for real-time tracker
+  const handleRealtimeTimeRangeChange = (timeRange) => {
+    fetchRealtimeData(timeRange);
+  };
+
   return (
     <AdminDashboardLayout
       sidebarConfig={adminDashboardConfig}
@@ -243,14 +379,14 @@ export default function AdminDashboardMainPage() {
               </span>
               <span className="text-base font-light">
                 {" "}
-                – here's the complete overview of Vire Agency
+                – here's what's happening in Vire Agency today
               </span>
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-sm text-green-600 px-3 py-1.5 border border-gray-200 rounded-lg">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              System Active
+              Active
             </div>
           </div>
         </div>
@@ -269,27 +405,11 @@ export default function AdminDashboardMainPage() {
           <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             <Card className="@container/card relative">
               <CardHeader>
-                <CardDescription>Total Employees</CardDescription>
-                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.totalEmployees || 0}
-                </CardTitle>
-              </CardHeader>
-              <div className="absolute bottom-3 right-3">
-                <Badge
-                  variant="secondary"
-                  className="text-green-600 bg-green-50"
-                >
-                  <IconTrendingUp className="text-green-600" />
-                  +12%
-                </Badge>
-              </div>
-            </Card>
-
-            <Card className="@container/card relative">
-              <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.activeEmployees || 0}
+                  {overviewData?.data?.activeEmployees ||
+                    overviewData?.activeEmployees ||
+                    12}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -298,31 +418,57 @@ export default function AdminDashboardMainPage() {
                   className="text-green-600 bg-green-50"
                 >
                   <IconTrendingUp className="text-green-600" />
-                  +8%
+                  +36%
                 </Badge>
               </div>
             </Card>
 
             <Card className="@container/card relative">
               <CardHeader>
-                <CardDescription>Total Departments</CardDescription>
+                <CardDescription>Total Remote Workers Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.totalDepartments || 0}
+                  {overviewData?.data?.remoteWorkers ||
+                    overviewData?.remoteWorkers ||
+                    4}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
-                <Badge variant="secondary" className="text-blue-600 bg-blue-50">
-                  <IconTrendingUp className="text-blue-600" />
-                  +2
+                <Badge variant="secondary" className="text-red-600 bg-red-50">
+                  <IconTrendingDown className="text-red-600" />
+                  -14%
                 </Badge>
               </div>
             </Card>
 
             <Card className="@container/card relative">
               <CardHeader>
-                <CardDescription>System Health</CardDescription>
+                <CardDescription>No Check-In Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData.data?.systemHealth || "0%"}
+                  {overviewData?.data?.noCheckInToday ||
+                    overviewData?.noCheckInToday ||
+                    2}
+                </CardTitle>
+              </CardHeader>
+              <div className="absolute bottom-3 right-3">
+                <Badge
+                  variant="secondary"
+                  className="text-orange-600 bg-orange-50"
+                >
+                  <IconTrendingDown className="text-orange-600" />
+                  {overviewData?.data?.noCheckInToday > 0
+                    ? "Needs Attention"
+                    : "All Checked In"}
+                </Badge>
+              </div>
+            </Card>
+
+            <Card className="@container/card relative">
+              <CardHeader>
+                <CardDescription>Productivity Index</CardDescription>
+                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                  {overviewData?.data?.productivityIndex ||
+                    overviewData?.productivityIndex ||
+                    "86.36%"}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -331,7 +477,7 @@ export default function AdminDashboardMainPage() {
                   className="text-green-600 bg-green-50"
                 >
                   <IconTrendingUp className="text-green-600" />
-                  +2.1%
+                  +5%
                 </Badge>
               </div>
             </Card>
@@ -363,87 +509,46 @@ export default function AdminDashboardMainPage() {
         )}
       </div>
 
-      {/* Department Performance Overview Section */}
-      {overviewData?.data?.departmentPerformance && (
-        <div className="px-4 lg:px-6 mt-6">
-          <div className="bg-white rounded-lg border p-6">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Department Performance Overview
-              </h3>
-              <p className="text-sm text-gray-500">
-                Check-in rates and attendance by department
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(overviewData.data.departmentPerformance).map(
-                ([department, data]) => (
-                  <div key={department} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900">
-                        {department}
-                      </h4>
-                      <span className="text-sm font-semibold text-gray-700">
-                        {data.percent}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                      <span>
-                        {data.checkedIn} of {data.total} checked in
-                      </span>
-                      <span>{data.total - data.checkedIn} remaining</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          parseFloat(data.percent) >= 90
-                            ? "bg-green-500"
-                            : parseFloat(data.percent) >= 70
-                            ? "bg-blue-500"
-                            : parseFloat(data.percent) >= 50
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
-                        }`}
-                        style={{ width: data.percent }}
-                      ></div>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* System Analytics and Real-Time Tracker Section */}
+      {/* AI Work Log Analyzer and Real-Time Tracker Section */}
       <div className="px-4 lg:px-6 mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* System Analytics - Takes up 2/3 of the space */}
+          {/* AI Work Log Analyzer - Takes up 2/3 of the space */}
           <div className="lg:col-span-2 bg-white rounded-lg border p-6">
             {/* Header Section with Time Range Selector and Export Button on same line */}
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                  System Analytics
+                  AI Work Log Analyzer
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Monthly Performance & System Metrics
+                  Monthly Attendance & Productivity
                 </p>
               </div>
 
               <div className="flex items-center space-x-24">
                 <div className="flex space-x-1">
-                  <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg"
+                    onClick={() => handleAnalyticsTimeRangeChange("12months")}
+                  >
                     12 Months
                   </button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                  <button
+                    className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    onClick={() => handleAnalyticsTimeRangeChange("6months")}
+                  >
                     6 Months
                   </button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                  <button
+                    className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    onClick={() => handleAnalyticsTimeRangeChange("30days")}
+                  >
                     30 Days
                   </button>
-                  <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                  <button
+                    className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    onClick={() => handleAnalyticsTimeRangeChange("7days")}
+                  >
                     7 Days
                   </button>
                 </div>
@@ -472,16 +577,12 @@ export default function AdminDashboardMainPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      System Performance
-                    </span>
+                    <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Attendance</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Employee Activity
-                    </span>
+                    <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Productivity</span>
                   </div>
                 </div>
               </div>
@@ -503,84 +604,61 @@ export default function AdminDashboardMainPage() {
                     />
                   </svg>
                   <p className="text-sm">
-                    System analytics chart will be implemented here
+                    Chart visualization will be implemented here
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Line chart with monthly system performance data
+                    Line chart with monthly data from Feb to Jan
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Real-Time System Tracker - Takes up 1/3 of the space */}
+          {/* Real-Time Tracker - Takes up 1/3 of the space */}
           <div className="lg:col-span-1 bg-white rounded-lg border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                System Tracker
+                Real-Time Tracker
               </h3>
-              <select className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white">
-                <option>Last 7 Days</option>
-                <option>Last 30 Days</option>
-                <option>Last 3 Months</option>
+              <select
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
+                onChange={(e) => handleRealtimeTimeRangeChange(e.target.value)}
+              >
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="3months">Last 3 Months</option>
               </select>
             </div>
 
             {/* Metrics */}
-            {loadingOverview ? (
+            {loadingRealtime ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
                 <span className="ml-2 text-sm text-slate-600">
-                  Loading tracker data...
+                  Loading real-time data...
                 </span>
               </div>
-            ) : overviewData ? (
+            ) : realtimeData ? (
               <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Total Employees
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.totalEmployees?.toLocaleString() ||
-                        "0"}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: overviewData.data?.totalEmployees
-                          ? `${Math.min(
-                              (overviewData.data.totalEmployees / 100) * 100,
-                              100
-                            )}%`
-                          : "0%",
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">
                       Active Employees
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.activeEmployees?.toLocaleString() ||
-                        "0"}
+                      {realtimeData?.data?.activeEmployees ||
+                        realtimeData?.activeEmployees ||
+                        "1,43,382"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
                       style={{
-                        width: overviewData.data?.activeEmployees
-                          ? `${Math.min(
-                              (overviewData.data.activeEmployees / 50) * 100,
-                              100
-                            )}%`
-                          : "0%",
+                        width:
+                          realtimeData?.data?.activeEmployeesPercent ||
+                          realtimeData?.activeEmployeesPercent ||
+                          "85%",
                       }}
                     ></div>
                   </div>
@@ -589,17 +667,22 @@ export default function AdminDashboardMainPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">
-                      System Health
+                      Inactive for 60+mins
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.systemHealth || "0%"}
+                      {realtimeData?.data?.inactive60Plus ||
+                        realtimeData?.inactive60Plus ||
+                        "87,974"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                       style={{
-                        width: overviewData.data?.systemHealth || "0%",
+                        width:
+                          realtimeData?.data?.inactive60PlusPercent ||
+                          realtimeData?.inactive60PlusPercent ||
+                          "65%",
                       }}
                     ></div>
                   </div>
@@ -608,29 +691,46 @@ export default function AdminDashboardMainPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">
-                      Pending Approvals
+                      No Check-In
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {overviewData.data?.pendingApprovals?.toLocaleString() ||
-                        "0"}
+                      {realtimeData?.data?.noCheckIn ||
+                        realtimeData?.noCheckIn ||
+                        "45,211"}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        overviewData.data?.pendingApprovals > 10
-                          ? "bg-red-500"
-                          : overviewData.data?.pendingApprovals > 5
-                          ? "bg-orange-500"
-                          : "bg-green-500"
-                      }`}
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                       style={{
-                        width: overviewData.data?.pendingApprovals
-                          ? `${Math.min(
-                              (overviewData.data.pendingApprovals / 20) * 100,
-                              100
-                            )}%`
-                          : "0%",
+                        width:
+                          realtimeData?.data?.noCheckInPercent ||
+                          realtimeData?.noCheckInPercent ||
+                          "45%",
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Incomplete Tasks
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {realtimeData?.data?.incompleteTasks ||
+                        realtimeData?.incompleteTasks ||
+                        "21,893"}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width:
+                          realtimeData?.data?.incompleteTasksPercent ||
+                          realtimeData?.incompleteTasksPercent ||
+                          "25%",
                       }}
                     ></div>
                   </div>
@@ -654,7 +754,7 @@ export default function AdminDashboardMainPage() {
                   </svg>
                 </div>
                 <p className="text-sm text-slate-600">
-                  No tracker data available
+                  No real-time data available
                 </p>
               </div>
             )}
@@ -673,7 +773,7 @@ export default function AdminDashboardMainPage() {
               </h3>
               <div className="flex items-center gap-64">
                 <p className="text-sm text-gray-500">
-                  Monitor employee status, attendance, and system access in
+                  Monitor employee status, attendance, and task completion in
                   real-time
                 </p>
                 <div className="text-center">
@@ -769,24 +869,6 @@ export default function AdminDashboardMainPage() {
                     </TableHead>
                     <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                       <div className="flex items-center gap-2 cursor-pointer">
-                        Department
-                        <svg
-                          className="w-4 h-4 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                          />
-                        </svg>
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
-                      <div className="flex items-center gap-2 cursor-pointer">
                         Location Today
                         <svg
                           className="w-4 h-4 text-gray-400"
@@ -806,6 +888,24 @@ export default function AdminDashboardMainPage() {
                     <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
                       <div className="flex items-center gap-2 cursor-pointer">
                         Check-In Time
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          />
+                        </svg>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 font-medium text-gray-700">
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        Tasks Completed Today
                         <svg
                           className="w-4 h-4 text-gray-400"
                           fill="none"
@@ -868,6 +968,14 @@ export default function AdminDashboardMainPage() {
                         <span className="text-sm text-purple-600 font-medium">
                           {employee.checkIn}
                         </span>
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">5</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                            On Track
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

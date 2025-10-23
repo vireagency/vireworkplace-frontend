@@ -299,6 +299,46 @@ export function AppSidebar({
       </SidebarHeader>
 
       {/* ========================================================================
+           CONNECT BUTTON SECTION
+           ========================================================================
+           
+           Connect button positioned right under the logo
+           Only show for Admin users
+           ======================================================================== */}
+
+      {user?.role === "Admin" && finalConfig.connectButton && (
+        <SidebarGroup>
+          <SidebarGroupContent>
+            {/* Connect button */}
+            <div className="px-3">
+              <button
+                onClick={() => {
+                  // Handle connect to Skillltgh
+                  console.log("Connect to Skillltgh clicked");
+                }}
+                className="w-full bg-[#04B435] hover:bg-[#00C010] text-white font-medium py-2.5 px-1.5 rounded-md transition-colors duration-200 flex items-center justify-center gap-1.5 text-sm"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                + {finalConfig.connectButton.title}
+              </button>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
+
+      {/* ========================================================================
            QUICK ACTIONS SECTION
            ========================================================================
            

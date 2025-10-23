@@ -227,73 +227,77 @@ export const staffDashboardConfig = {
 
 // Admin Dashboard Configuration
 export const adminDashboardConfig = {
+  // Connect button for Skillltgh
+  connectButton: {
+    title: "Connect To Skillltgh",
+    url: "#",
+    variant: "primary",
+  },
+
   navMain: [
     {
       title: "Dashboard",
       url: "/admin",
       icon: IconDashboard,
     },
+  ],
+
+  // Analytics section
+  analytics: [
     {
-      title: "System Management",
+      title: "Performance",
       url: "#",
-      icon: IconSettings,
+      icon: IconChartBar,
+    },
+  ],
+
+  // Teams section
+  teams: [
+    {
+      title: "Tasks",
+      url: "#",
+      icon: IconListDetails,
+      badge: "35",
     },
     {
-      title: "User Management",
+      title: "Employees",
       url: "#",
       icon: IconUsers,
     },
+  ],
+
+  // Company section
+  company: [
     {
-      title: "Analytics",
+      title: "Inventory",
       url: "#",
-      icon: IconChartBar,
+      icon: IconFolder,
+    },
+    {
+      title: "Messages",
+      url: "#",
+      icon: IconMail,
     },
     {
       title: "Reports",
       url: "#",
       icon: IconReport,
     },
-    {
-      title: "System Health",
-      url: "#",
-      icon: IconDatabase,
-    },
   ],
+
   navSecondary: [
     {
-      title: "System Settings",
+      title: "Settings",
       url: "#",
       icon: IconSettings,
     },
     {
-      title: "Documentation",
+      title: "Logout",
       url: "#",
       icon: IconHelp,
     },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "System Logs",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Admin Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "System Documentation",
-      url: "#",
-      icon: IconFileWord,
-    },
   ],
 
-  // Admin-specific action buttons
+  // Admin-specific action buttons (empty as requested)
   actionButtons: adminActionButtons,
 };
