@@ -62,43 +62,7 @@ const staffActionButtons = [
  * Action buttons specific to System Administrators.
  * Focuses on system management, user administration, and system health.
  */
-const adminActionButtons = [
-  {
-    icon: IconPlus,
-    text: "Create User",
-    tooltip: "Add New System User",
-    variant: "primary",
-    onClick: () => console.log("Create User clicked"),
-  },
-  {
-    icon: IconSettings,
-    text: "System Config",
-    tooltip: "Configure System Settings",
-    variant: "secondary",
-    onClick: () => console.log("System Config clicked"),
-  },
-  {
-    icon: IconDatabase,
-    text: "Backup System",
-    tooltip: "Create System Backup",
-    variant: "outline",
-    onClick: () => console.log("Backup System clicked"),
-  },
-  {
-    icon: IconAlertCircle,
-    text: "View Logs",
-    tooltip: "Access System Logs",
-    variant: "ghost",
-    onClick: () => console.log("View Logs clicked"),
-  },
-  {
-    icon: IconTrash,
-    text: "Clean Cache",
-    tooltip: "Clear System Cache",
-    variant: "destructive",
-    onClick: () => console.log("Clean Cache clicked"),
-  },
-];
+const adminActionButtons = [];
 
 /**
  * Default Action Buttons

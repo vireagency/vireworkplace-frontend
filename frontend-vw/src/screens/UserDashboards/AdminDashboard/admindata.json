@@ -1,103 +1,355 @@
-
-[
-    {
-      "id": 1,
-      "header": "System Health Check",
-      "type": "Infrastructure",
-      "status": "In Process",
-      "target": "12",
-      "limit": "6",
-      "reviewer": "IT Admin"
+{
+  "success": true,
+  "message": "Admin dashboard data fetched successfully",
+  "data": {
+    "overview": {
+      "totalEmployees": 45,
+      "activeEmployees": 42,
+      "totalDepartments": 6,
+      "systemHealth": "98.5%",
+      "pendingApprovals": 8,
+      "recentActivity": 12
     },
-    {
-      "id": 2,
-      "header": "User Access Reviews",
-      "type": "Security",
-      "status": "Scheduled",
-      "target": "120",
-      "limit": "0",
-      "reviewer": "Security Lead"
+    "departments": [
+      {
+        "name": "Engineering",
+        "total": 15,
+        "active": 14,
+        "percentage": "93.33%",
+        "status": "Excellent"
+      },
+      {
+        "name": "HR",
+        "total": 8,
+        "active": 8,
+        "percentage": "100.00%",
+        "status": "Excellent"
+      },
+      {
+        "name": "Finance",
+        "total": 10,
+        "active": 9,
+        "percentage": "90.00%",
+        "status": "Good"
+      },
+      {
+        "name": "Marketing",
+        "total": 7,
+        "active": 6,
+        "percentage": "85.71%",
+        "status": "Good"
+      },
+      {
+        "name": "Sales",
+        "total": 5,
+        "active": 5,
+        "percentage": "100.00%",
+        "status": "Excellent"
+      }
+    ],
+    "systemMetrics": {
+      "uptime": "99.9%",
+      "responseTime": "120ms",
+      "errorRate": "0.1%",
+      "userSatisfaction": "94%",
+      "securityScore": "98%",
+      "performanceScore": "92%"
     },
-    {
-      "id": 3,
-      "header": "Billing Cycle Reconciliation",
-      "type": "Finance",
-      "status": "Done",
-      "target": "30",
-      "limit": "30",
-      "reviewer": "Finance Admin"
+    "recentActivities": [
+      {
+        "id": 1,
+        "type": "user_login",
+        "description": "John Doe logged in",
+        "timestamp": "2024-01-15 10:30",
+        "severity": "info"
+      },
+      {
+        "id": 2,
+        "type": "system_alert",
+        "description": "High CPU usage detected",
+        "timestamp": "2024-01-15 09:45",
+        "severity": "warning"
+      },
+      {
+        "id": 3,
+        "type": "security_alert",
+        "description": "Failed login attempt from unknown IP",
+        "timestamp": "2024-01-15 09:20",
+        "severity": "critical"
+      },
+      {
+        "id": 4,
+        "type": "user_activity",
+        "description": "Jane Smith updated profile",
+        "timestamp": "2024-01-15 08:15",
+        "severity": "info"
+      },
+      {
+        "id": 5,
+        "type": "system_maintenance",
+        "description": "Scheduled maintenance completed",
+        "timestamp": "2024-01-15 07:30",
+        "severity": "info"
+      }
+    ],
+    "alerts": [
+      {
+        "id": 1,
+        "type": "security",
+        "title": "Unusual Login Activity",
+        "description": "Multiple failed login attempts detected",
+        "severity": "high",
+        "timestamp": "2024-01-15 09:20",
+        "status": "active"
+      },
+      {
+        "id": 2,
+        "type": "performance",
+        "title": "High Memory Usage",
+        "description": "Server memory usage above 90%",
+        "severity": "medium",
+        "timestamp": "2024-01-15 08:45",
+        "status": "resolved"
+      },
+      {
+        "id": 3,
+        "type": "system",
+        "title": "Database Connection Pool",
+        "description": "Database connection pool near capacity",
+        "severity": "low",
+        "timestamp": "2024-01-15 08:30",
+        "status": "monitoring"
+      }
+    ],
+    "performance": {
+      "monthly": {
+        "january": {
+          "systemUptime": "99.8%",
+          "userSatisfaction": "92%",
+          "performanceScore": "88%",
+          "securityScore": "96%"
+        },
+        "february": {
+          "systemUptime": "99.9%",
+          "userSatisfaction": "94%",
+          "performanceScore": "90%",
+          "securityScore": "97%"
+        },
+        "march": {
+          "systemUptime": "99.7%",
+          "userSatisfaction": "93%",
+          "performanceScore": "89%",
+          "securityScore": "98%"
+        }
+      },
+      "trends": {
+        "systemUptime": "up",
+        "userSatisfaction": "up",
+        "performanceScore": "up",
+        "securityScore": "up"
+      }
     },
-    {
-      "id": 4,
-      "header": "Admin Policy Audit",
-      "type": "Compliance",
-      "status": "In Process",
-      "target": "10",
-      "limit": "4",
-      "reviewer": "Compliance Admin"
-    },
-    {
-      "id": 5,
-      "header": "Organization Settings Review",
-      "type": "Configuration",
-      "status": "Done",
-      "target": "8",
-      "limit": "8",
-      "reviewer": "Platform Admin"
-    },
-    {
-      "id": 6,
-      "header": "Audit Logs Export",
-      "type": "Security",
-      "status": "In Process",
-      "target": "5",
-      "limit": "2",
-      "reviewer": "Security Analyst"
-    },
-    {
-      "id": 7,
-      "header": "Department Quotas Update",
-      "type": "Configuration",
-      "status": "Scheduled",
-      "target": "14",
-      "limit": "0",
-      "reviewer": "Admin Coordinator"
-    },
-    {
-      "id": 8,
-      "header": "License Utilization Report",
-      "type": "Reporting",
-      "status": "Done",
-      "target": "1",
-      "limit": "1",
-      "reviewer": "Admin Analyst"
-    },
-    {
-      "id": 9,
-      "header": "Backup Verification",
-      "type": "Infrastructure",
-      "status": "In Process",
-      "target": "7",
-      "limit": "3",
-      "reviewer": "IT Admin"
-    },
-    {
-      "id": 10,
-      "header": "Feature Flag Review",
-      "type": "Configuration",
-      "status": "Scheduled",
-      "target": "20",
-      "limit": "0",
-      "reviewer": "Platform Admin"
-    },
-    {
-      "id": 11,
-      "header": "Cybersecurity Awareness Training",
-      "type": "Security",
-      "status": "Scheduled",
-      "target": "100",
-      "limit": "0",
-      "reviewer": "Security Lead"
+    "users": [
+      {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john.doe@vireagency.com",
+        "role": "Admin",
+        "department": "IT",
+        "status": "Active",
+        "lastLogin": "2024-01-15 10:30",
+        "avatar": null
+      },
+      {
+        "id": 2,
+        "name": "Jane Smith",
+        "email": "jane.smith@vireagency.com",
+        "role": "HR Manager",
+        "department": "HR",
+        "status": "Active",
+        "lastLogin": "2024-01-15 09:15",
+        "avatar": null
+      },
+      {
+        "id": 3,
+        "name": "Mike Johnson",
+        "email": "mike.johnson@vireagency.com",
+        "role": "Finance Manager",
+        "department": "Finance",
+        "status": "Active",
+        "lastLogin": "2024-01-15 08:45",
+        "avatar": null
+      },
+      {
+        "id": 4,
+        "name": "Sarah Wilson",
+        "email": "sarah.wilson@vireagency.com",
+        "role": "Marketing Director",
+        "department": "Marketing",
+        "status": "Active",
+        "lastLogin": "2024-01-15 08:30",
+        "avatar": null
+      },
+      {
+        "id": 5,
+        "name": "David Brown",
+        "email": "david.brown@vireagency.com",
+        "role": "Sales Representative",
+        "department": "Sales",
+        "status": "Inactive",
+        "lastLogin": "2024-01-10 14:30",
+        "avatar": null
+      }
+    ],
+    "reports": [
+      {
+        "id": 1,
+        "title": "System Performance Report",
+        "type": "System",
+        "status": "Completed",
+        "createdDate": "2024-01-15",
+        "generatedBy": "System Admin",
+        "description": "Comprehensive system performance analysis"
+      },
+      {
+        "id": 2,
+        "title": "Employee Productivity Report",
+        "type": "HR",
+        "status": "Completed",
+        "createdDate": "2024-01-14",
+        "generatedBy": "HR Manager",
+        "description": "Monthly employee productivity analysis"
+      },
+      {
+        "id": 3,
+        "title": "Financial Performance Report",
+        "type": "Finance",
+        "status": "In Progress",
+        "createdDate": "2024-01-13",
+        "generatedBy": "Finance Manager",
+        "description": "Quarterly financial performance review"
+      },
+      {
+        "id": 4,
+        "title": "Security Audit Report",
+        "type": "Security",
+        "status": "Completed",
+        "createdDate": "2024-01-12",
+        "generatedBy": "Security Admin",
+        "description": "Monthly security audit and compliance check"
+      }
+    ],
+    "evaluations": [
+      {
+        "id": 1,
+        "title": "Q4 2023 Performance Review",
+        "type": "Performance",
+        "status": "Completed",
+        "employee": "John Doe",
+        "evaluator": "Jane Smith",
+        "score": 4.2,
+        "maxScore": 5.0,
+        "progress": 100,
+        "dueDate": "2024-01-15"
+      },
+      {
+        "id": 2,
+        "title": "Annual 360 Review",
+        "type": "360 Review",
+        "status": "In Progress",
+        "employee": "Jane Smith",
+        "evaluator": "Mike Johnson",
+        "score": 0,
+        "maxScore": 5.0,
+        "progress": 65,
+        "dueDate": "2024-02-15"
+      },
+      {
+        "id": 3,
+        "title": "Probation Review",
+        "type": "Probation",
+        "status": "Pending",
+        "employee": "David Brown",
+        "evaluator": "Sarah Wilson",
+        "score": 0,
+        "maxScore": 5.0,
+        "progress": 0,
+        "dueDate": "2024-02-20"
+      }
+    ],
+    "messages": [
+      {
+        "id": 1,
+        "subject": "System Maintenance Scheduled",
+        "sender": "System Admin",
+        "recipient": "All Users",
+        "priority": "High",
+        "status": "Unread",
+        "type": "System",
+        "timestamp": "2024-01-15 10:30"
+      },
+      {
+        "id": 2,
+        "subject": "New Employee Onboarding",
+        "sender": "HR Manager",
+        "recipient": "Admin",
+        "priority": "Medium",
+        "status": "Read",
+        "type": "HR",
+        "timestamp": "2024-01-15 09:15"
+      },
+      {
+        "id": 3,
+        "subject": "Budget Approval Request",
+        "sender": "Finance Manager",
+        "recipient": "Admin",
+        "priority": "High",
+        "status": "Unread",
+        "type": "Finance",
+        "timestamp": "2024-01-15 08:45"
+      },
+      {
+        "id": 4,
+        "subject": "Security Alert - Unusual Login Activity",
+        "sender": "Security System",
+        "recipient": "Admin",
+        "priority": "Critical",
+        "status": "Read",
+        "type": "Security",
+        "timestamp": "2024-01-14 16:20"
+      }
+    ],
+    "settings": {
+      "system": {
+        "name": "Vire Agency",
+        "version": "2.1.0",
+        "maintenanceMode": false,
+        "autoBackup": true,
+        "backupFrequency": "daily",
+        "maxFileSize": "100",
+        "sessionTimeout": "30",
+        "twoFactorAuth": true,
+        "emailNotifications": true,
+        "systemLogs": true
+      },
+      "security": {
+        "twoFactorAuth": true,
+        "passwordPolicy": true,
+        "ipWhitelist": false,
+        "sessionSecurity": true
+      },
+      "notifications": {
+        "emailNotifications": true,
+        "pushNotifications": true,
+        "smsNotifications": false,
+        "inAppNotifications": true,
+        "systemAlerts": true,
+        "securityAlerts": true,
+        "performanceAlerts": true,
+        "userActivityAlerts": false,
+        "reportGenerationAlerts": true,
+        "maintenanceAlerts": true
+      }
     }
-
-  ]
+  }
+}

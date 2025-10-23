@@ -1,17 +1,5 @@
-import AdminDashboardLayout from "@/components/dashboard/AdminDashboardLayout"
-import { adminDashboardConfig } from "@/config/dashboardConfigs"
-import adminData from "./admindata.json"
+import AdminDashboardMainPage from "./AdminDashboardMainPage";
 
 export default function AdminDashboardPage() {
-  return (
-    <AdminDashboardLayout 
-      sidebarConfig={adminDashboardConfig}
-      showSectionCards={true}
-      showChart={true}
-      showDataTable={true}
-      dataTableData={adminData}
-    >
-      {/* Admin-specific custom content can go here */}
-    </AdminDashboardLayout>
-  )
+  return <AdminDashboardMainPage />;
 }
