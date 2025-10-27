@@ -106,6 +106,14 @@ import HRNotificationSettings from "./screens/UserDashboards/HRDashboard/HRNotif
 
 // Other Role Dashboards
 import AdminDashboardPage from "./screens/UserDashboards/AdminDashboard/AdminDashboard";
+import AdminEmployeesPage from "./screens/UserDashboards/AdminDashboard/AdminEmployeesPage";
+import AdminReportsPage from "./screens/UserDashboards/AdminDashboard/AdminReportsPage";
+import AdminSettingsPage from "./screens/UserDashboards/AdminDashboard/AdminSettingsPage";
+import AdminProfileSettings from "./screens/UserDashboards/AdminDashboard/AdminProfileSettings";
+import AdminPasswordSettings from "./screens/UserDashboards/AdminDashboard/AdminPasswordSettings";
+import AdminNotificationSettings from "./screens/UserDashboards/AdminDashboard/AdminNotificationSettings";
+import AdminMessagesPage from "./screens/UserDashboards/AdminDashboard/AdminMessagesPage";
+import AdminPerformancePage from "./screens/UserDashboards/AdminDashboard/AdminPerformancePage";
 import StaffDashboardMainPage from "./screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 
 // Staff Dashboard Components - Lazy loaded for better performance
@@ -382,6 +390,72 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole="Admin">
                       <AdminDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin Dashboard Routes */}
+                <Route
+                  path="/admin/employees"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminEmployeesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/reports"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/performance"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminPerformancePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/messages"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminMessagesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminSettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings/profile"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminProfileSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings/password"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminPasswordSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings/notifications"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminNotificationSettings />
                     </ProtectedRoute>
                   }
                 />

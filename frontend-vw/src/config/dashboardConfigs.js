@@ -246,7 +246,7 @@ export const adminDashboardConfig = {
   analytics: [
     {
       title: "Performance",
-      url: "#",
+      url: "/admin/performance",
       icon: IconChartBar,
     },
   ],
@@ -255,13 +255,13 @@ export const adminDashboardConfig = {
   teams: [
     {
       title: "Tasks",
-      url: "#",
+      url: "#", // No specific tasks page yet, keeping placeholder
       icon: IconListDetails,
       badge: "35",
     },
     {
       title: "Employees",
-      url: "#",
+      url: "/admin/employees",
       icon: IconUsers,
     },
   ],
@@ -270,17 +270,17 @@ export const adminDashboardConfig = {
   company: [
     {
       title: "Inventory",
-      url: "#",
+      url: "#", // No inventory page yet, keeping placeholder
       icon: IconFolder,
     },
     {
       title: "Messages",
-      url: "#",
+      url: "/admin/messages",
       icon: IconMail,
     },
     {
       title: "Reports",
-      url: "#",
+      url: "/admin/reports",
       icon: IconReport,
     },
   ],
@@ -288,12 +288,12 @@ export const adminDashboardConfig = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/admin/settings",
       icon: IconSettings,
     },
     {
       title: "Logout",
-      url: "#",
+      url: "#", // Logout handled by auth context
       icon: IconHelp,
     },
   ],

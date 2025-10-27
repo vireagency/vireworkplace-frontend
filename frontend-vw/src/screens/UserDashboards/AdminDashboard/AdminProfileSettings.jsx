@@ -25,7 +25,7 @@ import {
   IconCalendar,
   IconShield,
   IconEdit,
-  IconSave,
+  IconCheck,
   IconX,
   IconCamera,
   IconId,
@@ -151,7 +151,7 @@ export default function AdminProfileSettings() {
                   Cancel
                 </Button>
                 <Button onClick={handleSave} disabled={isLoading}>
-                  <IconSave className="w-4 h-4 mr-2" />
+                  <IconCheck className="w-4 h-4 mr-2" />
                   {isLoading ? "Saving..." : "Save Changes"}
                 </Button>
               </>
