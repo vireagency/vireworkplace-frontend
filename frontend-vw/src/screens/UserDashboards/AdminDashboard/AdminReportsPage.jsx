@@ -16,9 +16,9 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Calendar,
+  Settings,
+  Shield,
   TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { reportsApi } from "@/services/reportsApi";
@@ -61,6 +61,8 @@ import {
   TableCell,
 } from "@/components/ui/table";
 
+// All data is now fetched from the API - no mock data needed
+
 export default function AdminReportsPage() {
   const { accessToken, user } = useAuth();
 
@@ -72,136 +74,460 @@ export default function AdminReportsPage() {
   }, []);
 
   const [activeTab, setActiveTab] = useState("system-reports");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState({
-    dateRange: "all",
-    reportType: "all",
-    status: "all",
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingReportId, setEditingReportId] = useState(null);
+  const [formData, setFormData] = useState({
+    title: "",
+    type: "",
+    department: "",
+    priority: "",
+    dueDate: "",
+    description: "",
+    recipients: [],
   });
+
+  // API State
   const [reports, setReports] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCreatingReport, setIsCreatingReport] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalReports: 0,
+  });
   const [selectedReport, setSelectedReport] = useState(null);
-  const [isViewingReport, setIsViewingReport] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [recipientSearchQuery, setRecipientSearchQuery] = useState("");
 
-  // Mock data for demonstration
-  const mockReports = [
-    {
-      id: 1,
-      title: "System Performance Report",
-      type: "System",
-      status: "Completed",
-      createdDate: "2024-01-15",
-      generatedBy: "System Admin",
-      description: "Comprehensive system performance analysis",
-      metrics: {
-        uptime: "99.9%",
-        responseTime: "120ms",
-        errorRate: "0.1%",
-        userSatisfaction: "94%",
-      },
-    },
-    {
-      id: 2,
-      title: "Employee Productivity Report",
-      type: "HR",
-      status: "Completed",
-      createdDate: "2024-01-14",
-      generatedBy: "HR Manager",
-      description: "Monthly employee productivity analysis",
-      metrics: {
-        averageProductivity: "87%",
-        goalCompletion: "73%",
-        attendanceRate: "95%",
-        satisfactionScore: "4.2/5",
-      },
-    },
-    {
-      id: 3,
-      title: "Financial Performance Report",
-      type: "Finance",
-      status: "In Progress",
-      createdDate: "2024-01-13",
-      generatedBy: "Finance Manager",
-      description: "Quarterly financial performance review",
-      metrics: {
-        revenue: "$2.4M",
-        expenses: "$1.8M",
-        profitMargin: "25%",
-        growthRate: "12%",
-      },
-    },
-    {
-      id: 4,
-      title: "Security Audit Report",
-      type: "Security",
-      status: "Completed",
-      createdDate: "2024-01-12",
-      generatedBy: "Security Admin",
-      description: "Monthly security audit and compliance check",
-      metrics: {
-        securityScore: "98%",
-        vulnerabilities: "2",
-        complianceRate: "100%",
-        lastAudit: "2024-01-12",
-      },
-    },
-  ];
-
-  useEffect(() => {
-    setReports(mockReports);
-  }, []);
-
-  const handleCreateReport = async () => {
-    setIsCreatingReport(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const newReport = {
-        id: reports.length + 1,
-        title: "New System Report",
-        type: "System",
-        status: "In Progress",
-        createdDate: new Date().toISOString().split("T")[0],
-        generatedBy: user?.firstName || "Admin",
-        description: "Automatically generated system report",
-        metrics: {},
-      };
-
-      setReports((prev) => [newReport, ...prev]);
-      toast.success("Report generation started");
-    } catch (error) {
-      toast.error("Failed to create report");
-    } finally {
-      setIsCreatingReport(false);
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case "critical":
+        return "bg-red-200 text-red-900";
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const handleViewReport = (report) => {
-    setSelectedReport(report);
-    setIsViewingReport(true);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "in progress":
+        return "bg-blue-100 text-blue-800";
+      case "draft":
+        return "bg-gray-100 text-gray-800";
+      case "overdue":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
 
-  const handleDownloadReport = (report) => {
-    toast.success(`Downloading ${report.title}...`);
+  // Safe icon renderer
+  const renderIcon = (
+    IconComponent,
+    className = "w-4 h-4 text-gray-400 mr-2"
+  ) => {
+    if (IconComponent && typeof IconComponent === "function") {
+      return <IconComponent className={className} />;
+    }
+    return <div className={className} />;
   };
 
-  const handleDeleteReport = (reportId) => {
-    setReports((prev) => prev.filter((report) => report.id !== reportId));
-    toast.success("Report deleted successfully");
+  // Fetch reports on component mount and when filters change
+  useEffect(() => {
+    if (accessToken) {
+      fetchReports();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, pagination.currentPage, departmentFilter, priorityFilter]);
+
+  // Fetch reports from API
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: pagination.currentPage,
+        limit: 10,
+        department: departmentFilter !== "all" ? departmentFilter : undefined,
+        priorityLevel: priorityFilter !== "all" ? priorityFilter : undefined,
+      };
+
+      const result = await reportsApi.getAllReports(params, accessToken);
+
+      if (result.success) {
+        setReports(result.data.data || []);
+        if (result.data.pagination) {
+          setPagination(result.data.pagination);
+        }
+      } else {
+        toast.error(result.error || "Failed to fetch reports");
+      }
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      toast.error("An error occurred while fetching reports");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredReports = reports.filter((report) => {
+  // Fetch employees for recipients dropdown
+  const fetchEmployees = async () => {
+    setLoadingEmployees(true);
+    try {
+      const response = await axios.get(`${apiConfig.baseURL}/employees/list`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data.success) {
+        const transformedEmployees = response.data.data.map((emp) => ({
+          id: emp._id,
+          name: `${emp.firstName} ${emp.lastName}`,
+          email: emp.email,
+          role: emp.jobRole,
+          department: emp.department,
+        }));
+        setEmployees(transformedEmployees);
+      }
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      toast.error("Failed to load employees list");
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  // Modal handlers
+  const handleOpenModal = () => {
+    setIsEditMode(false);
+    setEditingReportId(null);
+    setIsModalOpen(true);
+    fetchEmployees(); // Fetch employees when modal opens
+  };
+
+  const handleOpenEditModal = (report) => {
+    setIsEditMode(true);
+    setEditingReportId(report._id);
+    setFormData({
+      title: report.reportTitle || "",
+      type: report.reportType || "",
+      department: report.department || "",
+      priority: report.priorityLevel?.toLowerCase() || "",
+      dueDate: report.dueDate
+        ? new Date(report.dueDate).toISOString().split("T")[0]
+        : "",
+      description: report.reportDescription || "",
+      recipients: report.recipients?.map((r) => r._id || r) || [],
+    });
+    setIsModalOpen(true);
+    fetchEmployees(); // Fetch employees when modal opens for editing
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setIsEditMode(false);
+    setEditingReportId(null);
+    setFormData({
+      title: "",
+      type: "",
+      department: "",
+      priority: "",
+      dueDate: "",
+      description: "",
+      recipients: [],
+    });
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      // Validate required fields
+      if (!formData.title || !formData.description) {
+        toast.error("Please fill in all required fields");
+        setSubmitting(false);
+        return;
+      }
+
+      // Map department values to API expected format
+      const departmentMap = {
+        "human-resources": "Human Resource Management",
+        engineering: "Engineering",
+        operations: "Operations",
+        "customer-support": "Customer Support",
+        finance: "Finance",
+        marketing: "Marketing",
+        "system-administration": "System Administration",
+        security: "Security",
+      };
+
+      // Map form data to API expected format
+      const reportData = {
+        reportTitle: formData.title.trim(),
+        reportDescription: formData.description.trim(),
+        department:
+          departmentMap[formData.department] ||
+          formData.department ||
+          "System Administration",
+        reportType: formData.type || "General",
+        priorityLevel: formData.priority
+          ? formData.priority.charAt(0).toUpperCase() +
+            formData.priority.slice(1)
+          : "Medium",
+        dueDate:
+          formData.dueDate && formData.dueDate.trim() !== ""
+            ? formData.dueDate
+            : undefined,
+        recipients: Array.isArray(formData.recipients)
+          ? formData.recipients
+          : [],
+      };
+
+      console.log("Submitting report data:", reportData);
+      console.log("Form data before mapping:", formData);
+
+      let result;
+      if (isEditMode && editingReportId) {
+        result = await reportsApi.updateReport(
+          editingReportId,
+          reportData,
+          accessToken
+        );
+      } else {
+        result = await reportsApi.createReport(reportData, accessToken);
+      }
+
+      if (result.success) {
+        toast.success(
+          isEditMode
+            ? "Report updated successfully!"
+            : "Report created successfully!"
+        );
+        handleCloseModal();
+        fetchReports(); // Refresh the reports list
+      } else {
+        console.error("Report submission failed:", result);
+        const errorMsg =
+          result.error ||
+          `Failed to ${isEditMode ? "update" : "create"} report`;
+        toast.error(errorMsg);
+
+        // Show additional details if available
+        if (result.details) {
+          console.error("Error details:", result.details);
+        }
+      }
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      toast.error("An unexpected error occurred while submitting the report");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteReport = async (reportId) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this report? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await reportsApi.deleteReport(reportId, accessToken);
+
+      if (result.success) {
+        toast.success("Report deleted successfully!");
+        fetchReports(); // Refresh the reports list
+      } else {
+        toast.error(result.error || "Failed to delete report");
+      }
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      toast.error("An error occurred while deleting the report");
+    }
+  };
+
+  const handleViewReport = async (reportId) => {
+    try {
+      const result = await reportsApi.getReportById(reportId, accessToken);
+
+      if (result.success) {
+        setSelectedReport(result.data.data);
+        setIsViewModalOpen(true);
+      } else {
+        toast.error(result.error || "Failed to fetch report details");
+      }
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      toast.error("An error occurred while fetching report details");
+    }
+  };
+
+  // Admin-specific functions
+  const handleSystemSettings = () => {
+    toast.info("System settings functionality will be implemented soon");
+    // TODO: Implement system settings functionality
+  };
+
+  const handleExportReports = () => {
+    toast.info("Export reports functionality will be implemented soon");
+    // TODO: Implement export reports functionality
+  };
+
+  const handleBulkActions = () => {
+    toast.info("Bulk actions functionality will be implemented soon");
+    // TODO: Implement bulk actions functionality
+  };
+
+  const getCurrentData = () => {
+    // All tabs now use real API data
+    switch (activeTab) {
+      case "my-reports":
+        // Filter reports where current user is the author
+        return reports.filter(
+          (report) =>
+            report.author?._id === user?._id || report.author === user?._id
+        );
+      case "system-reports":
+        // Filter system-related reports
+        return reports.filter(
+          (report) =>
+            report.reportType?.toLowerCase().includes("system") ||
+            report.reportTitle?.toLowerCase().includes("system") ||
+            report.department?.toLowerCase().includes("system")
+        );
+      case "security-reports":
+        // Filter security-related reports
+        return reports.filter(
+          (report) =>
+            report.reportType?.toLowerCase().includes("security") ||
+            report.reportTitle?.toLowerCase().includes("security") ||
+            report.department?.toLowerCase().includes("security")
+        );
+      default:
+        return reports;
+    }
+  };
+
+  const getCurrentSummaryCards = () => {
+    const currentData = getCurrentData();
+    const totalReports = currentData.length;
+    const pendingReports = currentData.filter(
+      (r) => r.status === "in progress" || r.status === "draft"
+    ).length;
+    const completedReports = currentData.filter(
+      (r) => r.status === "completed"
+    ).length;
+    const overdueReports = currentData.filter(
+      (r) => r.status === "overdue"
+    ).length;
+
+    return [
+      {
+        title: "TOTAL REPORTS",
+        value: totalReports.toString(),
+        change: "+42%",
+        trend: "up",
+        icon: IconTrendingUp,
+        color: "green",
+      },
+      {
+        title: "PENDING REPORTS",
+        value: pendingReports.toString(),
+        change: "+18%",
+        trend: "down",
+        icon: IconTrendingDown,
+        color: "red",
+      },
+      {
+        title: "COMPLETED REPORTS",
+        value: completedReports.toString(),
+        change: "+28%",
+        trend: "up",
+        icon: IconTrendingUp,
+        color: "green",
+      },
+      {
+        title: "OVERDUE REPORTS",
+        value: overdueReports.toString(),
+        change: "+12%",
+        trend: "down",
+        icon: IconTrendingDown,
+        color: "red",
+      },
+    ];
+  };
+
+  const getTableTitle = () => {
+    switch (activeTab) {
+      case "my-reports":
+        return "My Reports";
+      case "system-reports":
+        return "System Reports";
+      case "security-reports":
+        return "Security Reports";
+      default:
+        return "System Reports";
+    }
+  };
+
+  const getReportCount = () => {
+    const data = getCurrentData();
+    return data.length;
+  };
+
+  const getSearchPlaceholder = () => {
+    return "Search reports...";
+  };
+
+  const filteredReports = getCurrentData().filter((report) => {
+    // Unified filtering for all tabs using API data structure
+    const reportTitle = report.reportTitle || report.report || "";
+    const authorName = report.author?.firstName
+      ? `${report.author.firstName} ${report.author.lastName}`
+      : report.author || "";
+    const dept = report.department || "";
+
     const matchesSearch =
-      report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.description.toLowerCase().includes(searchTerm.toLowerCase());
+      reportTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      dept.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesType =
-      selectedFilters.reportType === "all" ||
-      report.type === selectedFilters.reportType;
+      typeFilter === "all" ||
+      (report.reportType || report.type || "").toLowerCase() ===
+        typeFilter.toLowerCase();
+
     const matchesStatus =
-      selectedFilters.status === "all" ||
-      report.status === selectedFilters.status;
+      statusFilter === "all" ||
+      (report.status || "").toLowerCase() === statusFilter.toLowerCase();
 
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -209,521 +535,1436 @@ export default function AdminReportsPage() {
   return (
     <DashboardLayout
       sidebarConfig={adminDashboardConfig}
-      showSectionCards={true}
-      showChart={true}
-      showDataTable={true}
+      showSectionCards={false}
+      showChart={false}
+      showDataTable={false}
     >
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Reports & Analytics
-            </h1>
-            <p className="text-gray-600">
-              Generate and manage system reports and analytics
-            </p>
-          </div>
-          <Button onClick={handleCreateReport} disabled={isCreatingReport}>
-            {isCreatingReport ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            Generate Report
-          </Button>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Reports
-              </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{reports.length}</div>
-              <p className="text-xs text-muted-foreground">
-                <TrendingUp className="inline h-3 w-3 mr-1" />
-                +12% from last month
+      {/* Page Header and Navigation */}
+      <div className="px-4 lg:px-6">
+        {/* Page Header */}
+        <div className="pb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Admin Reports
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Manage and track all system reports and analytics.
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Completed Reports
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {reports.filter((r) => r.status === "Completed").length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {reports.length > 0
-                  ? Math.round(
-                      (reports.filter((r) => r.status === "Completed").length /
-                        reports.length) *
-                        100
-                    )
-                  : 0}
-                % completion rate
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-              <Loader2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {reports.filter((r) => r.status === "In Progress").length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Currently generating
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                System Health
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">98.5%</div>
-              <p className="text-xs text-muted-foreground">
-                <TrendingUp className="inline h-3 w-3 mr-1" />
-                +0.2% from last week
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search reports..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleExportReports}
+                variant="outline"
+                className="text-gray-600"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Reports
+              </Button>
+              <Button
+                onClick={handleOpenModal}
+                className="bg-green-500 hover:bg-green-600 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Report
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Select
-              value={selectedFilters.reportType}
-              onValueChange={(value) =>
-                setSelectedFilters((prev) => ({ ...prev, reportType: value }))
-              }
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Report Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="System">System</SelectItem>
-                <SelectItem value="HR">HR</SelectItem>
-                <SelectItem value="Finance">Finance</SelectItem>
-                <SelectItem value="Security">Security</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={selectedFilters.status}
-              onValueChange={(value) =>
-                setSelectedFilters((prev) => ({ ...prev, status: value }))
-              }
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        {/* Reports Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList>
-            <TabsTrigger value="system-reports">System Reports</TabsTrigger>
-            <TabsTrigger value="hr-reports">HR Reports</TabsTrigger>
-            <TabsTrigger value="financial-reports">
-              Financial Reports
+        {/* Navigation Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="grid w-full grid-cols-3 max-w-md">
+            <TabsTrigger
+              value="system-reports"
+              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white cursor-pointer`}
+            >
+              System Reports
             </TabsTrigger>
-            <TabsTrigger value="security-reports">Security Reports</TabsTrigger>
+            <TabsTrigger
+              value="my-reports"
+              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white cursor-pointer`}
+            >
+              My Reports
+            </TabsTrigger>
+            <TabsTrigger
+              value="security-reports"
+              className={`data-[state=active]:bg-green-500 data-[state=active]:text-white cursor-pointer`}
+            >
+              Security Reports
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="system-reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Reports</CardTitle>
-                <CardDescription>
-                  Monitor system performance, uptime, and technical metrics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredReports
-                    .filter((r) => r.type === "System")
-                    .map((report) => (
-                      <div
-                        key={report.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-medium">{report.title}</h4>
-                            <Badge
-                              variant={
-                                report.status === "Completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {report.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {report.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>Created: {report.createdDate}</span>
-                            <span>By: {report.generatedBy}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewReport(report)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadReport(report)}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteReport(report.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+          {/* System Reports Tab Content */}
+          {activeTab === "system-reports" && (
+            <TabsContent value="system-reports" className="mt-8">
+              {/* Summary Cards */}
+              <div>
+                <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                  {getCurrentSummaryCards().map((card, index) => (
+                    <Card key={index} className="@container/card relative">
+                      <CardHeader>
+                        <CardDescription>{card.title}</CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                          {card.value}
+                        </CardTitle>
+                      </CardHeader>
+                      <div className="absolute bottom-3 right-3">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            card.color === "green"
+                              ? "text-green-600 bg-green-50"
+                              : "text-red-600 bg-red-50"
+                          }
+                        >
+                          {renderIcon(
+                            card.icon,
+                            card.color === "green"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          )}
+                          {card.change}
+                        </Badge>
                       </div>
-                    ))}
+                    </Card>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
 
-          <TabsContent value="hr-reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>HR Reports</CardTitle>
-                <CardDescription>
-                  Employee performance, attendance, and HR analytics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredReports
-                    .filter((r) => r.type === "HR")
-                    .map((report) => (
-                      <div
-                        key={report.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-medium">{report.title}</h4>
-                            <Badge
-                              variant={
-                                report.status === "Completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {report.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {report.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>Created: {report.createdDate}</span>
-                            <span>By: {report.generatedBy}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewReport(report)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadReport(report)}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteReport(report.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+              {/* Reports Table Section */}
+              <div className="mt-6">
+                <div className="bg-white rounded-lg border p-6">
+                  {/* Table Header */}
+                  <div className="mb-6">
+                    <div className="mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        System Reports
+                      </h3>
+                      <div className="flex items-center gap-64">
+                        <p className="text-sm text-gray-500">
+                          {filteredReports.length} reports
+                        </p>
                       </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="financial-reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Reports</CardTitle>
-                <CardDescription>
-                  Financial performance, budgets, and revenue analytics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredReports
-                    .filter((r) => r.type === "Finance")
-                    .map((report) => (
-                      <div
-                        key={report.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-medium">{report.title}</h4>
-                            <Badge
-                              variant={
-                                report.status === "Completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {report.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {report.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>Created: {report.createdDate}</span>
-                            <span>By: {report.generatedBy}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewReport(report)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadReport(report)}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteReport(report.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security-reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Reports</CardTitle>
-                <CardDescription>
-                  Security audits, compliance, and threat analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredReports
-                    .filter((r) => r.type === "Security")
-                    .map((report) => (
-                      <div
-                        key={report.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-medium">{report.title}</h4>
-                            <Badge
-                              variant={
-                                report.status === "Completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {report.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {report.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>Created: {report.createdDate}</span>
-                            <span>By: {report.generatedBy}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewReport(report)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadReport(report)}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteReport(report.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Report View Modal */}
-      <Dialog open={isViewingReport} onOpenChange={setIsViewingReport}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedReport?.title}</DialogTitle>
-            <DialogDescription>{selectedReport?.description}</DialogDescription>
-          </DialogHeader>
-          {selectedReport && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">Report Details</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Type:</span>
-                      <span>{selectedReport.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <Badge
-                        variant={
-                          selectedReport.status === "Completed"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {selectedReport.status}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Created:</span>
-                      <span>{selectedReport.createdDate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Generated By:</span>
-                      <span>{selectedReport.generatedBy}</span>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-2">Key Metrics</h4>
-                  <div className="space-y-2 text-sm">
-                    {Object.entries(selectedReport.metrics || {}).map(
-                      ([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-600 capitalize">
-                            {key.replace(/([A-Z])/g, " $1").trim()}:
-                          </span>
-                          <span className="font-medium">{value}</span>
-                        </div>
-                      )
+
+                  {/* Search and Filter Bar */}
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search reports..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Filter className="w-4 h-4 text-gray-400" />
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="system">System</SelectItem>
+                          <SelectItem value="performance">
+                            Performance
+                          </SelectItem>
+                          <SelectItem value="security">Security</SelectItem>
+                          <SelectItem value="general">General</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="in progress">
+                            In Progress
+                          </SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="overdue">Overdue</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Reports Table */}
+                  <div className="overflow-x-auto">
+                    {loading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+                      </div>
+                    ) : filteredReports.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No reports found</p>
+                      </div>
+                    ) : (
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow className="border-b border-gray-200">
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Report
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Type
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Department
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Priority
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Author
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Created
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Due Date
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-200">
+                          {filteredReports.map((report) => {
+                            const reportType =
+                              report.reportType || report.type || "";
+                            const getTypeIcon = (type) => {
+                              switch (type.toLowerCase()) {
+                                case "system":
+                                  return Settings;
+                                case "performance":
+                                  return BarChart3;
+                                case "security":
+                                  return Shield;
+                                case "attendance":
+                                  return Users;
+                                case "incident":
+                                  return AlertTriangle;
+                                default:
+                                  return FileText;
+                              }
+                            };
+                            const IconComponent = getTypeIcon(reportType);
+                            const authorName = report.author?.firstName
+                              ? `${report.author.firstName} ${report.author.lastName}`
+                              : "N/A";
+                            const createdDate = report.createdAt
+                              ? new Date(report.createdAt).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "N/A";
+                            const dueDate = report.dueDate
+                              ? new Date(report.dueDate).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "N/A";
+
+                            return (
+                              <TableRow
+                                key={report._id}
+                                className="hover:bg-gray-50 transition-colors"
+                              >
+                                <TableCell className="py-4 px-4">
+                                  <div className="flex items-center space-x-3">
+                                    <IconComponent className="w-5 h-5 text-gray-400" />
+                                    <div>
+                                      <p className="font-medium text-gray-900">
+                                        {report.reportTitle || report.title}
+                                      </p>
+                                      <p className="text-sm text-gray-500">
+                                        {report.reportDescription ||
+                                          report.description ||
+                                          "No description"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs font-medium"
+                                  >
+                                    {reportType}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-4 px-4 text-gray-600">
+                                  {report.department || "N/A"}
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <Badge
+                                    className={`text-xs font-medium ${
+                                      report.priority === "high"
+                                        ? "bg-red-100 text-red-800"
+                                        : report.priority === "medium"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-green-100 text-green-800"
+                                    }`}
+                                  >
+                                    {report.priority || "Low"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-4 px-4 text-gray-600">
+                                  {authorName}
+                                </TableCell>
+                                <TableCell className="py-4 px-4 text-gray-600">
+                                  {createdDate}
+                                </TableCell>
+                                <TableCell className="py-4 px-4 text-gray-600">
+                                  {dueDate}
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleViewReport(report)}
+                                      className="text-gray-600 hover:text-gray-900"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleOpenEditModal(report)
+                                      }
+                                      className="text-blue-600 hover:text-blue-900"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDeleteReport(report._id)
+                                      }
+                                      className="text-red-600 hover:text-red-900"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
+            </TabsContent>
+          )}
+
+          {/* My Reports Tab Content */}
+          {activeTab === "my-reports" && (
+            <TabsContent value="my-reports" className="mt-8">
+              {/* Summary Cards */}
+              <div>
+                <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                  {getCurrentSummaryCards().map((card, index) => (
+                    <Card key={index} className="@container/card relative">
+                      <CardHeader>
+                        <CardDescription>{card.title}</CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                          {card.value}
+                        </CardTitle>
+                      </CardHeader>
+                      <div className="absolute bottom-3 right-3">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            card.color === "green"
+                              ? "text-green-600 bg-green-50"
+                              : "text-red-600 bg-red-50"
+                          }
+                        >
+                          {renderIcon(
+                            card.icon,
+                            card.color === "green"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          )}
+                          {card.change}
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reports Table Section */}
+              <div className="mt-6">
+                <div className="bg-white rounded-lg border p-6">
+                  {/* Table Header */}
+                  <div className="mb-6">
+                    <div className="mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        My Reports
+                      </h3>
+                      <div className="flex items-center gap-64">
+                        <p className="text-sm text-gray-500">
+                          {filteredReports.length} reports
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Search and Filter Bar */}
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search reports..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Filter className="w-4 h-4 text-gray-400" />
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="system">System</SelectItem>
+                          <SelectItem value="performance">
+                            Performance
+                          </SelectItem>
+                          <SelectItem value="security">Security</SelectItem>
+                          <SelectItem value="general">General</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="in progress">
+                            In Progress
+                          </SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="overdue">Overdue</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Reports Table */}
+                  <div className="overflow-x-auto">
+                    {loading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+                      </div>
+                    ) : filteredReports.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No reports found</p>
+                      </div>
+                    ) : (
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow className="border-b border-gray-200">
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Report
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Type
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Department
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Priority
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Author
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Created
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Due Date
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-200">
+                          {filteredReports.map((report) => {
+                            const reportType =
+                              report.reportType || report.type || "";
+                            const getTypeIcon = (type) => {
+                              switch (type.toLowerCase()) {
+                                case "system":
+                                  return Settings;
+                                case "performance":
+                                  return BarChart3;
+                                case "security":
+                                  return Shield;
+                                case "attendance":
+                                  return Users;
+                                case "incident":
+                                  return AlertTriangle;
+                                default:
+                                  return FileText;
+                              }
+                            };
+                            const IconComponent = getTypeIcon(reportType);
+                            const authorName = report.author?.firstName
+                              ? `${report.author.firstName} ${report.author.lastName}`
+                              : "N/A";
+                            const createdDate = report.createdAt
+                              ? new Date(report.createdAt).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "N/A";
+                            const dueDate = report.dueDate
+                              ? new Date(report.dueDate).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "N/A";
+                            const priority = (
+                              report.priorityLevel ||
+                              report.priority ||
+                              "medium"
+                            ).toLowerCase();
+
+                            return (
+                              <TableRow
+                                key={report._id || report.id}
+                                className="hover:bg-gray-50"
+                              >
+                                <TableCell className="py-4 px-4">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {report.reportTitle || report.report}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <div className="flex items-center">
+                                    {renderIcon(IconComponent)}
+                                    <span className="text-sm text-gray-900">
+                                      {reportType}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {report.department}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                                      priority
+                                    )}`}
+                                  >
+                                    {priority}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {authorName}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {createdDate}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {dueDate}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() =>
+                                        handleViewReport(report._id)
+                                      }
+                                      className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                      title="View report"
+                                    >
+                                      <Eye className="w-4 h-4 text-black" />
+                                    </button>
+                                    {(report.author?._id === user?._id ||
+                                      report.author === user?._id) && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handleOpenEditModal(report)
+                                          }
+                                          className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                          title="Edit report"
+                                        >
+                                          <Pencil className="w-4 h-4 text-blue-600" />
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleDeleteReport(report._id)
+                                          }
+                                          className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
+                                          title="Delete report"
+                                        >
+                                          <Trash2 className="w-4 h-4 text-red-600" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Security Reports Tab Content */}
+          {activeTab === "security-reports" && (
+            <TabsContent value="security-reports" className="mt-8">
+              {/* Summary Cards */}
+              <div>
+                <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+                  {getCurrentSummaryCards().map((card, index) => (
+                    <Card key={index} className="@container/card relative">
+                      <CardHeader>
+                        <CardDescription>{card.title}</CardDescription>
+                        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                          {card.value}
+                        </CardTitle>
+                      </CardHeader>
+                      <div className="absolute bottom-3 right-3">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            card.color === "green"
+                              ? "text-green-600 bg-green-50"
+                              : "text-red-600 bg-red-50"
+                          }
+                        >
+                          {renderIcon(
+                            card.icon,
+                            card.color === "green"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          )}
+                          {card.change}
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Security Reports Table Section */}
+              <div className="mt-6">
+                <div className="bg-white rounded-lg border p-6">
+                  {/* Table Header */}
+                  <div className="mb-6">
+                    <div className="mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        Security Reports
+                      </h3>
+                      <div className="flex items-center gap-64">
+                        <p className="text-sm text-gray-500">
+                          {filteredReports.length} reports
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Search and Filter Bar */}
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search security reports..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Filter className="w-4 h-4 text-gray-400" />
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="security">Security</SelectItem>
+                          <SelectItem value="incident">Incident</SelectItem>
+                          <SelectItem value="audit">Audit</SelectItem>
+                          <SelectItem value="compliance">Compliance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="in progress">
+                            In Progress
+                          </SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="overdue">Overdue</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Security Reports Table */}
+                  <div className="overflow-x-auto">
+                    {loading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+                      </div>
+                    ) : filteredReports.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">
+                          No security reports found
+                        </p>
+                      </div>
+                    ) : (
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow className="border-b border-gray-200">
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Report
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Type
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Department
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Priority
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Author
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Created
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Due Date
+                            </TableHead>
+                            <TableHead className="text-left py-3 px-4 font-bold text-gray-700">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-gray-200">
+                          {filteredReports.map((report) => {
+                            const reportType =
+                              report.reportType || report.type || "";
+                            const getTypeIcon = (type) => {
+                              switch (type.toLowerCase()) {
+                                case "security":
+                                  return Shield;
+                                case "incident":
+                                  return AlertTriangle;
+                                case "audit":
+                                  return FileText;
+                                case "compliance":
+                                  return Settings;
+                                default:
+                                  return FileText;
+                              }
+                            };
+                            const IconComponent = getTypeIcon(reportType);
+                            const authorName = report.author?.firstName
+                              ? `${report.author.firstName} ${report.author.lastName}`
+                              : "N/A";
+                            const createdDate = report.createdAt
+                              ? new Date(report.createdAt).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "N/A";
+                            const dueDate = report.dueDate
+                              ? new Date(report.dueDate).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "N/A";
+                            const priority = (
+                              report.priorityLevel ||
+                              report.priority ||
+                              "medium"
+                            ).toLowerCase();
+
+                            return (
+                              <TableRow
+                                key={report._id || report.id}
+                                className="hover:bg-gray-50"
+                              >
+                                <TableCell className="py-4 px-4">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {report.reportTitle || report.report}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <div className="flex items-center">
+                                    {renderIcon(IconComponent)}
+                                    <span className="text-sm text-gray-900">
+                                      {reportType}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {report.department}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                                      priority
+                                    )}`}
+                                  >
+                                    {priority}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {authorName}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {createdDate}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <span className="text-sm text-gray-900">
+                                    {dueDate}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-4 px-4">
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() =>
+                                        handleViewReport(report._id)
+                                      }
+                                      className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                      title="View report"
+                                    >
+                                      <Eye className="w-4 h-4 text-black" />
+                                    </button>
+                                    {(report.author?._id === user?._id ||
+                                      report.author === user?._id) && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handleOpenEditModal(report)
+                                          }
+                                          className="w-8 h-8 bg-white border border-gray-300 hover:bg-gray-50 rounded-md flex items-center justify-center transition-colors"
+                                          title="Edit report"
+                                        >
+                                          <Pencil className="w-4 h-4 text-blue-600" />
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleDeleteReport(report._id)
+                                          }
+                                          className="w-8 h-8 bg-white border border-gray-300 hover:bg-red-50 rounded-md flex items-center justify-center transition-colors"
+                                          title="Delete report"
+                                        >
+                                          <Trash2 className="w-4 h-4 text-red-600" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+
+      {/* View Report Details Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[20px] font-bold text-[#0d141c] flex items-center gap-2">
+              <FileText className="size-5 text-green-500" />
+              Report Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedReport && (
+            <div className="pt-4 space-y-6">
+              {/* Report Title */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Report Title
+                </h3>
+                <p className="text-base font-semibold text-gray-900">
+                  {selectedReport.reportTitle}
+                </p>
+              </div>
+
+              {/* Report Information Grid */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Type
+                  </h3>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.reportType}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Department
+                  </h3>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.department}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Priority Level
+                  </h3>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(
+                      selectedReport.priorityLevel?.toLowerCase()
+                    )}`}
+                  >
+                    {selectedReport.priorityLevel}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Author
+                  </h3>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.author?.firstName
+                      ? `${selectedReport.author.firstName} ${selectedReport.author.lastName}`
+                      : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Created Date
+                  </h3>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.createdAt
+                      ? new Date(selectedReport.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )
+                      : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Due Date
+                  </h3>
+                  <p className="text-base text-gray-900">
+                    {selectedReport.dueDate
+                      ? new Date(selectedReport.dueDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )
+                      : "Not set"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Report Description */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Description
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-base text-gray-900 whitespace-pre-wrap">
+                    {selectedReport.reportDescription}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recipients */}
+              {selectedReport.recipients &&
+                selectedReport.recipients.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">
+                      Recipients
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedReport.recipients.map((recipient, index) => (
+                        <Badge key={index} variant="secondary">
+                          {recipient.firstName
+                            ? `${recipient.firstName} ${recipient.lastName}`
+                            : recipient}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <Button
+                  type="button"
                   variant="outline"
-                  onClick={() => setIsViewingReport(false)}
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="px-6"
                 >
                   Close
                 </Button>
-                <Button onClick={() => handleDownloadReport(selectedReport)}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Report
-                </Button>
+                {(selectedReport.author?._id === user?._id ||
+                  selectedReport.author === user?._id) && (
+                  <Button
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handleOpenEditModal(selectedReport);
+                    }}
+                    className="px-6 bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Report
+                  </Button>
+                )}
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create New Report Modal */}
+      <Dialog open={isModalOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[20px] font-bold text-[#0d141c] flex items-center gap-2">
+              <FileText className="size-5 text-green-500" />
+              {isEditMode ? "Edit Report" : "Create New Report"}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Fill in the details below to {isEditMode ? "update" : "create"} a
+              report. All fields marked with * are required.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="pt-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Two Column Layout for first 4 fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Report Title */}
+                  <div>
+                    <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                      Report Title *
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Enter report title"
+                      value={formData.title}
+                      onChange={(e) =>
+                        handleInputChange("title", e.target.value)
+                      }
+                      className="w-full"
+                      required
+                    />
+                  </div>
+
+                  {/* Report Type */}
+                  <div>
+                    <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                      Report Type *
+                    </label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value) =>
+                        handleInputChange("type", value)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select report type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="system">System</SelectItem>
+                        <SelectItem value="security">Security</SelectItem>
+                        <SelectItem value="performance">Performance</SelectItem>
+                        <SelectItem value="audit">Audit</SelectItem>
+                        <SelectItem value="compliance">Compliance</SelectItem>
+                        <SelectItem value="general">General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Department */}
+                  <div>
+                    <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                      Department
+                    </label>
+                    <Select
+                      value={formData.department}
+                      onValueChange={(value) =>
+                        handleInputChange("department", value)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="system-administration">
+                          System Administration
+                        </SelectItem>
+                        <SelectItem value="security">Security</SelectItem>
+                        <SelectItem value="human-resources">
+                          Human Resources
+                        </SelectItem>
+                        <SelectItem value="engineering">Engineering</SelectItem>
+                        <SelectItem value="operations">Operations</SelectItem>
+                        <SelectItem value="customer-support">
+                          Customer Support
+                        </SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Priority Level */}
+                  <div>
+                    <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                      Priority Level
+                    </label>
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value) =>
+                        handleInputChange("priority", value)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Due Date - Full Width */}
+              <div>
+                <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
+                  Due Date
+                </label>
+                <Input
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Report Description - Full Width */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Report Description *
+                </label>
+                <textarea
+                  placeholder="Describe the purpose and content of this report..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              {/* Assign Recipients - Full Width */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Assign to Recipients (Optional)
+                  </label>
+                  {formData.recipients.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-50 text-green-700"
+                    >
+                      {formData.recipients.length} selected
+                    </Badge>
+                  )}
+                </div>
+
+                {loadingEmployees ? (
+                  <div className="flex items-center justify-center py-8 border border-gray-200 rounded-lg">
+                    <Loader2 className="w-6 h-6 animate-spin text-green-500 mr-2" />
+                    <span className="text-sm text-gray-500">
+                      Loading employees...
+                    </span>
+                  </div>
+                ) : employees.length === 0 ? (
+                  <div className="text-center py-8 border border-gray-200 rounded-lg">
+                    <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No employees available
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Search Box for Recipients */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        type="text"
+                        placeholder="Search employees..."
+                        value={recipientSearchQuery}
+                        onChange={(e) =>
+                          setRecipientSearchQuery(e.target.value)
+                        }
+                        className="pl-10"
+                      />
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                      <div className="p-3 space-y-2">
+                        {employees
+                          .filter((employee) => {
+                            if (!recipientSearchQuery) return true;
+                            const query = recipientSearchQuery.toLowerCase();
+                            return (
+                              employee.name.toLowerCase().includes(query) ||
+                              employee.role?.toLowerCase().includes(query) ||
+                              employee.department
+                                ?.toLowerCase()
+                                .includes(query) ||
+                              employee.email?.toLowerCase().includes(query)
+                            );
+                          })
+                          .map((employee) => (
+                            <div
+                              key={employee.id}
+                              className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-md transition-colors"
+                            >
+                              <Checkbox
+                                id={`employee-${employee.id}`}
+                                checked={formData.recipients.includes(
+                                  employee.id
+                                )}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    handleInputChange("recipients", [
+                                      ...formData.recipients,
+                                      employee.id,
+                                    ]);
+                                  } else {
+                                    handleInputChange(
+                                      "recipients",
+                                      formData.recipients.filter(
+                                        (id) => id !== employee.id
+                                      )
+                                    );
+                                  }
+                                }}
+                                className="mt-1"
+                              />
+                              <label
+                                htmlFor={`employee-${employee.id}`}
+                                className="flex-1 cursor-pointer"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {employee.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {employee.role} • {employee.department}
+                                    </p>
+                                  </div>
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {employee.email}
+                                  </Badge>
+                                </div>
+                              </label>
+                            </div>
+                          ))}
+                        {employees.filter((employee) => {
+                          if (!recipientSearchQuery) return true;
+                          const query = recipientSearchQuery.toLowerCase();
+                          return (
+                            employee.name.toLowerCase().includes(query) ||
+                            employee.role?.toLowerCase().includes(query) ||
+                            employee.department
+                              ?.toLowerCase()
+                              .includes(query) ||
+                            employee.email?.toLowerCase().includes(query)
+                          );
+                        }).length === 0 && (
+                          <div className="text-center py-8">
+                            <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">
+                              No employees match your search
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {formData.recipients.length > 0 && (
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-gray-600">
+                      Selected ({formData.recipients.length}):
+                    </span>
+                    {formData.recipients.map((recipientId) => {
+                      const employee = employees.find(
+                        (emp) => emp.id === recipientId
+                      );
+                      return employee ? (
+                        <Badge
+                          key={recipientId}
+                          variant="secondary"
+                          className="bg-green-50 text-green-700 border-green-200"
+                        >
+                          {employee.name}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleInputChange(
+                                "recipients",
+                                formData.recipients.filter(
+                                  (id) => id !== recipientId
+                                )
+                              )
+                            }
+                            className="ml-2 hover:text-green-900"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseModal}
+                  className="px-6"
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="px-6 bg-green-500 hover:bg-green-600 text-white"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {isEditMode ? "Updating..." : "Creating..."}
+                    </>
+                  ) : isEditMode ? (
+                    "Update Report"
+                  ) : (
+                    "Create Report"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

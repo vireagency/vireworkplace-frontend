@@ -1,40 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
-import {
-  Search,
-  Filter,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  MoreHorizontal,
-  Send,
-  Reply,
-  Forward,
-  Archive,
-  Star,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  MessageSquare,
-  Users,
-  Mail,
-  Bell,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -42,798 +11,780 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Filter,
+  Clock,
+  Settings,
+  Trash2,
+  Check,
+  Loader2,
+  Search,
+  Bell,
+  CheckCheck,
+  AlertCircle,
+  Info,
+  MessageSquare,
+  Send,
+  UserPlus,
+  Shield,
+} from "lucide-react";
+import { useNotifications } from "@/contexts/NotificationProvider";
+import { useNotificationFilters } from "@/hooks/useNotificationFilters";
+import { useNotificationActions } from "@/hooks/useNotificationActions";
+import { toast } from "sonner";
 
 export default function AdminMessagesPage() {
-  const { accessToken, user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedPriority, setSelectedPriority] = useState("all");
-  const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
-  const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("inbox");
+  // Get notification context
+  const {
+    notifications,
+    unreadCount,
+    isLoading: notificationsLoading,
+    error: notificationsError,
+    fetchNotifications,
+    isConnected,
+  } = useNotifications();
 
-  // Mock message data
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      subject: "System Maintenance Scheduled",
-      sender: "System Admin",
-      senderEmail: "admin@vireagency.com",
-      recipient: "All Users",
-      content:
-        "We will be performing scheduled maintenance on our servers this weekend. The system will be unavailable from 2 AM to 6 AM EST on Sunday.",
-      priority: "High",
-      status: "Unread",
-      type: "System",
-      timestamp: "2024-01-15 10:30",
-      isStarred: false,
-      isArchived: false,
-      attachments: [],
-    },
-    {
-      id: 2,
-      subject: "New Employee Onboarding",
-      sender: "HR Manager",
-      senderEmail: "hr@vireagency.com",
-      recipient: "Admin",
-      content:
-        "Please review the new employee onboarding checklist for David Brown. All documents have been uploaded to the system.",
-      priority: "Medium",
-      status: "Read",
-      type: "HR",
-      timestamp: "2024-01-15 09:15",
-      isStarred: true,
-      isArchived: false,
-      attachments: ["onboarding_checklist.pdf"],
-    },
-    {
-      id: 3,
-      subject: "Budget Approval Request",
-      sender: "Finance Manager",
-      senderEmail: "finance@vireagency.com",
-      recipient: "Admin",
-      content:
-        "I need approval for the Q1 marketing budget increase. The proposal is attached for your review.",
-      priority: "High",
-      status: "Unread",
-      type: "Finance",
-      timestamp: "2024-01-15 08:45",
-      isStarred: false,
-      isArchived: false,
-      attachments: ["budget_proposal.pdf", "marketing_plan.pdf"],
-    },
-    {
-      id: 4,
-      subject: "Security Alert - Unusual Login Activity",
-      sender: "Security System",
-      senderEmail: "security@vireagency.com",
-      recipient: "Admin",
-      content:
-        "We detected unusual login activity from an unrecognized IP address. Please review the security logs and take appropriate action.",
-      priority: "Critical",
-      status: "Read",
-      type: "Security",
-      timestamp: "2024-01-14 16:20",
-      isStarred: true,
-      isArchived: false,
-      attachments: ["security_log.pdf"],
-    },
-    {
-      id: 5,
-      subject: "Weekly Performance Report",
-      sender: "Performance System",
-      senderEmail: "performance@vireagency.com",
-      recipient: "Admin",
-      content:
-        "Your weekly performance report is ready. The team has shown excellent progress this week with a 15% increase in productivity.",
-      priority: "Low",
-      status: "Read",
-      type: "Performance",
-      timestamp: "2024-01-14 14:30",
-      isStarred: false,
-      isArchived: true,
-      attachments: ["performance_report.pdf"],
-    },
-  ]);
+  // Get notification filters hook
+  const {
+    searchQuery,
+    statusFilter,
+    typeFilter,
+    priorityFilter,
+    dateFilter,
+    sortBy,
+    setSearchQuery,
+    setStatusFilter,
+    setTypeFilter,
+    setPriorityFilter,
+    setDateFilter,
+    setSortBy,
+    filterOptions,
+    filterNotifications,
+    getFilterSummary,
+    clearAllFilters,
+  } = useNotificationFilters();
 
-  const [newMessage, setNewMessage] = useState({
-    subject: "",
-    recipient: "",
-    content: "",
-    priority: "Medium",
-    type: "General",
-  });
+  // Get notification actions hook
+  const {
+    handleMarkAsRead,
+    handleDeleteNotification,
+    handleMarkAllAsRead,
+    handleBulkDelete,
+    handleBulkMarkAsRead,
+    getNotificationStats,
+    canDeleteNotification,
+    canMarkAsRead,
+    isLoading: actionsLoading,
+  } = useNotificationActions();
 
-  const [replyMessage, setReplyMessage] = useState({
-    content: "",
-  });
+  // Local state
+  const [selectedNotifications, setSelectedNotifications] = useState([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
-  const handleComposeMessage = async () => {
-    if (!newMessage.subject || !newMessage.recipient || !newMessage.content) {
-      toast.error("Please fill in all required fields");
+  // Get filtered notifications using the hook
+  const filteredNotifications = filterNotifications(notifications);
+  const filterSummary = getFilterSummary(notifications);
+  const notificationStats = getNotificationStats();
+
+  // Add some mock data for testing if no notifications are available
+  const mockNotifications = [
+    {
+      _id: "mock-1",
+      title: "Welcome to Admin Dashboard",
+      message:
+        "Welcome to the Vire Workplace Admin system. You now have full administrative access to all features.",
+      type: "welcome",
+      priority: "medium",
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      sender: "System",
+    },
+    {
+      _id: "mock-2",
+      title: "System Maintenance Scheduled",
+      message:
+        "Scheduled system maintenance will occur this weekend. All services will be temporarily unavailable.",
+      type: "system",
+      priority: "high",
+      isRead: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      sender: "IT Department",
+    },
+    {
+      _id: "mock-3",
+      title: "New Employee Onboarding",
+      message:
+        "A new employee has been added to the system. Please review and approve their access permissions.",
+      type: "employee",
+      priority: "medium",
+      isRead: true,
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      sender: "HR Department",
+    },
+    {
+      _id: "mock-4",
+      title: "Security Alert",
+      message:
+        "Unusual login activity detected. Please review the security logs and take appropriate action.",
+      type: "security",
+      priority: "urgent",
+      isRead: false,
+      createdAt: new Date(Date.now() - 259200000).toISOString(),
+      sender: "Security Team",
+    },
+    {
+      _id: "mock-5",
+      title: "Performance Report Ready",
+      message:
+        "Monthly performance reports are now available for review. Please check the reports section.",
+      type: "report",
+      priority: "low",
+      isRead: true,
+      createdAt: new Date(Date.now() - 345600000).toISOString(),
+      sender: "Analytics Team",
+    },
+  ];
+
+  // Use mock data if no real notifications are available
+  const displayNotifications =
+    notifications.length > 0 ? filteredNotifications : mockNotifications;
+
+  // ============================================================================
+  // BULK ACTIONS HANDLERS
+  // ============================================================================
+
+  /**
+   * Handle notification selection
+   * @param {string} notificationId - Notification ID
+   * @param {boolean} selected - Whether notification is selected
+   */
+  const handleNotificationSelection = (notificationId, selected) => {
+    if (selected) {
+      setSelectedNotifications((prev) => [...prev, notificationId]);
+    } else {
+      setSelectedNotifications((prev) =>
+        prev.filter((id) => id !== notificationId)
+      );
+    }
+  };
+
+  /**
+   * Handle select all notifications
+   * @param {boolean} selectAll - Whether to select all or none
+   */
+  const handleSelectAll = (selectAll) => {
+    if (selectAll) {
+      setSelectedNotifications(displayNotifications.map((n) => n._id || n.id));
+    } else {
+      setSelectedNotifications([]);
+    }
+  };
+
+  /**
+   * Handle bulk mark as read
+   */
+  const handleBulkMarkAsReadAction = async () => {
+    if (selectedNotifications.length === 0) {
+      toast.error("No notifications selected");
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const message = {
-        id: messages.length + 1,
-        ...newMessage,
-        sender: user?.firstName || "Admin",
-        senderEmail: user?.email || "admin@vireagency.com",
-        status: "Sent",
-        timestamp: new Date().toLocaleString(),
-        isStarred: false,
-        isArchived: false,
-        attachments: [],
-      };
-
-      setMessages((prev) => [message, ...prev]);
-      setNewMessage({
-        subject: "",
-        recipient: "",
-        content: "",
-        priority: "Medium",
-        type: "General",
-      });
-      setIsComposeModalOpen(false);
-      toast.success("Message sent successfully");
-    } catch (error) {
-      toast.error("Failed to send message");
-    } finally {
-      setIsLoading(false);
+    const result = await handleBulkMarkAsRead(selectedNotifications);
+    if (result.success) {
+      setSelectedNotifications([]);
+      setShowBulkActions(false);
     }
   };
 
-  const handleReplyMessage = async () => {
-    if (!replyMessage.content) {
-      toast.error("Please enter a reply message");
+  /**
+   * Handle bulk delete
+   */
+  const handleBulkDeleteAction = async () => {
+    if (selectedNotifications.length === 0) {
+      toast.error("No notifications selected");
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const reply = {
-        id: messages.length + 1,
-        subject: `Re: ${selectedMessage?.subject}`,
-        sender: user?.firstName || "Admin",
-        senderEmail: user?.email || "admin@vireagency.com",
-        recipient: selectedMessage?.sender,
-        content: replyMessage.content,
-        priority: selectedMessage?.priority,
-        status: "Sent",
-        type: "Reply",
-        timestamp: new Date().toLocaleString(),
-        isStarred: false,
-        isArchived: false,
-        attachments: [],
-      };
-
-      setMessages((prev) => [reply, ...prev]);
-      setReplyMessage({ content: "" });
-      setIsReplyModalOpen(false);
-      setSelectedMessage(null);
-      toast.success("Reply sent successfully");
-    } catch (error) {
-      toast.error("Failed to send reply");
-    } finally {
-      setIsLoading(false);
+    const result = await handleBulkDelete(selectedNotifications);
+    if (result.success) {
+      setSelectedNotifications([]);
+      setShowBulkActions(false);
     }
   };
 
-  const handleDeleteMessage = async (messageId) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-      toast.success("Message deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete message");
-    } finally {
-      setIsLoading(false);
-    }
+  // Admin-specific functions
+  const handleSendSystemMessage = () => {
+    toast.info("Send system message functionality will be implemented soon");
+    // TODO: Implement send system message functionality
   };
 
-  const handleToggleStar = async (messageId) => {
-    setIsLoading(true);
-    try {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg
-        )
-      );
-      toast.success("Message starred/unstarred");
-    } catch (error) {
-      toast.error("Failed to update message");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleArchive = async (messageId) => {
-    setIsLoading(true);
-    try {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId ? { ...msg, isArchived: !msg.isArchived } : msg
-        )
-      );
-      toast.success("Message archived/unarchived");
-    } catch (error) {
-      toast.error("Failed to update message");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMarkAsRead = async (messageId) => {
-    setIsLoading(true);
-    try {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId ? { ...msg, status: "Read" } : msg
-        )
-      );
-      toast.success("Message marked as read");
-    } catch (error) {
-      toast.error("Failed to update message");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filteredMessages = messages.filter((message) => {
-    const matchesSearch =
-      message.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      message.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      message.content.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      selectedStatus === "all" || message.status === selectedStatus;
-    const matchesPriority =
-      selectedPriority === "all" || message.priority === selectedPriority;
-
-    // Filter by tab
-    let matchesTab = true;
-    if (activeTab === "inbox") {
-      matchesTab = !message.isArchived;
-    } else if (activeTab === "starred") {
-      matchesTab = message.isStarred;
-    } else if (activeTab === "archived") {
-      matchesTab = message.isArchived;
-    } else if (activeTab === "sent") {
-      matchesTab = message.sender === (user?.firstName || "Admin");
-    }
-
-    return matchesSearch && matchesStatus && matchesPriority && matchesTab;
-  });
-
-  const getPriorityIcon = (priority) => {
-    switch (priority) {
-      case "Critical":
-        return <AlertCircle className="w-4 h-4 text-red-500" />;
-      case "High":
-        return <AlertCircle className="w-4 h-4 text-orange-500" />;
-      case "Medium":
-        return <Clock className="w-4 h-4 text-yellow-500" />;
-      case "Low":
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      default:
-        return <Clock className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  const getPriorityBadge = (priority) => {
-    const variants = {
-      Critical: "bg-red-100 text-red-800",
-      High: "bg-orange-100 text-orange-800",
-      Medium: "bg-yellow-100 text-yellow-800",
-      Low: "bg-green-100 text-green-800",
-    };
-
-    return (
-      <Badge className={variants[priority] || "bg-gray-100 text-gray-800"}>
-        {priority}
-      </Badge>
+  const handleManageUserPermissions = () => {
+    toast.info(
+      "Manage user permissions functionality will be implemented soon"
     );
+    // TODO: Implement manage user permissions functionality
   };
 
-  const getStatusBadge = (status) => {
-    const variants = {
-      Unread: "bg-blue-100 text-blue-800",
-      Read: "bg-gray-100 text-gray-800",
-      Sent: "bg-green-100 text-green-800",
+  const handleSystemSettings = () => {
+    toast.info("System settings functionality will be implemented soon");
+    // TODO: Implement system settings functionality
+  };
+
+  /**
+   * Get priority styling for notification
+   * @param {string} priority - Priority level
+   * @returns {Object} Styling object
+   */
+  const getPriorityStyle = (priority) => {
+    const styles = {
+      urgent: { color: "bg-red-500", text: "Urgent" },
+      high: { color: "bg-orange-500", text: "High" },
+      medium: { color: "bg-yellow-500", text: "Medium" },
+      low: { color: "bg-green-500", text: "Low" },
     };
-
-    return (
-      <Badge className={variants[status] || "bg-gray-100 text-gray-800"}>
-        {status}
-      </Badge>
-    );
+    return styles[priority] || styles.medium;
   };
 
-  const getTypeBadge = (type) => {
-    const variants = {
-      System: "bg-purple-100 text-purple-800",
-      HR: "bg-indigo-100 text-indigo-800",
-      Finance: "bg-green-100 text-green-800",
-      Security: "bg-red-100 text-red-800",
-      Performance: "bg-blue-100 text-blue-800",
-      General: "bg-gray-100 text-gray-800",
-      Reply: "bg-yellow-100 text-yellow-800",
+  /**
+   * Get notification type icon
+   * @param {string} type - Notification type
+   * @returns {JSX.Element} Icon component
+   */
+  const getNotificationTypeIcon = (type) => {
+    const iconMap = {
+      evaluation: <Check className="w-4 h-4" />,
+      performance: <AlertCircle className="w-4 h-4" />,
+      task: <MessageSquare className="w-4 h-4" />,
+      system: <Settings className="w-4 h-4" />,
+      attendance: <Clock className="w-4 h-4" />,
+      message: <Bell className="w-4 h-4" />,
+      employee: <UserPlus className="w-4 h-4" />,
+      security: <Shield className="w-4 h-4" />,
+      report: <Info className="w-4 h-4" />,
+      welcome: <Bell className="w-4 h-4" />,
     };
-
-    return (
-      <Badge className={variants[type] || "bg-gray-100 text-gray-800"}>
-        {type}
-      </Badge>
-    );
+    return iconMap[type] || <Info className="w-4 h-4" />;
   };
+
+  /**
+   * Get notification type color
+   * @param {string} type - Notification type
+   * @returns {string} Color class
+   */
+  const getNotificationTypeColor = (type) => {
+    const colorMap = {
+      evaluation: "bg-green-100 text-green-600",
+      performance: "bg-orange-100 text-orange-600",
+      task: "bg-blue-100 text-blue-600",
+      system: "bg-gray-100 text-gray-600",
+      attendance: "bg-purple-100 text-purple-600",
+      message: "bg-indigo-100 text-indigo-600",
+      employee: "bg-cyan-100 text-cyan-600",
+      security: "bg-red-100 text-red-600",
+      report: "bg-yellow-100 text-yellow-600",
+      welcome: "bg-emerald-100 text-emerald-600",
+    };
+    return colorMap[type] || "bg-gray-100 text-gray-600";
+  };
+
+  /**
+   * Format notification date
+   * @param {string} dateString - Date string
+   * @returns {string} Formatted date
+   */
+  const formatNotificationDate = (dateString) => {
+    if (!dateString) return "Unknown time";
+
+    const date = new Date(dateString);
+    const now = new Date();
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return "Invalid date";
+
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    if (diffInMinutes < 10080)
+      return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // ============================================================================
+  // EFFECTS
+  // ============================================================================
+
+  // Fetch notifications when component mounts
+  useEffect(() => {
+    fetchNotifications("all");
+  }, [fetchNotifications]);
+
+  // Update bulk actions visibility based on selection
+  useEffect(() => {
+    setShowBulkActions(selectedNotifications.length > 0);
+  }, [selectedNotifications]);
 
   return (
     <DashboardLayout
       sidebarConfig={adminDashboardConfig}
-      showSectionCards={true}
-      showChart={true}
-      showDataTable={true}
+      showSectionCards={false}
+      showChart={false}
+      showDataTable={false}
     >
-      <div className="space-y-6">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Messages & Communication
-            </h1>
-            <p className="text-gray-600">
-              Manage system communications and notifications
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                Admin Messages
+              </h1>
+              {!isConnected && (
+                <Badge
+                  variant="outline"
+                  className="text-yellow-600 border-yellow-300"
+                >
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
+                  Offline Mode
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              {filterSummary.total} total notifications, {filterSummary.unread}{" "}
+              unread
+              {filterSummary.hasActiveFilters && " (filtered)"}
             </p>
           </div>
-          <Button onClick={() => setIsComposeModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Compose Message
-          </Button>
+          <div className="flex items-center gap-3">
+            {notificationsError && (
+              <div className="text-red-500 text-sm">
+                Error: {notificationsError}
+              </div>
+            )}
+            <Button
+              onClick={handleSendSystemMessage}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Send Message
+            </Button>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Messages
-              </CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{messages.length}</div>
-              <p className="text-xs text-muted-foreground">+3 from last week</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Unread Messages
-              </CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {messages.filter((msg) => msg.status === "Unread").length}
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {notificationStats.total}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">Require attention</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Starred Messages
-              </CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {messages.filter((msg) => msg.isStarred).length}
+              <Bell className="w-8 h-8 text-gray-400" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Unread</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {notificationStats.unread}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Important messages
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                High Priority
-              </CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {
-                  messages.filter(
-                    (msg) =>
-                      msg.priority === "High" || msg.priority === "Critical"
-                  ).length
-                }
+              <AlertCircle className="w-8 h-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Read</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {notificationStats.read}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">Urgent messages</p>
-            </CardContent>
-          </Card>
+              <CheckCheck className="w-8 h-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Unread %</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {notificationStats.unreadPercentage}%
+                </p>
+              </div>
+              <Info className="w-8 h-8 text-orange-400" />
+            </div>
+          </div>
         </div>
 
-        {/* Message Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList>
-            <TabsTrigger value="inbox">Inbox</TabsTrigger>
-            <TabsTrigger value="starred">Starred</TabsTrigger>
-            <TabsTrigger value="sent">Sent</TabsTrigger>
-            <TabsTrigger value="archived">Archived</TabsTrigger>
-          </TabsList>
+        {/* Search and Filters */}
+        <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search notifications..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-          <TabsContent value={activeTab} className="space-y-4">
-            {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search messages..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Select
-                  value={selectedStatus}
-                  onValueChange={setSelectedStatus}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="Unread">Unread</SelectItem>
-                    <SelectItem value="Read">Read</SelectItem>
-                    <SelectItem value="Sent">Sent</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={selectedPriority}
-                  onValueChange={setSelectedPriority}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="Critical">Critical</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Status
+              </label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.status.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Messages Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Messages</CardTitle>
-                <CardDescription>
-                  Manage system communications and notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Message</TableHead>
-                        <TableHead>From</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Timestamp</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredMessages.map((message) => (
-                        <TableRow key={message.id}>
-                          <TableCell>
-                            <div className="flex items-center space-x-3">
-                              {message.isStarred && (
-                                <Star className="w-4 h-4 text-yellow-500" />
-                              )}
-                              <div>
-                                <div className="font-medium">
-                                  {message.subject}
-                                </div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
-                                  {message.content.substring(0, 100)}...
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={message.avatar} />
-                                <AvatarFallback>
-                                  {message.sender
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium">
-                                  {message.sender}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {message.senderEmail}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getTypeBadge(message.type)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {getPriorityIcon(message.priority)}
-                              <span className="ml-2">
-                                {getPriorityBadge(message.priority)}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(message.status)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                              {message.timestamp}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => setSelectedMessage(message)}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedMessage(message);
-                                    setIsReplyModalOpen(true);
-                                  }}
-                                >
-                                  <Reply className="w-4 h-4 mr-2" />
-                                  Reply
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleToggleStar(message.id)}
-                                >
-                                  <Star className="w-4 h-4 mr-2" />
-                                  {message.isStarred ? "Unstar" : "Star"}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleToggleArchive(message.id)
-                                  }
-                                >
-                                  <Archive className="w-4 h-4 mr-2" />
-                                  {message.isArchived ? "Unarchive" : "Archive"}
-                                </DropdownMenuItem>
-                                {message.status === "Unread" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleMarkAsRead(message.id)}
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Mark as Read
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleDeleteMessage(message.id)
-                                  }
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+            {/* Type Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Type</label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.type.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      {/* Compose Message Modal */}
-      <Dialog open={isComposeModalOpen} onOpenChange={setIsComposeModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Compose Message</DialogTitle>
-            <DialogDescription>
-              Send a new message to users or departments.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="subject">Subject *</Label>
-              <Input
-                id="subject"
-                value={newMessage.subject}
-                onChange={(e) =>
-                  setNewMessage((prev) => ({
-                    ...prev,
-                    subject: e.target.value,
-                  }))
-                }
-                placeholder="Enter message subject"
-              />
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Priority
+              </label>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.priority.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="recipient">Recipient *</Label>
-                <Input
-                  id="recipient"
-                  value={newMessage.recipient}
-                  onChange={(e) =>
-                    setNewMessage((prev) => ({
-                      ...prev,
-                      recipient: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter recipient"
-                />
-              </div>
-              <div>
-                <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={newMessage.priority}
-                  onValueChange={(value) =>
-                    setNewMessage((prev) => ({ ...prev, priority: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
+            {/* Date Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Date Range
+              </label>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.date.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label htmlFor="content">Message Content *</Label>
-              <Textarea
-                id="content"
-                value={newMessage.content}
-                onChange={(e) =>
-                  setNewMessage((prev) => ({
-                    ...prev,
-                    content: e.target.value,
-                  }))
-                }
-                placeholder="Enter your message here..."
-                rows={6}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
+          </div>
+
+          {/* Filter Actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
-                onClick={() => setIsComposeModalOpen(false)}
+                size="sm"
+                onClick={clearAllFilters}
+                disabled={!filterSummary.hasActiveFilters}
               >
-                Cancel
+                Clear Filters
               </Button>
-              <Button onClick={handleComposeMessage} disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send Message"}
+              {filterSummary.hasActiveFilters && (
+                <span className="text-sm text-gray-500">
+                  {displayNotifications.length} of {filterSummary.total}{" "}
+                  notifications
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                disabled={filterSummary.unread === 0}
+              >
+                <CheckCheck className="w-4 h-4 mr-2" />
+                Mark All Read
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSystemSettings}
+                className="text-gray-600"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
 
-      {/* Reply Message Modal */}
-      <Dialog open={isReplyModalOpen} onOpenChange={setIsReplyModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Reply to Message</DialogTitle>
-            <DialogDescription>
-              Reply to: {selectedMessage?.subject}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedMessage && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="replyContent">Your Reply *</Label>
-                <Textarea
-                  id="replyContent"
-                  value={replyMessage.content}
-                  onChange={(e) =>
-                    setReplyMessage((prev) => ({
-                      ...prev,
-                      content: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter your reply here..."
-                  rows={6}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
+        {/* Bulk Actions */}
+        {showBulkActions && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedNotifications.length} notification
+                  {selectedNotifications.length > 1 ? "s" : ""} selected
+                </span>
                 <Button
                   variant="outline"
-                  onClick={() => setIsReplyModalOpen(false)}
+                  size="sm"
+                  onClick={() => setSelectedNotifications([])}
                 >
-                  Cancel
+                  Clear Selection
                 </Button>
-                <Button onClick={handleReplyMessage} disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send Reply"}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkMarkAsReadAction}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCheck className="w-4 h-4 mr-2" />
+                  )}
+                  Mark as Read
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDeleteAction}
+                  disabled={actionsLoading}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {actionsLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Delete
                 </Button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Messages List */}
+        <div className="space-y-4">
+          {notificationsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              <span className="text-gray-500">Loading notifications...</span>
+            </div>
+          ) : displayNotifications.length === 0 ? (
+            <div className="text-center py-8">
+              <Bell className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No notifications
+              </h3>
+              <p className="text-gray-500">
+                {filterSummary.hasActiveFilters
+                  ? "No notifications match your current filters."
+                  : "You don't have any notifications yet."}
+              </p>
+              {filterSummary.hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="mt-4"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            displayNotifications.map((notification) => {
+              const priorityStyle = getPriorityStyle(
+                notification.priority || "medium"
+              );
+              const notificationId = notification._id || notification.id;
+              const isSelected = selectedNotifications.includes(notificationId);
+              const notificationType = notification.type || "message";
+
+              return (
+                <div
+                  key={notificationId}
+                  className={`bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                    !notification.isRead ? "bg-blue-50 border-blue-200" : ""
+                  } ${isSelected ? "ring-2 ring-blue-500 bg-blue-50" : ""}`}
+                  onClick={() =>
+                    handleNotificationSelection(notificationId, !isSelected)
+                  }
+                >
+                  <div className="flex items-start space-x-4">
+                    {/* Selection Checkbox */}
+                    <div className="flex-shrink-0 pt-1">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleNotificationSelection(
+                            notificationId,
+                            e.target.checked
+                          );
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                    </div>
+
+                    {/* Type Icon */}
+                    <div className="flex-shrink-0">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${getNotificationTypeColor(
+                          notificationType
+                        )}`}
+                      >
+                        {getNotificationTypeIcon(notificationType)}
+                      </div>
+                    </div>
+
+                    {/* Message Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h3 className="text-sm font-semibold text-gray-900 truncate">
+                              {notification.title || "Notification"}
+                            </h3>
+                            <Badge
+                              className={`${priorityStyle.color} text-white text-xs px-2 py-1 rounded-full`}
+                            >
+                              {priorityStyle.text}
+                            </Badge>
+                            <Badge
+                              className={`${getNotificationTypeColor(
+                                notificationType
+                              )} text-xs px-2 py-1 rounded-full`}
+                            >
+                              {notificationType}
+                            </Badge>
+                            {!notification.isRead && (
+                              <Badge className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                                New
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mb-1">
+                            {notification.sender || "System"}
+                          </p>
+                          <p className="text-sm text-gray-500 line-clamp-2">
+                            {notification.message ||
+                              notification.description ||
+                              "No message content"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions and Timestamp */}
+                    <div className="flex flex-col items-end space-y-2 flex-shrink-0">
+                      {/* Timestamp */}
+                      <div className="flex items-center space-x-1 text-xs text-gray-600 font-medium">
+                        <Clock className="w-3 h-3" />
+                        <span>
+                          {formatNotificationDate(
+                            notification.createdAt ||
+                              notification.timestamp ||
+                              notification.date
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex space-x-2">
+                        {canMarkAsRead(notification) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1 h-6 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(notificationId);
+                            }}
+                            disabled={actionsLoading}
+                          >
+                            {actionsLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="w-3 h-3 mr-1" />
+                                Mark Read
+                              </>
+                            )}
+                          </Button>
+                        )}
+
+                        {canDeleteNotification(notification) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1 h-6 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteNotification(notificationId);
+                            }}
+                            disabled={actionsLoading}
+                          >
+                            {actionsLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     </DashboardLayout>
   );
 }
