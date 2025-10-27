@@ -18,6 +18,8 @@ import axios from "axios";
 import { getApiUrl } from "@/config/apiConfig";
 import { toast } from "sonner";
 import { adminOverviewApi } from "@/services/adminOverviewApi";
+import { hrOverviewApi } from "@/services/hrOverviewApi";
+import { performanceTrendsApi } from "@/services/performanceTrendsApi";
 import { attendanceApi } from "@/services/attendanceApi";
 import AttendanceManager from "@/components/attendance/AttendanceManager";
 import AttendanceStats from "@/components/attendance/AttendanceStats";
@@ -98,6 +100,17 @@ export default function AdminDashboardMainPage() {
   const [overviewData, setOverviewData] = useState(null);
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [overviewError, setOverviewError] = useState(null);
+
+  // State for HR overview data (same APIs as HR dashboard)
+  const [hrOverviewData, setHrOverviewData] = useState(null);
+  const [loadingHrOverview, setLoadingHrOverview] = useState(true);
+  const [hrOverviewError, setHrOverviewError] = useState(null);
+
+  // State for performance trends data
+  const [performanceTrends, setPerformanceTrends] = useState(null);
+  const [loadingPerformanceTrends, setLoadingPerformanceTrends] =
+    useState(true);
+  const [performanceTrendsError, setPerformanceTrendsError] = useState(null);
 
   // State for analytics data
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -189,6 +202,10 @@ export default function AdminDashboardMainPage() {
         if (result.success) {
           setOverviewData(result.data);
           console.log("Admin overview data loaded:", result.data);
+          console.log(
+            "Admin overview data structure:",
+            JSON.stringify(result.data, null, 2)
+          );
         } else {
           console.error("Failed to fetch admin overview:", result.error);
           setOverviewError(result.error);
@@ -208,6 +225,74 @@ export default function AdminDashboardMainPage() {
     };
 
     fetchOverview();
+  }, [accessToken]);
+
+  // Fetch HR overview data (same API as HR dashboard)
+  useEffect(() => {
+    const fetchHrOverview = async () => {
+      if (!accessToken) return;
+
+      try {
+        setLoadingHrOverview(true);
+        console.log("Fetching HR overview data for admin...");
+
+        const result = await hrOverviewApi.getOverview(accessToken);
+
+        if (result.success) {
+          setHrOverviewData(result.data);
+          console.log("HR overview data loaded for admin:", result.data);
+          console.log(
+            "HR overview data structure:",
+            JSON.stringify(result.data, null, 2)
+          );
+        } else {
+          console.error("Failed to fetch HR overview:", result.error);
+          setHrOverviewError(result.error);
+          toast.error("Failed to load HR overview data");
+        }
+      } catch (error) {
+        console.error("Error fetching HR overview:", error);
+        setHrOverviewError(error.message);
+        toast.error("Failed to load HR overview data");
+      } finally {
+        setLoadingHrOverview(false);
+      }
+    };
+
+    fetchHrOverview();
+  }, [accessToken]);
+
+  // Fetch performance trends data (same API as HR dashboard)
+  useEffect(() => {
+    const fetchPerformanceTrends = async () => {
+      if (!accessToken) return;
+
+      try {
+        setLoadingPerformanceTrends(true);
+        console.log("Fetching performance trends for admin...");
+
+        const result = await performanceTrendsApi.getPerformanceTrends(
+          accessToken
+        );
+
+        if (result.success) {
+          setPerformanceTrends(result.data);
+          console.log("Performance trends loaded for admin:", result.data);
+        } else {
+          console.error("Failed to fetch performance trends:", result.error);
+          setPerformanceTrendsError(result.error);
+          toast.error("Failed to load performance trends");
+        }
+      } catch (error) {
+        console.error("Error fetching performance trends:", error);
+        setPerformanceTrendsError(error.message);
+        toast.error("Failed to load performance trends");
+      } finally {
+        setLoadingPerformanceTrends(false);
+      }
+    };
+
+    fetchPerformanceTrends();
   }, [accessToken]);
 
   // Fetch analytics data
@@ -394,22 +479,22 @@ export default function AdminDashboardMainPage() {
 
       {/* Admin Dashboard Section Cards */}
       <div className="px-4 lg:px-6">
-        {loadingOverview ? (
+        {loadingOverview || loadingHrOverview ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
             <span className="ml-2 text-slate-600">
               Loading dashboard data...
             </span>
           </div>
-        ) : overviewData ? (
+        ) : hrOverviewData || overviewData ? (
           <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData?.data?.activeEmployees ||
-                    overviewData?.activeEmployees ||
-                    12}
+                  {hrOverviewData?.data?.activeEmployees ||
+                    overviewData?.data?.activeEmployees ||
+                    0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -427,9 +512,9 @@ export default function AdminDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Total Remote Workers Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData?.data?.remoteWorkers ||
-                    overviewData?.remoteWorkers ||
-                    4}
+                  {hrOverviewData?.data?.totalRemoteWorkersToday ||
+                    overviewData?.data?.totalRemoteWorkersToday ||
+                    0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -444,9 +529,9 @@ export default function AdminDashboardMainPage() {
               <CardHeader>
                 <CardDescription>No Check-In Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData?.data?.noCheckInToday ||
-                    overviewData?.noCheckInToday ||
-                    2}
+                  {hrOverviewData?.data?.noCheckInToday ||
+                    overviewData?.data?.noCheckInToday ||
+                    0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -466,9 +551,9 @@ export default function AdminDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Productivity Index</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {overviewData?.data?.productivityIndex ||
-                    overviewData?.productivityIndex ||
-                    "86.36%"}
+                  {hrOverviewData?.data?.productivityIndex ||
+                    overviewData?.data?.productivityIndex ||
+                    "0%"}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -646,9 +731,9 @@ export default function AdminDashboardMainPage() {
                       Active Employees
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {realtimeData?.data?.activeEmployees ||
-                        realtimeData?.activeEmployees ||
-                        "1,43,382"}
+                      {hrOverviewData?.data?.activeEmployees ||
+                        overviewData?.data?.activeEmployees ||
+                        0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -670,9 +755,15 @@ export default function AdminDashboardMainPage() {
                       Inactive for 60+mins
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {realtimeData?.data?.inactive60Plus ||
-                        realtimeData?.inactive60Plus ||
-                        "87,974"}
+                      {Math.max(
+                        0,
+                        (hrOverviewData?.data?.activeEmployees ||
+                          overviewData?.data?.activeEmployees ||
+                          0) -
+                          (hrOverviewData?.data?.totalRemoteWorkersToday ||
+                            overviewData?.data?.totalRemoteWorkersToday ||
+                            0)
+                      )}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -694,9 +785,9 @@ export default function AdminDashboardMainPage() {
                       No Check-In
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {realtimeData?.data?.noCheckIn ||
-                        realtimeData?.noCheckIn ||
-                        "45,211"}
+                      {hrOverviewData?.data?.noCheckInToday ||
+                        overviewData?.data?.noCheckInToday ||
+                        0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -718,9 +809,9 @@ export default function AdminDashboardMainPage() {
                       Incomplete Tasks
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {realtimeData?.data?.incompleteTasks ||
-                        realtimeData?.incompleteTasks ||
-                        "21,893"}
+                      {hrOverviewData?.data?.incompleteTasks ||
+                        overviewData?.data?.incompleteTasks ||
+                        0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">

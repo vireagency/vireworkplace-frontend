@@ -30,6 +30,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { goalsApi } from "@/services/goalsApi";
 import { performanceTrendsApi } from "@/services/performanceTrendsApi";
 import { adminOverviewApi } from "@/services/adminOverviewApi";
+import { hrOverviewApi } from "@/services/hrOverviewApi";
+import { staffOverviewApi } from "@/services/staffOverviewApi";
 import { toast } from "sonner";
 
 export default function AdminPerformancePage() {
@@ -50,6 +52,14 @@ export default function AdminPerformancePage() {
   const [adminOverview, setAdminOverview] = useState(null);
   const [isLoadingOverview, setIsLoadingOverview] = useState(false);
 
+  // HR Overview state (same API as HR dashboard)
+  const [hrOverview, setHrOverview] = useState(null);
+  const [isLoadingHrOverview, setIsLoadingHrOverview] = useState(false);
+
+  // Staff Overview state
+  const [staffOverview, setStaffOverview] = useState(null);
+  const [isLoadingStaffOverview, setIsLoadingStaffOverview] = useState(false);
+
   // Performers modal state
   const [showTopPerformersModal, setShowTopPerformersModal] = useState(false);
   const [showLowPerformersModal, setShowLowPerformersModal] = useState(false);
@@ -60,6 +70,8 @@ export default function AdminPerformancePage() {
       loadGoals();
       loadPerformanceTrends();
       loadAdminOverview();
+      loadHrOverview();
+      loadStaffOverview();
     }
   }, [accessToken]);
 
@@ -475,6 +487,48 @@ export default function AdminPerformancePage() {
       setAdminOverview(fallbackData);
     } finally {
       setIsLoadingOverview(false);
+    }
+  };
+
+  const loadHrOverview = async () => {
+    if (!accessToken) return;
+
+    setIsLoadingHrOverview(true);
+    try {
+      const result = await hrOverviewApi.getOverview(accessToken);
+      if (result.success) {
+        setHrOverview(result.data);
+        console.log("HR overview loaded for admin:", result.data);
+      } else {
+        console.error("Failed to load HR overview:", result.error);
+        toast.error("Failed to load HR overview data");
+      }
+    } catch (error) {
+      console.error("Error loading HR overview:", error);
+      toast.error("Failed to load HR overview data");
+    } finally {
+      setIsLoadingHrOverview(false);
+    }
+  };
+
+  const loadStaffOverview = async () => {
+    if (!accessToken) return;
+
+    setIsLoadingStaffOverview(true);
+    try {
+      const result = await staffOverviewApi.getOverview(accessToken);
+      if (result.success) {
+        setStaffOverview(result.data);
+        console.log("Staff overview loaded for admin:", result.data);
+      } else {
+        console.error("Failed to load staff overview:", result.error);
+        toast.error("Failed to load staff overview data");
+      }
+    } catch (error) {
+      console.error("Error loading staff overview:", error);
+      toast.error("Failed to load staff overview data");
+    } finally {
+      setIsLoadingStaffOverview(false);
     }
   };
 
