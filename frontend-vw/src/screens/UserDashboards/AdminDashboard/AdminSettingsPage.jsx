@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import AdminDashboardLayout from "@/components/dashboard/AdminDashboardLayout";
+// AdminSettingsPage - Unified settings page for Admin with horizontal tab navigation
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation, useNavigate } from "react-router-dom";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
 import {
   IconPlus,
@@ -57,10 +59,6 @@ import {
   IconSettings,
   IconDatabase,
   IconServer,
-  IconLock,
-  IconBell,
-  IconUsers,
-  IconKey,
 } from "@tabler/icons-react";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -81,16 +79,16 @@ const StatusBadge = ({ status }) => {
       dotColor: "bg-orange-500",
       text: "In-active",
     },
-    Pending: {
-      bgColor: "bg-yellow-50",
-      borderColor: "border-yellow-200",
-      textColor: "text-yellow-700",
-      dotColor: "bg-yellow-500",
-      text: "Pending",
+    Closed: {
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
+      textColor: "text-red-700",
+      dotColor: "bg-red-500",
+      text: "Closed",
     },
   };
 
-  const config = statusConfig[status] || statusConfig["In-active"];
+  const config = statusConfig[status] || statusConfig["Active"];
 
   return (
     <div
@@ -105,796 +103,2065 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function AdminSettingsPage() {
-  const { user, accessToken } = useAuth();
-  const [activeTab, setActiveTab] = useState("system-settings");
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // System Settings State
-  const [systemSettings, setSystemSettings] = useState({
-    systemName: "Vire Agency",
-    systemVersion: "2.1.0",
-    maintenanceMode: false,
-    autoBackup: true,
-    backupFrequency: "daily",
-    maxFileSize: "100",
-    sessionTimeout: "30",
-    twoFactorAuth: true,
-    emailNotifications: true,
-    systemLogs: true,
+  // Get tab from URL parameters
+  const urlParams = new URLSearchParams(location.search);
+  const tabFromUrl = urlParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState(tabFromUrl || "profile");
+  const [profileSubTab, setProfileSubTab] = useState("personal");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [isEducationOpen, setIsEducationOpen] = useState(false);
+  const [showEducationModal, setShowEducationModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEducationId, setEditingEducationId] = useState(null);
+  const [isExperienceOpen, setIsExperienceOpen] = useState(false);
+  const [showExperienceModal, setShowExperienceModal] = useState(false);
+  const [isExperienceEditMode, setIsExperienceEditMode] = useState(false);
+  const [editingExperienceId, setEditingExperienceId] = useState(null);
+  const [isLicensesOpen, setIsLicensesOpen] = useState(false);
+  const [showLicensesModal, setShowLicensesModal] = useState(false);
+  const [isLicensesEditMode, setIsLicensesEditMode] = useState(false);
+  const [editingLicensesId, setEditingLicensesId] = useState(null);
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
+  const [educationForm, setEducationForm] = useState({
+    institution: "",
+    description: "",
+    duration: "",
   });
-
-  // User Management State
-  const [users, setUsers] = useState([
+  const [experienceForm, setExperienceForm] = useState({
+    jobTitle: "",
+    organization: "",
+    description: "",
+    location: "",
+    skills: "",
+    duration: "",
+  });
+  const [licensesForm, setLicensesForm] = useState({
+    certificationName: "",
+    organization: "",
+    description: "",
+    issueDate: "",
+  });
+  const [skillsForm, setSkillsForm] = useState({
+    skillName: "",
+  });
+  const [educationEntries, setEducationEntries] = useState([
     {
       id: 1,
-      name: "John Doe",
-      email: "john.doe@vireagency.com",
-      role: "Admin",
-      status: "Active",
-      lastLogin: "2024-01-15",
-      avatar: null,
+      institution: "University of Ghana, Legon",
+      description: "Computer Science",
+      duration: "2018-2022",
     },
     {
       id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@vireagency.com",
-      role: "HR Manager",
-      status: "Active",
-      lastLogin: "2024-01-14",
-      avatar: null,
+      institution: "MIT",
+      description: "Master's in Information Technology",
+      duration: "2022-2024",
+    },
+  ]);
+  const [experienceEntries, setExperienceEntries] = useState([
+    {
+      id: 1,
+      jobTitle: "System Administrator",
+      organization: "VIRE Workplace",
+      employmentType: "Full-Time",
+      location: "Accra, Ghana",
+      duration: "2024 - present",
+      skills:
+        "System Administration · Database Management · Security · Network Management · Cloud Infrastructure · DevOps",
+    },
+    {
+      id: 2,
+      jobTitle: "Senior IT Administrator",
+      organization: "Tech Solutions Ltd",
+      employmentType: "Full-Time",
+      location: "Accra, Ghana",
+      duration: "2022 - 2024",
+      skills:
+        "Linux · Windows Server · Active Directory · VMware · AWS · Azure",
     },
     {
       id: 3,
-      name: "Mike Johnson",
-      email: "mike.johnson@vireagency.com",
-      role: "Finance Manager",
-      status: "In-active",
-      lastLogin: "2024-01-10",
-      avatar: null,
+      jobTitle: "IT Support Specialist",
+      organization: "Digital Innovations",
+      employmentType: "Contract",
+      location: "Abuja, Nigeria",
+      duration: "2020 - 2022",
+      skills:
+        "Help Desk · Troubleshooting · Network Configuration · Hardware Maintenance",
     },
   ]);
-
-  const [newUser, setNewUser] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    role: "",
-    department: "",
+  const [licensesEntries, setLicensesEntries] = useState([
+    {
+      id: 1,
+      organization: "Microsoft",
+      certificationName: "Microsoft Certified: Azure Administrator Associate",
+      issueDate: "Issued March, 2023",
+    },
+    {
+      id: 2,
+      organization: "AWS",
+      certificationName: "AWS Certified Solutions Architect",
+      issueDate: "Issued January, 2024",
+    },
+  ]);
+  const [skillsEntries, setSkillsEntries] = useState([
+    "System Administration",
+    "Database Management",
+    "Network Security",
+    "Cloud Infrastructure",
+    "DevOps",
+    "Linux",
+    "Windows Server",
+  ]);
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || "",
+    username: user?.email?.split("@")[0] ? `@${user.email.split("@")[0]}` : "",
+    dateOfBirth: user?.dateOfBirth || "",
+    maritalStatus: user?.maritalStatus || "",
+    lastName: user?.lastName || "",
+    nationality: user?.nationality || "Ghanaian",
+    gender: user?.gender || "",
+    personalPronouns: user?.personalPronouns || "",
   });
 
-  // Notification Settings State
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    systemAlerts: true,
-    securityAlerts: true,
-    performanceAlerts: true,
-    maintenanceAlerts: true,
-    userActivityAlerts: false,
-    reportGenerationAlerts: true,
-  });
-
-  const handleSystemSettingChange = (key, value) => {
-    setSystemSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleNotificationSettingChange = (key, value) => {
-    setNotificationSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleAddUser = () => {
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const tabFromUrl = urlParams.get("tab");
     if (
-      newUser.firstName &&
-      newUser.lastName &&
-      newUser.email &&
-      newUser.role
+      tabFromUrl &&
+      ["profile", "password", "notification"].includes(tabFromUrl)
     ) {
-      const user = {
-        id: users.length + 1,
-        name: `${newUser.firstName} ${newUser.lastName}`,
-        email: newUser.email,
-        role: newUser.role,
-        status: "Pending",
-        lastLogin: "Never",
-        avatar: null,
-      };
-      setUsers((prev) => [...prev, user]);
-      setNewUser({
-        firstName: "",
-        lastName: "",
-        email: "",
-        role: "",
-        department: "",
-      });
-      setIsUserModalOpen(false);
+      setActiveTab(tabFromUrl);
     }
-  };
+  }, [location.search]);
 
-  const handleDeleteUser = (userId) => {
-    setUsers((prev) => prev.filter((user) => user.id !== userId));
-  };
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      // Parse date of birth if it exists
+      let parsedDate = null;
+      if (user.dateOfBirth) {
+        // Handle both ISO string format and simple date format
+        if (user.dateOfBirth.includes("T")) {
+          // ISO format: "2002-03-27T00:00:00.000Z"
+          parsedDate = new Date(user.dateOfBirth);
+        } else {
+          // Simple format: "2002-03-27"
+          parsedDate = new Date(user.dateOfBirth);
+        }
+      }
 
-  const handleToggleUserStatus = (userId) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === userId
-          ? {
-              ...user,
-              status: user.status === "Active" ? "In-active" : "Active",
-            }
-          : user
-      )
-    );
-  };
+      setSelectedDate(parsedDate);
+      setFormData({
+        firstName: user.firstName || "",
+        username: user.email?.split("@")[0]
+          ? `@${user.email.split("@")[0]}`
+          : "",
+        dateOfBirth: user.dateOfBirth || "",
+        maritalStatus: user.maritalStatus || "",
+        lastName: user.lastName || "",
+        nationality: user.nationality || "Ghanaian",
+        gender: user.gender || "",
+        personalPronouns: user.personalPronouns || "",
+      });
+    }
+  }, [user]);
+
+  // Password state (from AdminPasswordSettings)
+  const [passwordState, setPasswordState] = useState({
+    isLoading: false,
+    error: null,
+    success: false,
+    passwordVisibility: {
+      currentPassword: false,
+      newPassword: false,
+      confirmPassword: false,
+    },
+    formData: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Notification state (from AdminNotificationSettings)
+  const [notificationState, setNotificationState] = useState({
+    expandedCategories: {},
+    isLoading: false,
+    error: null,
+    notificationSettings: {
+      systemManagement: {
+        toggles: {
+          systemAlerts: false,
+          maintenanceNotifications: false,
+          securityAlerts: false,
+          performanceWarnings: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      userManagement: {
+        toggles: {
+          newUserRegistrations: false,
+          userRoleChanges: false,
+          userStatusUpdates: false,
+          accessRevocations: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      dataManagement: {
+        toggles: {
+          dataBackups: false,
+          dataExports: false,
+          dataIntegrityChecks: false,
+          storageWarnings: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      securityManagement: {
+        toggles: {
+          securityBreaches: false,
+          failedLoginAttempts: false,
+          permissionChanges: false,
+          auditLogAlerts: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      systemAlerts: {
+        toggles: {
+          systemMaintenance: false,
+          systemUpdates: false,
+          applicationAnnouncements: false,
+        },
+        enabled: 0,
+        total: 3,
+      },
+      deliveryMethods: {
+        toggles: {
+          inAppNotifications: false,
+          emailNotifications: false,
+          desktopNotifications: false,
+          platformIntegrations: false,
+        },
+        enabled: 0,
+        total: 4,
+      },
+      globalSettings: {
+        toggles: {
+          masterNotificationToggle: false,
+        },
+        enabled: 0,
+        total: 1,
+      },
+    },
+  });
+
+  // Password handlers (from AdminPasswordSettings)
+  const togglePasswordVisibility = useCallback((field) => {
+    setPasswordState((prev) => ({
+      ...prev,
+      passwordVisibility: {
+        ...prev.passwordVisibility,
+        [field]: !prev.passwordVisibility[field],
+      },
+    }));
+  }, []);
+
+  const handlePasswordInputChange = useCallback((field, value) => {
+    setPasswordState((prev) => ({
+      ...prev,
+      formData: {
+        ...prev.formData,
+        [field]: value,
+      },
+    }));
+  }, []);
+
+  const handlePasswordSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setPasswordState((prev) => ({
+        ...prev,
+        isLoading: true,
+        error: null,
+        success: false,
+      }));
+
+      try {
+        // Validate passwords match
+        if (
+          passwordState.formData.newPassword !==
+          passwordState.formData.confirmPassword
+        ) {
+          throw new Error("New password and confirm password do not match");
+        }
+
+        // Validate password strength (basic validation)
+        if (passwordState.formData.newPassword.length < 8) {
+          throw new Error("New password must be at least 8 characters long");
+        }
+
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Password change submitted:", passwordState.formData);
+
+        // Clear form and show success
+        setPasswordState((prev) => ({
+          ...prev,
+          formData: {
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          },
+          success: true,
+          isLoading: false,
+        }));
+      } catch (error) {
+        setPasswordState((prev) => ({
+          ...prev,
+          error: error.message,
+          isLoading: false,
+        }));
+      }
+    },
+    [passwordState.formData]
+  );
+
+  // Notification handlers (from AdminNotificationSettings)
+  const toggleCategory = useCallback((category) => {
+    setNotificationState((prev) => ({
+      ...prev,
+      expandedCategories: {
+        ...prev.expandedCategories,
+        [category]: !prev.expandedCategories[category],
+      },
+    }));
+  }, []);
+
+  const toggleIndividualSetting = useCallback((category, setting) => {
+    setNotificationState((prev) => {
+      const categorySettings = prev.notificationSettings[category];
+      const updatedToggles = {
+        ...categorySettings.toggles,
+        [setting]: !categorySettings.toggles[setting],
+      };
+
+      // Calculate enabled count
+      const enabledCount = Object.values(updatedToggles).filter(Boolean).length;
+
+      return {
+        ...prev,
+        notificationSettings: {
+          ...prev.notificationSettings,
+          [category]: {
+            ...categorySettings,
+            toggles: updatedToggles,
+            enabled: enabledCount,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const enableAll = useCallback((category) => {
+    setNotificationState((prev) => {
+      const categorySettings = prev.notificationSettings[category];
+      const updatedToggles = Object.keys(categorySettings.toggles).reduce(
+        (acc, key) => {
+          acc[key] = true;
+          return acc;
+        },
+        {}
+      );
+
+      return {
+        ...prev,
+        notificationSettings: {
+          ...prev.notificationSettings,
+          [category]: {
+            ...categorySettings,
+            toggles: updatedToggles,
+            enabled: categorySettings.total,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const disableAll = useCallback((category) => {
+    setNotificationState((prev) => {
+      const categorySettings = prev.notificationSettings[category];
+      const updatedToggles = Object.keys(categorySettings.toggles).reduce(
+        (acc, key) => {
+          acc[key] = false;
+          return acc;
+        },
+        {}
+      );
+
+      return {
+        ...prev,
+        notificationSettings: {
+          ...prev.notificationSettings,
+          [category]: {
+            ...categorySettings,
+            toggles: updatedToggles,
+            enabled: 0,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const handleSavePreferences = useCallback(async () => {
+    setNotificationState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log(
+        "Saving notification preferences:",
+        notificationState.notificationSettings
+      );
+    } catch (error) {
+      setNotificationState((prev) => ({ ...prev, error: error.message }));
+    } finally {
+      setNotificationState((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [notificationState.notificationSettings]);
+
+  // Memoized notification categories
+  const notificationCategories = useMemo(
+    () => [
+      { key: "systemManagement", name: "System Management" },
+      { key: "userManagement", name: "User Management" },
+      { key: "dataManagement", name: "Data Management" },
+      { key: "securityManagement", name: "Security Management" },
+      { key: "systemAlerts", name: "System Alerts" },
+      { key: "deliveryMethods", name: "Delivery Methods" },
+      { key: "globalSettings", name: "Global Settings" },
+    ],
+    []
+  );
+
+  const tabs = [
+    // These are sub-tabs for profile
+    { id: "personal", label: "Personal Information", icon: IconUser },
+    { id: "contact", label: "Contact Information", icon: IconMail },
+    { id: "emergency", label: "Emergency Contact", icon: IconShield },
+    { id: "employment", label: "Employment Details", icon: IconId },
+    { id: "qualifications", label: "Qualifications", icon: IconCertificate },
+    { id: "documents", label: "Documents", icon: IconFileText },
+    { id: "system", label: "System Settings", icon: IconSettings },
+  ];
 
   return (
-    <AdminDashboardLayout
+    <DashboardLayout
       sidebarConfig={adminDashboardConfig}
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
     >
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              System Settings
-            </h1>
-            <p className="text-gray-600">
-              Manage system configuration and user permissions
-            </p>
-          </div>
+      <div className="min-h-screen bg-gray-50">
+        {/* Breadcrumb Navigation */}
+        <div className="px-6 py-4">
+          <p className="text-lg">
+            <span className="font-bold text-black">Account Settings</span>
+            <span className="text-gray-500"> / </span>
+            <span className="text-gray-500">
+              {activeTab === "profile" &&
+                profileSubTab === "personal" &&
+                "Profile"}
+              {activeTab === "profile" &&
+                profileSubTab === "contact" &&
+                "Contact Information"}
+              {activeTab === "profile" &&
+                profileSubTab === "emergency" &&
+                "Emergency Contact"}
+              {activeTab === "profile" &&
+                profileSubTab === "employment" &&
+                "Employment Details"}
+              {activeTab === "profile" &&
+                profileSubTab === "qualifications" &&
+                "Qualifications"}
+              {activeTab === "profile" &&
+                profileSubTab === "documents" &&
+                "Documents"}
+              {activeTab === "profile" &&
+                profileSubTab === "system" &&
+                "System Settings"}
+              {activeTab === "password" && "Password"}
+              {activeTab === "notification" && "Notifications"}
+            </span>
+          </p>
         </div>
 
-        {/* Settings Tabs */}
-        <div className="space-y-6">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-            <button
-              onClick={() => setActiveTab("system-settings")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "system-settings"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <IconSettings className="w-4 h-4 mr-2 inline" />
-              System Settings
-            </button>
-            <button
-              onClick={() => setActiveTab("user-management")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "user-management"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <IconUsers className="w-4 h-4 mr-2 inline" />
-              User Management
-            </button>
-            <button
-              onClick={() => setActiveTab("security-settings")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "security-settings"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <IconShield className="w-4 h-4 mr-2 inline" />
-              Security
-            </button>
-            <button
-              onClick={() => setActiveTab("notifications")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "notifications"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <IconBell className="w-4 h-4 mr-2 inline" />
-              Notifications
-            </button>
-          </div>
+        {/* Profile Section (common to all tabs) */}
+        <div className="px-6 py-6 bg-white border-b border-gray-200">
+          <div className="flex items-start space-x-6">
+            {/* Profile Picture Upload */}
+            <ProfileImageUpload
+              size="w-24 h-24"
+              currentImageUrl={user?.avatar}
+              userName={user ? `${user.firstName} ${user.lastName}` : ""}
+              showActions={true}
+              showSizeHint={true}
+            />
 
-          {/* System Settings Tab */}
-          {activeTab === "system-settings" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* General Settings */}
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <IconSettings className="w-5 h-5 mr-2" />
-                    General Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="systemName">System Name</Label>
-                      <Input
-                        id="systemName"
-                        value={systemSettings.systemName}
-                        onChange={(e) =>
-                          handleSystemSettingChange(
-                            "systemName",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="systemVersion">System Version</Label>
-                      <Input
-                        id="systemVersion"
-                        value={systemSettings.systemVersion}
-                        disabled
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="maintenanceMode">
-                          Maintenance Mode
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          Enable maintenance mode
-                        </p>
-                      </div>
-                      <Switch
-                        id="maintenanceMode"
-                        checked={systemSettings.maintenanceMode}
-                        onCheckedChange={(checked) =>
-                          handleSystemSettingChange("maintenanceMode", checked)
-                        }
-                      />
-                    </div>
-                  </div>
+            {/* Profile Details */}
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-800 mb-1">
+                {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
+              </h3>
+              <p className="text-gray-600 mb-3">
+                {user?.jobRole || user?.role || "System Administrator"}
+              </p>
+              <div className="flex items-center space-x-6">
+                <StatusBadge status={user?.attendanceStatus || "Active"} />
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-700 text-sm">
+                    Admin ID: {user?.workId || "ADMIN-001"}
+                  </span>
                 </div>
-
-                {/* Backup Settings */}
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <IconDatabase className="w-5 h-5 mr-2" />
-                    Backup Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="autoBackup">Automatic Backup</Label>
-                        <p className="text-sm text-gray-500">
-                          Enable automatic backups
-                        </p>
-                      </div>
-                      <Switch
-                        id="autoBackup"
-                        checked={systemSettings.autoBackup}
-                        onCheckedChange={(checked) =>
-                          handleSystemSettingChange("autoBackup", checked)
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="backupFrequency">Backup Frequency</Label>
-                      <Select
-                        value={systemSettings.backupFrequency}
-                        onValueChange={(value) =>
-                          handleSystemSettingChange("backupFrequency", value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
-                      <Input
-                        id="maxFileSize"
-                        type="number"
-                        value={systemSettings.maxFileSize}
-                        onChange={(e) =>
-                          handleSystemSettingChange(
-                            "maxFileSize",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Session Settings */}
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <IconServer className="w-5 h-5 mr-2" />
-                    Session Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="sessionTimeout">
-                        Session Timeout (minutes)
-                      </Label>
-                      <Input
-                        id="sessionTimeout"
-                        type="number"
-                        value={systemSettings.sessionTimeout}
-                        onChange={(e) =>
-                          handleSystemSettingChange(
-                            "sessionTimeout",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="twoFactorAuth">
-                          Two-Factor Authentication
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          Require 2FA for all users
-                        </p>
-                      </div>
-                      <Switch
-                        id="twoFactorAuth"
-                        checked={systemSettings.twoFactorAuth}
-                        onCheckedChange={(checked) =>
-                          handleSystemSettingChange("twoFactorAuth", checked)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Logging Settings */}
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <IconFileText className="w-5 h-5 mr-2" />
-                    Logging Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="systemLogs">System Logs</Label>
-                        <p className="text-sm text-gray-500">
-                          Enable system logging
-                        </p>
-                      </div>
-                      <Switch
-                        id="systemLogs"
-                        checked={systemSettings.systemLogs}
-                        onCheckedChange={(checked) =>
-                          handleSystemSettingChange("systemLogs", checked)
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="emailNotifications">
-                          Email Notifications
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          Send email notifications
-                        </p>
-                      </div>
-                      <Switch
-                        id="emailNotifications"
-                        checked={systemSettings.emailNotifications}
-                        onCheckedChange={(checked) =>
-                          handleSystemSettingChange(
-                            "emailNotifications",
-                            checked
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-700 text-sm">
+                    Access Level: Full Admin
+                  </span>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* User Management Tab */}
-          {activeTab === "user-management" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">User Management</h3>
-                <Dialog
-                  open={isUserModalOpen}
-                  onOpenChange={setIsUserModalOpen}
+        {/* Main Horizontal Tabs */}
+        <div className="px-6 py-4">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("profile")}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === "profile"
+                  ? "border-green-500 text-green-500"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => setActiveTab("password")}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === "password"
+                  ? "border-green-500 text-green-500"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Password
+            </button>
+            <button
+              onClick={() => setActiveTab("notification")}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === "notification"
+                  ? "border-green-500 text-green-500"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Notification
+            </button>
+          </div>
+        </div>
+
+        {/* Profile Sub Navigation Tabs */}
+        {activeTab === "profile" && (
+          <div className="px-6 py-4">
+            <div className="bg-gray-100 rounded-lg p-1 inline-flex">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setProfileSubTab(tab.id)}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                    profileSubTab === tab.id
+                      ? "bg-green-500 text-white shadow-sm"
+                      : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
+                  }`}
                 >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <IconPlus className="w-4 h-4 mr-2" />
-                      Add User
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New User</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            value={newUser.firstName}
-                            onChange={(e) =>
-                              setNewUser((prev) => ({
-                                ...prev,
-                                firstName: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            value={newUser.lastName}
-                            onChange={(e) =>
-                              setNewUser((prev) => ({
-                                ...prev,
-                                lastName: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="email">Email</Label>
+                  {tab.icon ? <tab.icon size={16} /> : null}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="px-6 py-8 bg-white">
+          {/* Profile Tab Content */}
+          {activeTab === "profile" && (
+            <>
+              {/* Personal Information Section */}
+              {profileSubTab === "personal" && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                    Personal Information
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="firstName"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          First Name
+                        </Label>
                         <Input
-                          id="email"
-                          type="email"
-                          value={newUser.email}
+                          id="firstName"
+                          value={formData.firstName}
                           onChange={(e) =>
-                            setNewUser((prev) => ({
-                              ...prev,
-                              email: e.target.value,
-                            }))
+                            setFormData({
+                              ...formData,
+                              firstName: e.target.value,
+                            })
                           }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="role">Role</Label>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="username"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Username
+                        </Label>
+                        <Input
+                          id="username"
+                          value={formData.username}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              username: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="dateOfBirth"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Date of Birth
+                        </Label>
+                        <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              id="dateOfBirth"
+                              className="w-full justify-between font-normal bg-white border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer"
+                            >
+                              {selectedDate
+                                ? selectedDate.toLocaleDateString()
+                                : "Select date"}
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto overflow-hidden p-0 bg-popover border border-border rounded-md shadow-md"
+                            align="start"
+                          >
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              captionLayout="dropdown"
+                              onSelect={(date) => {
+                                setSelectedDate(date);
+                                setFormData({
+                                  ...formData,
+                                  dateOfBirth: date
+                                    ? date.toISOString().split("T")[0]
+                                    : "",
+                                });
+                                setDateOpen(false);
+                              }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="maritalStatus"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Marital Status
+                        </Label>
                         <Select
-                          value={newUser.role}
+                          value={formData.maritalStatus}
                           onValueChange={(value) =>
-                            setNewUser((prev) => ({ ...prev, role: value }))
+                            setFormData({ ...formData, maritalStatus: value })
                           }
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue placeholder="Select marital status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="HR Manager">
-                              HR Manager
+                            <SelectItem
+                              value="Single"
+                              className="cursor-pointer"
+                            >
+                              Single
                             </SelectItem>
-                            <SelectItem value="Finance Manager">
-                              Finance Manager
+                            <SelectItem
+                              value="Married"
+                              className="cursor-pointer"
+                            >
+                              Married
                             </SelectItem>
-                            <SelectItem value="Employee">Employee</SelectItem>
+                            <SelectItem
+                              value="Divorced"
+                              className="cursor-pointer"
+                            >
+                              Divorced
+                            </SelectItem>
+                            <SelectItem
+                              value="Widowed"
+                              className="cursor-pointer"
+                            >
+                              Widowed
+                            </SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="department">Department</Label>
-                        <Select
-                          value={newUser.department}
-                          onValueChange={(value) =>
-                            setNewUser((prev) => ({
-                              ...prev,
-                              department: value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Engineering">
-                              Engineering
-                            </SelectItem>
-                            <SelectItem value="HR">HR</SelectItem>
-                            <SelectItem value="Finance">Finance</SelectItem>
-                            <SelectItem value="Marketing">Marketing</SelectItem>
-                            <SelectItem value="Sales">Sales</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsUserModalOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button onClick={handleAddUser}>Add User</Button>
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
 
-              <div className="bg-white rounded-lg border">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Role
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="lastName"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Last Name
+                        </Label>
+                        <Input
+                          id="lastName"
+                          value={formData.lastName}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              lastName: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="nationality"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Nationality
+                        </Label>
+                        <Input
+                          id="nationality"
+                          value={formData.nationality}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              nationality: e.target.value,
+                            })
+                          }
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="gender"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Gender
+                        </Label>
+                        <Select
+                          value={formData.gender}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, gender: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male" className="cursor-pointer">
+                              Male
+                            </SelectItem>
+                            <SelectItem
+                              value="Female"
+                              className="cursor-pointer"
+                            >
+                              Female
+                            </SelectItem>
+                            <SelectItem
+                              value="Other"
+                              className="cursor-pointer"
+                            >
+                              Other
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="personalPronouns"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Personal Pronouns
+                        </Label>
+                        <Select
+                          value={formData.personalPronouns}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              personalPronouns: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue placeholder="Select pronouns" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="he/him"
+                              className="cursor-pointer"
+                            >
+                              he/him
+                            </SelectItem>
+                            <SelectItem
+                              value="she/her"
+                              className="cursor-pointer"
+                            >
+                              she/her
+                            </SelectItem>
+                            <SelectItem
+                              value="they/them"
+                              className="cursor-pointer"
+                            >
+                              they/them
+                            </SelectItem>
+                            <SelectItem
+                              value="other"
+                              className="cursor-pointer"
+                            >
+                              other
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Contact Information Tab */}
+              {profileSubTab === "contact" && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                    Contact Information
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="email"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Email
+                        </Label>
+                        <Input
+                          id="email"
+                          value="admin@vireworkplace.com"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="address"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Address
+                        </Label>
+                        <Input
+                          id="address"
+                          value="Admin Office, VIRE Workplace"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="region"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Region/State
+                        </Label>
+                        <Input
+                          id="region"
+                          value="Greater Accra"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="phone"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Phone Number
+                        </Label>
+                        <Input
+                          id="phone"
+                          value="(+233) 0248940734"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="city"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          City
+                        </Label>
+                        <Input
+                          id="city"
+                          value="Accra"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="postalCode"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Postal Code
+                        </Label>
+                        <Input
+                          id="postalCode"
+                          value="GP-2448"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Emergency Contact Tab */}
+              {profileSubTab === "emergency" && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                    Emergency Contact Information
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_fullName"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Full Name
+                        </Label>
+                        <Input
+                          id="ec_fullName"
+                          value="Emergency Contact"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_altPhone"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Alt Phone Number (Optional)
+                        </Label>
+                        <Input
+                          id="ec_altPhone"
+                          placeholder="Enter optional phone number"
+                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_region"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Region/State
+                        </Label>
+                        <Input
+                          id="ec_region"
+                          value="Greater Accra"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_address"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Address
+                        </Label>
+                        <Input
+                          id="ec_address"
+                          value="Emergency Address"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_phone"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Phone Number
+                        </Label>
+                        <Input
+                          id="ec_phone"
+                          value="(+233) 0245678901"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_city"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          City
+                        </Label>
+                        <Input
+                          id="ec_city"
+                          value="Accra"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="ec_relationship"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Relationship
+                        </Label>
+                        <Input
+                          id="ec_relationship"
+                          value="Emergency Contact"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Employment Details Tab */}
+              {profileSubTab === "employment" && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                    Employment Details
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_employeeId"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Employee ID
+                        </Label>
+                        <Input
+                          id="emp_employeeId"
+                          value="ADMIN-001"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_department"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Department
+                        </Label>
+                        <Input
+                          id="emp_department"
+                          value="System Administration"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_type"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Employment Type
+                        </Label>
+                        <Select defaultValue="Full Time">
+                          <SelectTrigger
+                            id="emp_type"
+                            className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="Full Time"
+                              className="cursor-pointer"
+                            >
+                              Full Time
+                            </SelectItem>
+                            <SelectItem
+                              value="Part Time"
+                              className="cursor-pointer"
+                            >
+                              Part Time
+                            </SelectItem>
+                            <SelectItem
+                              value="Contract"
+                              className="cursor-pointer"
+                            >
+                              Contract
+                            </SelectItem>
+                            <SelectItem
+                              value="Internship"
+                              className="cursor-pointer"
+                            >
+                              Internship
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_location"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Location/Branch
+                        </Label>
+                        <Input
+                          id="emp_location"
+                          placeholder="(Optional)"
+                          className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_jobTitle"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Job Title
+                        </Label>
+                        <Input
+                          id="emp_jobTitle"
+                          value="System Administrator"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_dateHired"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Date Hired
+                        </Label>
+                        <Input
+                          id="emp_dateHired"
+                          value="01 - 01 - 2024"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_supervisor"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Supervisor
+                        </Label>
+                        <Input
+                          id="emp_supervisor"
+                          value="CEO"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="emp_status"
+                          className="text-sm font-semibold text-gray-800"
+                        >
                           Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        </Label>
+                        <Select defaultValue="Active">
+                          <SelectTrigger
+                            id="emp_status"
+                            className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="Active"
+                              className="cursor-pointer"
+                            >
+                              Active
+                            </SelectItem>
+                            <SelectItem
+                              value="Inactive"
+                              className="cursor-pointer"
+                            >
+                              Inactive
+                            </SelectItem>
+                            <SelectItem
+                              value="On Leave"
+                              className="cursor-pointer"
+                            >
+                              On Leave
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Qualifications Tab */}
+              {profileSubTab === "qualifications" && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                    Qualifications
+                  </h2>
+
+                  {/* Qualification Cards */}
+                  <div className="space-y-4">
+                    {/* Education Card */}
+                    <Collapsible
+                      open={isEducationOpen}
+                      onOpenChange={setIsEducationOpen}
+                    >
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Education Header */}
+                        <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <IconSchool className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-800">
+                                Education
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            {isEducationOpen ? (
+                              <IconChevronDown className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <IconChevronRight className="w-5 h-5 text-gray-400" />
+                            )}
+                            <button
+                              className="text-green-500 text-sm font-medium hover:text-green-600 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isEducationOpen) {
+                                  setIsEducationOpen(true);
+                                }
+                                setIsEditMode(false);
+                                setEditingEducationId(null);
+                                setEducationForm({
+                                  institution: "",
+                                  description: "",
+                                  duration: "",
+                                });
+                                setShowEducationModal(true);
+                              }}
+                            >
+                              + Add
+                            </button>
+                          </div>
+                        </CollapsibleTrigger>
+
+                        {/* Expanded Education Content */}
+                        <CollapsibleContent>
+                          <div className="border-t border-gray-200 p-4 bg-gray-50">
+                            <div className="space-y-3">
+                              {educationEntries.map((entry) => (
+                                <div
+                                  key={entry.id}
+                                  className="bg-white border border-gray-200 rounded-lg p-4"
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h4 className="font-bold text-gray-800 text-base mb-2">
+                                        {entry.institution}
+                                      </h4>
+                                      <div className="flex items-center space-x-2 mb-1">
+                                        <IconSchool className="w-4 h-4 text-gray-600" />
+                                        <span className="text-gray-700 text-sm">
+                                          {entry.description}
+                                        </span>
+                                      </div>
+                                      <p className="text-gray-500 text-sm">
+                                        {entry.duration}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center space-x-2 ml-4">
+                                      <button
+                                        className="p-1 hover:bg-blue-50 rounded transition-colors"
+                                        onClick={() => {
+                                          setIsEditMode(true);
+                                          setEditingEducationId(entry.id);
+                                          setEducationForm({
+                                            institution: entry.institution,
+                                            description: entry.description,
+                                            duration: entry.duration,
+                                          });
+                                          setShowEducationModal(true);
+                                        }}
+                                      >
+                                        <IconEdit className="w-4 h-4 text-blue-600" />
+                                      </button>
+                                      <button
+                                        className="p-1 hover:bg-red-50 rounded transition-colors"
+                                        onClick={() => {
+                                          setEducationEntries((prev) =>
+                                            prev.filter(
+                                              (item) => item.id !== entry.id
+                                            )
+                                          );
+                                        }}
+                                      >
+                                        <IconTrash className="w-4 h-4 text-red-600" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-8">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents Tab */}
+              {profileSubTab === "documents" && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Employment Documents
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <polyline points="1 20 1 14 7 14"></polyline>
+                          <path d="M3.51 9a9 9 0 0114.13-3.36L23 10"></path>
+                          <path d="M20.49 15A9 9 0 016.36 18.36L1 14"></path>
+                        </svg>
+                        Reset
+                      </Button>
+                      <Button className="bg-green-500 hover:bg-green-600 text-white cursor-pointer">
+                        Save Changes
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* CV/Resume */}
+                  <div className="mb-8">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                      CV/Resume
+                    </p>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
+                      <svg
+                        className="w-10 h-10 mx-auto text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <p className="mt-3 text-gray-700">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        PDF,DOC,DOCX files up to 10MB
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Choose File
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* National ID */}
+                  <div className="mb-8">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                      National ID
+                    </p>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
+                      <svg
+                        className="w-10 h-10 mx-auto text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <p className="mt-3 text-gray-700">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        PDF,JPG,JPEG,PNG files up to 5MB
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Choose File
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Certificate */}
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                      Certificate
+                    </p>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white p-10 text-center">
+                      <svg
+                        className="w-10 h-10 mx-auto text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <p className="mt-3 text-gray-700">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        PDF,JPG,JPEG,PNG files up to 10MB
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Choose File
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* System Settings Tab */}
+              {profileSubTab === "system" && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                    System Settings
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="systemRole"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          System Role
+                        </Label>
+                        <Select defaultValue="Super Admin">
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="Super Admin"
+                              className="cursor-pointer"
+                            >
+                              Super Admin
+                            </SelectItem>
+                            <SelectItem
+                              value="System Admin"
+                              className="cursor-pointer"
+                            >
+                              System Admin
+                            </SelectItem>
+                            <SelectItem
+                              value="Database Admin"
+                              className="cursor-pointer"
+                            >
+                              Database Admin
+                            </SelectItem>
+                            <SelectItem
+                              value="Security Admin"
+                              className="cursor-pointer"
+                            >
+                              Security Admin
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="accessLevel"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Access Level
+                        </Label>
+                        <Input
+                          id="accessLevel"
+                          value="Full System Access"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="lastLogin"
+                          className="text-sm font-semibold text-gray-800"
+                        >
                           Last Login
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((user) => (
-                        <tr key={user.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={user.avatar} />
-                                  <AvatarFallback>
-                                    {user.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {user.name}
+                        </Label>
+                        <Input
+                          id="lastLogin"
+                          value="Today, 09:30 AM"
+                          className="bg-white border-gray-300 rounded-md text-gray-600"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="sessionTimeout"
+                          className="text-sm font-semibold text-gray-800"
+                        >
+                          Session Timeout
+                        </Label>
+                        <Select defaultValue="8 hours">
+                          <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              value="2 hours"
+                              className="cursor-pointer"
+                            >
+                              2 hours
+                            </SelectItem>
+                            <SelectItem
+                              value="4 hours"
+                              className="cursor-pointer"
+                            >
+                              4 hours
+                            </SelectItem>
+                            <SelectItem
+                              value="8 hours"
+                              className="cursor-pointer"
+                            >
+                              8 hours
+                            </SelectItem>
+                            <SelectItem
+                              value="24 hours"
+                              className="cursor-pointer"
+                            >
+                              24 hours
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-6">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Password Tab Content */}
+          {activeTab === "password" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Change password
+              </h2>
+
+              <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                {/* Current Password */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="currentPassword"
+                    className="text-sm font-semibold text-gray-800"
+                  >
+                    Current Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={
+                        passwordState.passwordVisibility.currentPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={passwordState.formData.currentPassword}
+                      onChange={(e) =>
+                        handlePasswordInputChange(
+                          "currentPassword",
+                          e.target.value
+                        )
+                      }
+                      className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
+                      placeholder="Enter your current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        togglePasswordVisibility("currentPassword")
+                      }
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      {passwordState.passwordVisibility.currentPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="newPassword"
+                    className="text-sm font-semibold text-gray-800"
+                  >
+                    New password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={
+                        passwordState.passwordVisibility.newPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={passwordState.formData.newPassword}
+                      onChange={(e) =>
+                        handlePasswordInputChange("newPassword", e.target.value)
+                      }
+                      className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
+                      placeholder="Enter your new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility("newPassword")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      {passwordState.passwordVisibility.newPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Password Strength Indicator */}
+                  {passwordState.formData.newPassword && (
+                    <div className="mt-2">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-xs text-gray-500">
+                          Password strength:
+                        </span>
+                        <div className="flex space-x-1">
+                          {[1, 2, 3, 4].map((level) => (
+                            <div
+                              key={level}
+                              className={`h-1 w-8 rounded ${
+                                level <=
+                                Math.min(
+                                  4,
+                                  Math.max(
+                                    1,
+                                    Math.floor(
+                                      passwordState.formData.newPassword
+                                        .length / 2
+                                    )
+                                  )
+                                )
+                                  ? "bg-green-500"
+                                  : "bg-gray-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {passwordState.formData.newPassword.length < 8
+                          ? "Password must be at least 8 characters long"
+                          : passwordState.formData.newPassword.length >= 12
+                          ? "Strong password"
+                          : "Good password"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm New Password */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-sm font-semibold text-gray-800"
+                  >
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={
+                        passwordState.passwordVisibility.confirmPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={passwordState.formData.confirmPassword}
+                      onChange={(e) =>
+                        handlePasswordInputChange(
+                          "confirmPassword",
+                          e.target.value
+                        )
+                      }
+                      className="pr-10 bg-white border-gray-300 rounded-md text-gray-600"
+                      placeholder="Confirm your new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        togglePasswordVisibility("confirmPassword")
+                      }
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      {passwordState.passwordVisibility.confirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Password Match Indicator */}
+                  {passwordState.formData.newPassword &&
+                    passwordState.formData.confirmPassword && (
+                      <div className="mt-2">
+                        <div className="flex items-center space-x-2">
+                          {passwordState.formData.newPassword ===
+                          passwordState.formData.confirmPassword ? (
+                            <>
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-xs text-green-600">
+                                Passwords match
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              <span className="text-xs text-red-600">
+                                Passwords do not match
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                {/* Error Display */}
+                {passwordState.error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 text-sm">
+                      {passwordState.error}
+                    </p>
+                  </div>
+                )}
+
+                {/* Success Display */}
+                {passwordState.success && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-700 text-sm">
+                      Password changed successfully!
+                    </p>
+                  </div>
+                )}
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={passwordState.isLoading}
+                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {passwordState.isLoading ? "Changing..." : "Change"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Notification Tab Content */}
+          {activeTab === "notification" && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">
+                Notification Settings
+              </h2>
+              <p className="text-gray-600 mb-8">
+                Manage your notification preferences for various system events
+                and administrative activities.
+              </p>
+
+              {/* Notification Categories */}
+              <div className="space-y-4 mb-8">
+                {notificationCategories.map((category) => {
+                  const isExpanded =
+                    notificationState.expandedCategories[category.key];
+                  const settings =
+                    notificationState.notificationSettings[category.key];
+
+                  return (
+                    <div
+                      key={category.key}
+                      className="bg-white border border-gray-200 rounded-lg"
+                    >
+                      {/* Category Header */}
+                      <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => toggleCategory(category.key)}
+                            className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors duration-200"
+                          >
+                            {isExpanded ? (
+                              <IconChevronDown className="w-4 h-4" />
+                            ) : (
+                              <IconChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
+                          <span className="font-medium text-gray-800">
+                            {category.name}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {settings.enabled}/{settings.total} enabled
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            onClick={() => enableAll(category.key)}
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded cursor-pointer"
+                          >
+                            Enable All
+                          </Button>
+                          <Button
+                            onClick={() => disableAll(category.key)}
+                            size="sm"
+                            variant="outline"
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded cursor-pointer"
+                          >
+                            Disable All
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="px-4 pb-4 border-t border-gray-100">
+                          <div className="pt-4">
+                            {/* System Management specific notifications */}
+                            {category.key === "systemManagement" && (
+                              <div className="space-y-3">
+                                <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-800 mb-1">
+                                      System Alerts
+                                    </h4>
+                                    <p className="text-sm text-gray-600">
+                                      Receive notifications for critical system
+                                      alerts and warnings.
+                                    </p>
+                                  </div>
+                                  <div className="ml-4">
+                                    <Switch
+                                      checked={
+                                        notificationState.notificationSettings
+                                          .systemManagement.toggles.systemAlerts
+                                      }
+                                      onCheckedChange={() =>
+                                        toggleIndividualSetting(
+                                          "systemManagement",
+                                          "systemAlerts"
+                                        )
+                                      }
+                                      className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="text-sm text-gray-500">
-                                  {user.email}
-                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant="secondary">{user.role}</Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <StatusBadge status={user.status} />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {user.lastLogin}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleToggleUserStatus(user.id)}
-                              >
-                                <IconEdit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteUser(user.id)}
-                              >
-                                <IconTrash className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Error Display */}
+              {notificationState.error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">
+                    Error: {notificationState.error}
+                  </p>
                 </div>
+              )}
+
+              {/* Save Preferences Button */}
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleSavePreferences}
+                  disabled={notificationState.isLoading}
+                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-medium text-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {notificationState.isLoading
+                    ? "Saving..."
+                    : "Save Preferences"}
+                </Button>
               </div>
             </div>
           )}
-
-          {/* Security Settings Tab */}
-          {activeTab === "security-settings" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <IconLock className="w-5 h-5 mr-2" />
-                    Authentication
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="twoFactorAuth">
-                          Two-Factor Authentication
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          Require 2FA for all users
-                        </p>
-                      </div>
-                      <Switch
-                        id="twoFactorAuth"
-                        checked={systemSettings.twoFactorAuth}
-                        onCheckedChange={(checked) =>
-                          handleSystemSettingChange("twoFactorAuth", checked)
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="passwordPolicy">
-                          Strong Password Policy
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          Enforce strong passwords
-                        </p>
-                      </div>
-                      <Switch
-                        id="passwordPolicy"
-                        checked={true}
-                        onCheckedChange={() => {}}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <IconShield className="w-5 h-5 mr-2" />
-                    Access Control
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="ipWhitelist">IP Whitelist</Label>
-                        <p className="text-sm text-gray-500">
-                          Restrict access by IP
-                        </p>
-                      </div>
-                      <Switch
-                        id="ipWhitelist"
-                        checked={false}
-                        onCheckedChange={() => {}}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="sessionSecurity">
-                          Session Security
-                        </Label>
-                        <p className="text-sm text-gray-500">
-                          Enhanced session security
-                        </p>
-                      </div>
-                      <Switch
-                        id="sessionSecurity"
-                        checked={true}
-                        onCheckedChange={() => {}}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === "notifications" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-lg border p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <IconBell className="w-5 h-5 mr-2" />
-                  Notification Preferences
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="emailNotifications">
-                        Email Notifications
-                      </Label>
-                      <p className="text-sm text-gray-500">
-                        Receive notifications via email
-                      </p>
-                    </div>
-                    <Switch
-                      id="emailNotifications"
-                      checked={notificationSettings.emailNotifications}
-                      onCheckedChange={(checked) =>
-                        handleNotificationSettingChange(
-                          "emailNotifications",
-                          checked
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="pushNotifications">
-                        Push Notifications
-                      </Label>
-                      <p className="text-sm text-gray-500">
-                        Receive push notifications
-                      </p>
-                    </div>
-                    <Switch
-                      id="pushNotifications"
-                      checked={notificationSettings.pushNotifications}
-                      onCheckedChange={(checked) =>
-                        handleNotificationSettingChange(
-                          "pushNotifications",
-                          checked
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="systemAlerts">System Alerts</Label>
-                      <p className="text-sm text-gray-500">
-                        Receive system alerts
-                      </p>
-                    </div>
-                    <Switch
-                      id="systemAlerts"
-                      checked={notificationSettings.systemAlerts}
-                      onCheckedChange={(checked) =>
-                        handleNotificationSettingChange("systemAlerts", checked)
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="securityAlerts">Security Alerts</Label>
-                      <p className="text-sm text-gray-500">
-                        Receive security alerts
-                      </p>
-                    </div>
-                    <Switch
-                      id="securityAlerts"
-                      checked={notificationSettings.securityAlerts}
-                      onCheckedChange={(checked) =>
-                        handleNotificationSettingChange(
-                          "securityAlerts",
-                          checked
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button size="lg">Save Settings</Button>
         </div>
       </div>
-    </AdminDashboardLayout>
+    </DashboardLayout>
   );
 }

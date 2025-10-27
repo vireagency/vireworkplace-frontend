@@ -291,11 +291,6 @@ export const adminDashboardConfig = {
       url: "/admin/settings",
       icon: IconSettings,
     },
-    {
-      title: "Logout",
-      url: "#", // Logout handled by auth context
-      icon: IconHelp,
-    },
   ],
 
   // Admin-specific action buttons (empty as requested)

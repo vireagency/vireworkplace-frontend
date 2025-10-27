@@ -374,56 +374,61 @@ export const NavUser = React.memo(function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
-            {/* Separator between account options and logout */}
-            <DropdownMenuSeparator />
+            {/* Only show logout option for non-admin users */}
+            {user?.role?.toLowerCase() !== "admin" && (
+              <>
+                {/* Separator between account options and logout */}
+                <DropdownMenuSeparator />
 
-            {/* ================================================================
-                 LOGOUT SECTION
-                 ================================================================
-                 
-                 Logout option with confirmation dialog
-                 ================================================================ */}
+                {/* ================================================================
+                     LOGOUT SECTION
+                     ================================================================
+                     
+                     Logout option with confirmation dialog
+                     ================================================================ */}
 
-            {/* Logout with Alert Dialog Confirmation */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                  onSelect={(e) => e.preventDefault()}
-                  className="cursor-pointer"
-                >
-                  <IconLogout />
-                  Log out
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
+                {/* Logout with Alert Dialog Confirmation */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      className="cursor-pointer"
+                    >
+                      <IconLogout />
+                      Log out
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
 
-              {/* Logout confirmation dialog */}
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Are you sure you want to log out?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will be signed out of your account and redirected to the
-                    login page. Any unsaved work may be lost.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
+                  {/* Logout confirmation dialog */}
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you sure you want to log out?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You will be signed out of your account and redirected to
+                        the login page. Any unsaved work may be lost.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
 
-                <AlertDialogFooter>
-                  {/* Cancel button */}
-                  <AlertDialogCancel className="cursor-pointer">
-                    Cancel
-                  </AlertDialogCancel>
+                    <AlertDialogFooter>
+                      {/* Cancel button */}
+                      <AlertDialogCancel className="cursor-pointer">
+                        Cancel
+                      </AlertDialogCancel>
 
-                  {/* Confirm logout button */}
-                  <AlertDialogAction
-                    onClick={handleLogout}
-                    className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
-                  >
-                    Log out
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                      {/* Confirm logout button */}
+                      <AlertDialogAction
+                        onClick={handleLogout}
+                        className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
+                      >
+                        Log out
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

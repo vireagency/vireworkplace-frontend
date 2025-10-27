@@ -133,6 +133,9 @@ export function NavSecondary({
             // Check if user is in Staff dashboard section
             const isStaff = location.pathname.startsWith("/staff");
 
+            // Check if user is in Admin dashboard section
+            const isAdmin = location.pathname.startsWith("/admin");
+
             // Check if current item is the Settings item
             const isSettings = item.title === "Settings";
 
@@ -355,6 +358,139 @@ export function NavSecondary({
                           onClick={() =>
                             navigate("/staff/settings/notifications")
                           }
+                          className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
+                        >
+                          <IconBell size={16} />
+                          <span>Notification</span>
+                        </button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </SidebarMenuItem>
+              );
+            }
+
+            // ========================================================================
+            // ADMIN SETTINGS POPOVER
+            // ========================================================================
+
+            // Custom Admin Settings popover for enhanced navigation
+            if (isAdmin && isSettings) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <Popover
+                    onOpenChange={(open) =>
+                      console.log("Admin Settings popover open:", open)
+                    }
+                  >
+                    {/* Popover trigger button */}
+                    <PopoverTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        className={`cursor-pointer hover:text-[#35983D] hover:bg-green-500/10 ${
+                          isActive ? "text-[#00DB12]" : ""
+                        }`}
+                      >
+                        {/* Render icon if provided */}
+                        {item.icon && <item.icon />}
+
+                        {/* Navigation item title */}
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </PopoverTrigger>
+
+                    {/* Popover content with Admin settings options */}
+                    <PopoverContent
+                      align="start"
+                      side="right"
+                      className="w-36 p-1"
+                    >
+                      <div>
+                        {/* ================================================================
+                             PROFILE SETTINGS BUTTON
+                             ================================================================
+                             
+                             Navigate to Admin profile settings page
+                             ================================================================ */}
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Admin Profile settings clicked");
+
+                            // Small delay to ensure popover closes properly before navigation
+                            setTimeout(() => {
+                              console.log(
+                                "Navigating to Admin profile settings"
+                              );
+                              navigate("/admin/settings?tab=profile");
+                            }, 100);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer flex items-center space-x-2 ${
+                            location.pathname === "/admin/settings"
+                              ? "bg-green-500 text-white hover:bg-green-500" // Active state
+                              : "hover:bg-green-500 hover:text-white" // Hover state
+                          }`}
+                        >
+                          <IconUser size={16} />
+                          <span>Profile</span>
+                        </button>
+
+                        {/* Separator between profile and password */}
+                        <div className="h-px bg-gray-200 my-1"></div>
+
+                        {/* ================================================================
+                             PASSWORD SETTINGS BUTTON
+                             ================================================================
+                             
+                             Navigate to Admin password settings page
+                             ================================================================ */}
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Admin Password settings clicked");
+
+                            // Small delay to ensure popover closes properly before navigation
+                            setTimeout(() => {
+                              console.log(
+                                "Navigating to Admin password settings"
+                              );
+                              navigate("/admin/settings?tab=password");
+                            }, 100);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
+                        >
+                          <IconLock size={16} />
+                          <span>Password</span>
+                        </button>
+
+                        {/* Separator between password and notifications */}
+                        <div className="h-px bg-gray-200 my-1"></div>
+
+                        {/* ================================================================
+                             NOTIFICATION SETTINGS BUTTON
+                             ================================================================
+                             
+                             Navigate to Admin notification settings page
+                             ================================================================ */}
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Admin Notifications settings clicked");
+
+                            // Small delay to ensure popover closes properly before navigation
+                            setTimeout(() => {
+                              console.log(
+                                "Navigating to Admin notifications settings"
+                              );
+                              navigate("/admin/settings?tab=notification");
+                            }, 100);
+                          }}
                           className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-green-500 hover:text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2"
                         >
                           <IconBell size={16} />
