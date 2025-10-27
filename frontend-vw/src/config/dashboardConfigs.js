@@ -270,7 +270,7 @@ export const adminDashboardConfig = {
   company: [
     {
       title: "Inventory",
-      url: "#", // No inventory page yet, keeping placeholder
+      url: "/admin/inventory",
       icon: IconFolder,
     },
     {

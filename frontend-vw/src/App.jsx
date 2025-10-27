@@ -112,6 +112,7 @@ import AdminSettingsPage from "./screens/UserDashboards/AdminDashboard/AdminSett
 import AdminProfileSettings from "./screens/UserDashboards/AdminDashboard/AdminProfileSettings";
 import AdminPasswordSettings from "./screens/UserDashboards/AdminDashboard/AdminPasswordSettings";
 import AdminNotificationSettings from "./screens/UserDashboards/AdminDashboard/AdminNotificationSettings";
+import AdminInventoryPage from "./screens/UserDashboards/AdminDashboard/AdminInventoryPage";
 import AdminMessagesPage from "./screens/UserDashboards/AdminDashboard/AdminMessagesPage";
 import AdminPerformancePage from "./screens/UserDashboards/AdminDashboard/AdminPerformancePage";
 import AdminTasksPage from "./screens/UserDashboards/AdminDashboard/AdminTasksPage";
@@ -425,6 +426,14 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole="Admin">
                       <AdminTasksPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/inventory"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminInventoryPage />
                     </ProtectedRoute>
                   }
                 />
