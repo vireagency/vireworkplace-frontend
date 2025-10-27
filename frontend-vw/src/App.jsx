@@ -114,6 +114,7 @@ import AdminPasswordSettings from "./screens/UserDashboards/AdminDashboard/Admin
 import AdminNotificationSettings from "./screens/UserDashboards/AdminDashboard/AdminNotificationSettings";
 import AdminMessagesPage from "./screens/UserDashboards/AdminDashboard/AdminMessagesPage";
 import AdminPerformancePage from "./screens/UserDashboards/AdminDashboard/AdminPerformancePage";
+import AdminTasksPage from "./screens/UserDashboards/AdminDashboard/AdminTasksPage";
 import StaffDashboardMainPage from "./screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 
 // Staff Dashboard Components - Lazy loaded for better performance
@@ -416,6 +417,14 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole="Admin">
                       <AdminPerformancePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/tasks"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminTasksPage />
                     </ProtectedRoute>
                   }
                 />

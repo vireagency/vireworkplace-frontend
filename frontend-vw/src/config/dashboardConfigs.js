@@ -255,7 +255,7 @@ export const adminDashboardConfig = {
   teams: [
     {
       title: "Tasks",
-      url: "#", // No specific tasks page yet, keeping placeholder
+      url: "/admin/tasks",
       icon: IconListDetails,
       badge: "35",
     },
