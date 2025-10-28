@@ -223,108 +223,23 @@ export default function AdminPerformancePage() {
 
     setIsLoadingTrends(true);
     try {
-      const result = await performanceTrendsApi.getTrends(
-        accessToken,
-        timeframe
+      const result = await performanceTrendsApi.getPerformanceTrends(
+        accessToken
       );
       if (result.success) {
         setPerformanceTrends(result.data);
         console.log("Performance trends loaded:", result.data);
       } else {
         console.error("Failed to load performance trends:", result.error);
-        // Set fallback data on error
-        const fallbackTrends = {
-          averageScore: 4.2,
-          trend: "Improving",
-          topPerformers: [
-            {
-              employeeId: "emp001",
-              name: "John Doe",
-              role: "Senior Developer",
-              department: "Engineering",
-              score: 4.8,
-            },
-            {
-              employeeId: "emp002",
-              name: "Jane Smith",
-              role: "HR Manager",
-              department: "HR",
-              score: 4.7,
-            },
-            {
-              employeeId: "emp003",
-              name: "Mike Johnson",
-              role: "Finance Manager",
-              department: "Finance",
-              score: 4.6,
-            },
-          ],
-          lowPerformers: [
-            {
-              employeeId: "emp004",
-              name: "David Brown",
-              role: "Sales Rep",
-              department: "Sales",
-              score: 2.1,
-            },
-            {
-              employeeId: "emp005",
-              name: "Sarah Wilson",
-              role: "Marketing Specialist",
-              department: "Marketing",
-              score: 2.3,
-            },
-          ],
-        };
-        setPerformanceTrends(fallbackTrends);
+        toast.error(result.error || "Failed to load performance trends");
+        // Fallback to static data if API fails
+        setPerformanceTrends(getStaticTrends());
       }
     } catch (error) {
       console.error("Error loading performance trends:", error);
-      // Set fallback data on error
-      const fallbackTrends = {
-        averageScore: 4.2,
-        trend: "Improving",
-        topPerformers: [
-          {
-            employeeId: "emp001",
-            name: "John Doe",
-            role: "Senior Developer",
-            department: "Engineering",
-            score: 4.8,
-          },
-          {
-            employeeId: "emp002",
-            name: "Jane Smith",
-            role: "HR Manager",
-            department: "HR",
-            score: 4.7,
-          },
-          {
-            employeeId: "emp003",
-            name: "Mike Johnson",
-            role: "Finance Manager",
-            department: "Finance",
-            score: 4.6,
-          },
-        ],
-        lowPerformers: [
-          {
-            employeeId: "emp004",
-            name: "David Brown",
-            role: "Sales Rep",
-            department: "Sales",
-            score: 2.1,
-          },
-          {
-            employeeId: "emp005",
-            name: "Sarah Wilson",
-            role: "Marketing Specialist",
-            department: "Marketing",
-            score: 2.3,
-          },
-        ],
-      };
-      setPerformanceTrends(fallbackTrends);
+      toast.error("Failed to load performance trends");
+      // Fallback to static data
+      setPerformanceTrends(getStaticTrends());
     } finally {
       setIsLoadingTrends(false);
     }
@@ -502,10 +417,14 @@ export default function AdminPerformancePage() {
       } else {
         console.error("Failed to load HR overview:", result.error);
         toast.error("Failed to load HR overview data");
+        // Fallback to static data if API fails
+        setHrOverview(getStaticOverview());
       }
     } catch (error) {
       console.error("Error loading HR overview:", error);
       toast.error("Failed to load HR overview data");
+      // Fallback to static data
+      setHrOverview(getStaticOverview());
     } finally {
       setIsLoadingHrOverview(false);
     }
@@ -516,21 +435,129 @@ export default function AdminPerformancePage() {
 
     setIsLoadingStaffOverview(true);
     try {
-      const result = await staffOverviewApi.getOverview(accessToken);
+      const result = await staffOverviewApi.getStaffOverview(accessToken);
       if (result.success) {
         setStaffOverview(result.data);
         console.log("Staff overview loaded for admin:", result.data);
       } else {
         console.error("Failed to load staff overview:", result.error);
         toast.error("Failed to load staff overview data");
+        // Fallback to static data if API fails
+        setStaffOverview(getStaticStaffOverview());
       }
     } catch (error) {
       console.error("Error loading staff overview:", error);
       toast.error("Failed to load staff overview data");
+      // Fallback to static data
+      setStaffOverview(getStaticStaffOverview());
     } finally {
       setIsLoadingStaffOverview(false);
     }
   };
+
+  // Static HR overview as fallback
+  const getStaticOverview = () => ({
+    success: true,
+    message: "Dashboard overview fetched successfully",
+    data: {
+      activeEmployees: 22,
+      totalRemoteWorkersToday: 5,
+      noCheckInToday: 3,
+      productivityIndex: "86.36%",
+      departmentPerformance: {
+        Engineering: {
+          total: 10,
+          checkedIn: 8,
+          percent: "80.00%",
+        },
+        HR: {
+          total: 5,
+          checkedIn: 5,
+          percent: "100.00%",
+        },
+        Finance: {
+          total: 7,
+          checkedIn: 6,
+          percent: "85.71%",
+        },
+      },
+      incompleteTasks: 14,
+    },
+  });
+
+  // Static staff overview as fallback
+  const getStaticStaffOverview = () => ({
+    success: true,
+    message: "Staff overview fetched successfully",
+    overview: {
+      myTasksToday: 5,
+      completedTasks: 3,
+      hoursWorked: 7.5,
+      performanceScore: "86%",
+    },
+  });
+
+  // Static performance trends as fallback
+  const getStaticTrends = () => ({
+    success: true,
+    message: "Performance trends fetched successfully",
+    period: "Q1-2024",
+    TopPerformingDepartment: {
+      department: "Engineering",
+      avgScore: 4.7,
+      totalEmployees: 12,
+    },
+    OverallPerformanceIndex: 4.2,
+    OverallDepartmentPerformance: [
+      {
+        department: "Engineering",
+        avgScore: 4.7,
+        totalEmployees: 12,
+      },
+      {
+        department: "HR",
+        avgScore: 4.3,
+        totalEmployees: 5,
+      },
+      {
+        department: "Finance",
+        avgScore: 3.9,
+        totalEmployees: 7,
+      },
+    ],
+    topPerformers: [
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a7",
+        name: "Jane Smith",
+        role: "Software Engineer",
+        score: 4.9,
+        department: "Engineering",
+      },
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a8",
+        name: "John Doe",
+        role: "Product Manager",
+        score: 4.8,
+        department: "Product",
+      },
+    ],
+    lowPerformers: [
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a9",
+        name: "Alex Brown",
+        role: "Junior Analyst",
+        score: 2.5,
+        department: "Finance",
+      },
+      {
+        employeeId: "64efc8d1c5a2a12345f0d9a0",
+        name: "Sarah Johnson",
+        role: "HR Assistant",
+        score: 2.8,
+        department: "HR",
+      },
+    ],
+  });
 
   const handleDeleteGoal = async (goalId) => {
     if (!accessToken) return;
