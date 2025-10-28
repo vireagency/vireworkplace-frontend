@@ -509,27 +509,12 @@ export default function AdminDashboardMainPage() {
       showChart={false}
       showDataTable={false}
     >
-      {/* Welcome Section */}
-      <div className="px-4 lg:px-6 pb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-normal text-gray-900 mb-1">
-              <span className="font-medium">
-                {greeting}, {userName}
-              </span>
-              <span className="text-base font-light">
-                {" "}
-                – here's what's happening in Vire Agency today
-              </span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm text-green-600 px-3 py-1.5 border border-gray-200 rounded-lg">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              Active
-            </div>
-          </div>
-        </div>
+      {/* Test: Simple content to verify rendering */}
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-red-600">ADMIN DASHBOARD TEST</h1>
+        <p className="text-gray-600">If you can see this, the component is rendering.</p>
+        <p className="text-sm text-gray-500">Loading state: {loadingHrOverview ? 'Loading...' : 'Loaded'}</p>
+        <p className="text-sm text-gray-500">HR Data: {hrOverviewData ? 'Available' : 'Not available'}</p>
       </div>
 
       {/* Admin Dashboard Section Cards */}
