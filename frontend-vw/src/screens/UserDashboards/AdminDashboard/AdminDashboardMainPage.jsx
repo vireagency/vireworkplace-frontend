@@ -1,6 +1,5 @@
 import AdminDashboardLayout from "@/components/dashboard/AdminDashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
-import adminData from "./adminData.json";
 import { useState, useEffect } from "react";
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
@@ -576,7 +575,6 @@ export default function AdminDashboardMainPage() {
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
-      dataTableData={adminData}
     >
       {/* Welcome Section */}
       <div className="px-4 lg:px-6 pb-4">
