@@ -220,16 +220,25 @@ export default function AdminDashboardMainPage() {
 
         if (result.success) {
           setHrOverviewData(result.data);
-          console.log("✅ Admin Dashboard - HR overview data loaded:", result.data);
+          console.log(
+            "✅ Admin Dashboard - HR overview data loaded:",
+            result.data
+          );
         } else {
-          console.error("❌ Admin Dashboard - Failed to fetch HR overview:", result.error);
+          console.error(
+            "❌ Admin Dashboard - Failed to fetch HR overview:",
+            result.error
+          );
           setHrOverviewError(result.error || "Failed to load overview data");
           toast.error(result.error || "Failed to load overview data");
           // Fallback to static data (same as HR dashboard)
           setHrOverviewData(getStaticOverviewData());
         }
       } catch (error) {
-        console.error("❌ Admin Dashboard - Error fetching HR overview:", error);
+        console.error(
+          "❌ Admin Dashboard - Error fetching HR overview:",
+          error
+        );
         setHrOverviewError("Failed to load overview data");
         toast.error("Failed to load overview data");
         // Fallback to static data (same as HR dashboard)
@@ -478,46 +487,6 @@ export default function AdminDashboardMainPage() {
     }
   }, [accessToken]);
 
-  // Static overview data as fallback
-  const getStaticOverviewData = () => ({
-    success: true,
-    message: "Dashboard overview fetched successfully",
-    data: {
-      totalEmployees: 45,
-      activeEmployees: 42,
-      totalDepartments: 6,
-      systemHealth: "98.5%",
-      departmentPerformance: {
-        Engineering: {
-          total: 15,
-          checkedIn: 14,
-          percent: "93.33%",
-        },
-        HR: {
-          total: 8,
-          checkedIn: 8,
-          percent: "100.00%",
-        },
-        Finance: {
-          total: 10,
-          checkedIn: 9,
-          percent: "90.00%",
-        },
-        Marketing: {
-          total: 7,
-          checkedIn: 6,
-          percent: "85.71%",
-        },
-        Sales: {
-          total: 5,
-          checkedIn: 5,
-          percent: "100.00%",
-        },
-      },
-      pendingApprovals: 8,
-    },
-  });
-
   // Function to handle navigation to Employees page
   const handleSeeAllEmployees = () => {
     navigate("/admin/employees");
@@ -575,7 +544,10 @@ export default function AdminDashboardMainPage() {
         ) : hrOverviewData ? (
           <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             {/* Debug info */}
-            {console.log("🔍 Admin Dashboard - Rendering with HR overview data:", hrOverviewData)}
+            {console.log(
+              "🔍 Admin Dashboard - Rendering with HR overview data:",
+              hrOverviewData
+            )}
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
