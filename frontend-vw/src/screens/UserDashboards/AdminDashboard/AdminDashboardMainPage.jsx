@@ -134,16 +134,8 @@ export default function AdminDashboardMainPage() {
 
         // Check authentication
         if (!accessToken) {
-          console.log("❌ Admin Dashboard - No access token available");
           throw new Error("No access token available. Please log in again.");
         }
-
-        console.log(
-          "🚀 Admin Dashboard - Making API call to:",
-          `${API_URL}/employees/list`
-        );
-        console.log("🚀 Admin Dashboard - User:", user);
-        console.log("🚀 Admin Dashboard - User role:", user?.role);
 
         const response = await axios.get(`${API_URL}/employees/list`, {
           headers: {
@@ -167,20 +159,6 @@ export default function AdminDashboardMainPage() {
           }));
 
           setEmployees(transformedEmployees);
-          console.log("✅ Admin Dashboard - API Response:", response.data);
-          console.log(
-            "✅ Admin Dashboard - Transformed Employees:",
-            transformedEmployees
-          );
-          console.log(
-            "✅ Admin Dashboard - Employee statuses:",
-            transformedEmployees.map((emp) => ({
-              name: emp.name,
-              status: emp.status,
-              location: emp.location,
-              checkIn: emp.checkIn,
-            }))
-          );
         } else {
           console.error(
             "❌ Admin Dashboard - Failed to fetch employees:",
@@ -189,15 +167,6 @@ export default function AdminDashboardMainPage() {
           setError("Failed to fetch employees");
         }
       } catch (err) {
-        console.error("❌ Admin Dashboard - Error fetching employees:", err);
-        console.error(
-          "❌ Admin Dashboard - Error response:",
-          err.response?.data
-        );
-        console.error(
-          "❌ Admin Dashboard - Error status:",
-          err.response?.status
-        );
         setError(`Error fetching employees: ${err.message}`);
       } finally {
         setLoading(false);
@@ -244,16 +213,11 @@ export default function AdminDashboardMainPage() {
 
       try {
         setLoadingHrOverview(true);
-        console.log("🚀 Admin Dashboard - Fetching HR overview data...");
 
         const result = await hrOverviewApi.getOverview(accessToken);
 
         if (result.success) {
           setHrOverviewData(result.data);
-          console.log(
-            "✅ Admin Dashboard - HR overview data loaded:",
-            result.data
-          );
         } else {
           console.error(
             "❌ Admin Dashboard - Failed to fetch HR overview:",
@@ -265,10 +229,6 @@ export default function AdminDashboardMainPage() {
           setHrOverviewData(getStaticOverviewData());
         }
       } catch (error) {
-        console.error(
-          "❌ Admin Dashboard - Error fetching HR overview:",
-          error
-        );
         setHrOverviewError("Failed to load overview data");
         toast.error("Failed to load overview data");
         // Fallback to static data (same as HR dashboard)
@@ -543,11 +503,6 @@ export default function AdminDashboardMainPage() {
           </div>
         ) : hrOverviewData ? (
           <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-            {/* Debug info */}
-            {console.log(
-              "🔍 Admin Dashboard - Rendering with HR overview data:",
-              hrOverviewData
-            )}
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
