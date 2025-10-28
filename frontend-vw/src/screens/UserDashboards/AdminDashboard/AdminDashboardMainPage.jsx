@@ -100,9 +100,6 @@ export default function AdminDashboardMainPage() {
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [overviewError, setOverviewError] = useState(null);
 
-  // State for calculated metrics from employees data (same as HR dashboard)
-  const [calculatedMetrics, setCalculatedMetrics] = useState(null);
-
   // State for HR overview data (same APIs as HR dashboard)
   const [hrOverviewData, setHrOverviewData] = useState(null);
   const [loadingHrOverview, setLoadingHrOverview] = useState(true);
@@ -184,9 +181,6 @@ export default function AdminDashboardMainPage() {
               checkIn: emp.checkIn,
             }))
           );
-
-          // Calculate metrics from employees data (same as HR dashboard)
-          calculateMetricsFromEmployees(transformedEmployees);
         } else {
           console.error(
             "❌ Admin Dashboard - Failed to fetch employees:",
@@ -215,7 +209,7 @@ export default function AdminDashboardMainPage() {
 
   // Fetch HR overview data (same API as HR dashboard)
   useEffect(() => {
-    const fetchHrOverview = async () => {
+    const fetchOverview = async () => {
       if (!accessToken) return;
 
       try {
@@ -226,87 +220,57 @@ export default function AdminDashboardMainPage() {
 
         if (result.success) {
           setHrOverviewData(result.data);
-          console.log(
-            "✅ Admin Dashboard - HR overview data loaded:",
-            result.data
-          );
-          console.log(
-            "✅ Admin Dashboard - HR overview data structure:",
-            JSON.stringify(result.data, null, 2)
-          );
+          console.log("✅ Admin Dashboard - HR overview data loaded:", result.data);
         } else {
-          console.error(
-            "❌ Admin Dashboard - Failed to fetch HR overview:",
-            result.error
-          );
-          console.error("❌ Admin Dashboard - HR API Response:", result);
-          setHrOverviewError(result.error);
-          toast.error("Failed to load HR overview data");
+          console.error("❌ Admin Dashboard - Failed to fetch HR overview:", result.error);
+          setHrOverviewError(result.error || "Failed to load overview data");
+          toast.error(result.error || "Failed to load overview data");
+          // Fallback to static data (same as HR dashboard)
+          setHrOverviewData(getStaticOverviewData());
         }
       } catch (error) {
-        console.error(
-          "❌ Admin Dashboard - Error fetching HR overview:",
-          error
-        );
-        console.error(
-          "❌ Admin Dashboard - Error details:",
-          error.response?.data
-        );
-        console.error(
-          "❌ Admin Dashboard - Error status:",
-          error.response?.status
-        );
-        setHrOverviewError(error.message);
-        toast.error("Failed to load HR overview data");
+        console.error("❌ Admin Dashboard - Error fetching HR overview:", error);
+        setHrOverviewError("Failed to load overview data");
+        toast.error("Failed to load overview data");
+        // Fallback to static data (same as HR dashboard)
+        setHrOverviewData(getStaticOverviewData());
       } finally {
         setLoadingHrOverview(false);
       }
     };
 
-    fetchHrOverview();
+    fetchOverview();
   }, [accessToken]);
 
-  // Calculate metrics from employees data (same logic as HR dashboard)
-  const calculateMetricsFromEmployees = (employees) => {
-    console.log("🔢 calculateMetricsFromEmployees called with:", employees);
-    console.log("🔢 Total employees received:", employees.length);
-
-    const activeEmployees = employees.filter(
-      (emp) => emp.status === "Active"
-    ).length;
-    const totalRemoteWorkersToday = employees.filter(
-      (emp) => emp.location === "Remote"
-    ).length;
-    const noCheckInToday = employees.filter((emp) => !emp.checkIn).length;
-
-    console.log("🔢 Calculated counts:", {
-      activeEmployees,
-      totalRemoteWorkersToday,
-      noCheckInToday,
-      totalEmployees: employees.length,
-    });
-
-    // Calculate productivity index based on active employees
-    const productivityIndex =
-      activeEmployees > 0
-        ? ((activeEmployees / employees.length) * 100).toFixed(2) + "%"
-        : "0.00%";
-
-    const metrics = {
-      success: true,
-      message: "Metrics calculated from employees data",
-      data: {
-        activeEmployees,
-        totalRemoteWorkersToday,
-        noCheckInToday,
-        productivityIndex,
-        incompleteTasks: Math.floor(Math.random() * 20) + 5, // Random for now
+  // Static overview data as fallback (same as HR dashboard)
+  const getStaticOverviewData = () => ({
+    success: true,
+    message: "Dashboard overview fetched successfully",
+    data: {
+      activeEmployees: 22,
+      totalRemoteWorkersToday: 5,
+      noCheckInToday: 3,
+      productivityIndex: "86.36%",
+      departmentPerformance: {
+        Engineering: {
+          total: 10,
+          checkedIn: 8,
+          percent: "80.00%",
+        },
+        HR: {
+          total: 5,
+          checkedIn: 5,
+          percent: "100.00%",
+        },
+        Finance: {
+          total: 7,
+          checkedIn: 6,
+          percent: "85.71%",
+        },
       },
-    };
-
-    console.log("📊 Calculated metrics from employees:", metrics);
-    setCalculatedMetrics(metrics);
-  };
+      incompleteTasks: 14,
+    },
+  });
 
   // Fetch admin overview data
   useEffect(() => {
@@ -601,33 +565,22 @@ export default function AdminDashboardMainPage() {
 
       {/* Admin Dashboard Section Cards */}
       <div className="px-4 lg:px-6">
-        {loadingOverview || loadingHrOverview || loading ? (
+        {loadingHrOverview ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
             <span className="ml-2 text-slate-600">
               Loading dashboard data...
             </span>
           </div>
-        ) : hrOverviewData || calculatedMetrics || overviewData ? (
+        ) : hrOverviewData ? (
           <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             {/* Debug info */}
-            {console.log("🔍 Rendering with data:", {
-              hrOverviewData: hrOverviewData?.data,
-              calculatedMetrics: calculatedMetrics?.data,
-              overviewData: overviewData?.data,
-              activeEmployees:
-                hrOverviewData?.data?.activeEmployees ||
-                calculatedMetrics?.data?.activeEmployees ||
-                overviewData?.data?.activeEmployees,
-            })}
+            {console.log("🔍 Admin Dashboard - Rendering with HR overview data:", hrOverviewData)}
             <Card className="@container/card relative">
               <CardHeader>
                 <CardDescription>Active Employees</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {hrOverviewData?.data?.activeEmployees ||
-                    calculatedMetrics?.data?.activeEmployees ||
-                    overviewData?.data?.activeEmployees ||
-                    0}
+                  {hrOverviewData.data?.activeEmployees || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -645,10 +598,7 @@ export default function AdminDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Total Remote Workers Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {hrOverviewData?.data?.totalRemoteWorkersToday ||
-                    calculatedMetrics?.data?.totalRemoteWorkersToday ||
-                    overviewData?.data?.totalRemoteWorkersToday ||
-                    0}
+                  {hrOverviewData.data?.totalRemoteWorkersToday || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -663,10 +613,7 @@ export default function AdminDashboardMainPage() {
               <CardHeader>
                 <CardDescription>No Check-In Today</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {hrOverviewData?.data?.noCheckInToday ||
-                    calculatedMetrics?.data?.noCheckInToday ||
-                    overviewData?.data?.noCheckInToday ||
-                    0}
+                  {hrOverviewData.data?.noCheckInToday || 0}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -686,10 +633,7 @@ export default function AdminDashboardMainPage() {
               <CardHeader>
                 <CardDescription>Productivity Index</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                  {hrOverviewData?.data?.productivityIndex ||
-                    calculatedMetrics?.data?.productivityIndex ||
-                    overviewData?.data?.productivityIndex ||
-                    "0%"}
+                  {hrOverviewData.data?.productivityIndex || "0%"}
                 </CardTitle>
               </CardHeader>
               <div className="absolute bottom-3 right-3">
@@ -867,9 +811,7 @@ export default function AdminDashboardMainPage() {
                       Active Employees
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {calculatedMetrics?.data?.activeEmployees ||
-                        overviewData?.data?.activeEmployees ||
-                        0}
+                      {hrOverviewData.data?.activeEmployees || 0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -893,12 +835,8 @@ export default function AdminDashboardMainPage() {
                     <span className="text-sm font-semibold text-gray-900">
                       {Math.max(
                         0,
-                        (calculatedMetrics?.data?.activeEmployees ||
-                          overviewData?.data?.activeEmployees ||
-                          0) -
-                          (calculatedMetrics?.data?.totalRemoteWorkersToday ||
-                            overviewData?.data?.totalRemoteWorkersToday ||
-                            0)
+                        (hrOverviewData.data?.activeEmployees || 0) -
+                          (hrOverviewData.data?.totalRemoteWorkersToday || 0)
                       )}
                     </span>
                   </div>
@@ -921,9 +859,7 @@ export default function AdminDashboardMainPage() {
                       No Check-In
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {calculatedMetrics?.data?.noCheckInToday ||
-                        overviewData?.data?.noCheckInToday ||
-                        0}
+                      {hrOverviewData.data?.noCheckInToday || 0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -945,9 +881,7 @@ export default function AdminDashboardMainPage() {
                       Incomplete Tasks
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {calculatedMetrics?.data?.incompleteTasks ||
-                        overviewData?.data?.incompleteTasks ||
-                        0}
+                      {hrOverviewData.data?.incompleteTasks || 0}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
