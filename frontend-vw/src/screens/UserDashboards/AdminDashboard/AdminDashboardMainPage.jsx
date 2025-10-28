@@ -207,6 +207,36 @@ export default function AdminDashboardMainPage() {
     fetchEmployees();
   }, [accessToken, API_URL, user]);
 
+  // Static overview data as fallback (same as HR dashboard)
+  const getStaticOverviewData = () => ({
+    success: true,
+    message: "Dashboard overview fetched successfully",
+    data: {
+      activeEmployees: 22,
+      totalRemoteWorkersToday: 5,
+      noCheckInToday: 3,
+      productivityIndex: "86.36%",
+      departmentPerformance: {
+        Engineering: {
+          total: 10,
+          checkedIn: 8,
+          percent: "80.00%",
+        },
+        HR: {
+          total: 5,
+          checkedIn: 5,
+          percent: "100.00%",
+        },
+        Finance: {
+          total: 7,
+          checkedIn: 6,
+          percent: "85.71%",
+        },
+      },
+      incompleteTasks: 14,
+    },
+  });
+
   // Fetch HR overview data (same API as HR dashboard)
   useEffect(() => {
     const fetchOverview = async () => {
@@ -250,36 +280,6 @@ export default function AdminDashboardMainPage() {
 
     fetchOverview();
   }, [accessToken]);
-
-  // Static overview data as fallback (same as HR dashboard)
-  const getStaticOverviewData = () => ({
-    success: true,
-    message: "Dashboard overview fetched successfully",
-    data: {
-      activeEmployees: 22,
-      totalRemoteWorkersToday: 5,
-      noCheckInToday: 3,
-      productivityIndex: "86.36%",
-      departmentPerformance: {
-        Engineering: {
-          total: 10,
-          checkedIn: 8,
-          percent: "80.00%",
-        },
-        HR: {
-          total: 5,
-          checkedIn: 5,
-          percent: "100.00%",
-        },
-        Finance: {
-          total: 7,
-          checkedIn: 6,
-          percent: "85.71%",
-        },
-      },
-      incompleteTasks: 14,
-    },
-  });
 
   // Fetch admin overview data
   useEffect(() => {
