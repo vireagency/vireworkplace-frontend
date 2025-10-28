@@ -30,7 +30,11 @@ import {
   IconTrendingDown,
   IconCalendar,
   IconDotsVertical,
+  IconLoader2,
 } from "@tabler/icons-react";
+import { useAuth } from "@/hooks/useAuth";
+import adminInventoryApi from "@/services/adminInventoryApi";
+import { toast } from "sonner";
 
 export default function AdminInventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");

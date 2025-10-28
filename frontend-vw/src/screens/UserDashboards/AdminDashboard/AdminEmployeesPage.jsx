@@ -80,8 +80,21 @@ export default function AdminEmployeesPage() {
     isTokenValid,
     getTokenExpiration,
   } = useAuth();
+
+  // Show loading state if auth context is still loading
+  if (employeesLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 animate-spin border-2 border-green-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -100,7 +113,7 @@ export default function AdminEmployeesPage() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        setLoading(true);
+        setEmployeesLoading(true);
 
         // Check authentication
         if (!accessToken) {
@@ -177,7 +190,7 @@ export default function AdminEmployeesPage() {
           setError(`Error fetching employees: ${err.message}`);
         }
       } finally {
-        setLoading(false);
+        setEmployeesLoading(false);
       }
     };
 
@@ -346,7 +359,7 @@ export default function AdminEmployeesPage() {
   };
 
   // Loading state
-  if (loading) {
+  if (employeesLoading) {
     return (
       <DashboardLayout
         sidebarConfig={adminDashboardConfig}

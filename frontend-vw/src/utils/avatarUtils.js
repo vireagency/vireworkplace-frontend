@@ -31,8 +31,30 @@ export const getUserAvatarUrl = (user) => {
     user.profileImageUrl ||
     null;
 
-  // Add stable cache-busting parameters that only change when the image actually changes
+  // Validate the URL before processing
   if (avatarUrl) {
+    // Check if it's a valid URL and not a broken Cloudinary URL
+    try {
+      const url = new URL(avatarUrl);
+      // If it's a Cloudinary URL, check if it contains known broken patterns
+      if (url.hostname.includes("cloudinary.com")) {
+        // Check for known broken image patterns
+        if (
+          url.pathname.includes("default_profile_image_q5j98z") ||
+          url.pathname.includes("default_profile_image") ||
+          url.pathname.includes("broken") ||
+          url.pathname.includes("404")
+        ) {
+          console.warn("Broken avatar URL detected:", avatarUrl);
+          return null; // Return null to trigger fallback
+        }
+      }
+    } catch (error) {
+      console.warn("Invalid avatar URL:", avatarUrl, error);
+      return null;
+    }
+
+    // Add stable cache-busting parameters that only change when the image actually changes
     const separator = avatarUrl.includes("?") ? "&" : "?";
 
     // Use profileImagePublicId for stable cache busting - only changes when image is updated
@@ -74,9 +96,32 @@ export const getStableAvatarUrl = (user) => {
     user.profileImageUrl ||
     null;
 
-  // Return the original URL without cache-busting for stability
-  // Cache busting will be handled by the profileImagePublicId when the image changes
-  return avatarUrl;
+  // Validate the URL before returning it
+  if (avatarUrl) {
+    // Check if it's a valid URL and not a broken Cloudinary URL
+    try {
+      const url = new URL(avatarUrl);
+      // If it's a Cloudinary URL, check if it contains known broken patterns
+      if (url.hostname.includes("cloudinary.com")) {
+        // Check for known broken image patterns
+        if (
+          url.pathname.includes("default_profile_image_q5j98z") ||
+          url.pathname.includes("default_profile_image") ||
+          url.pathname.includes("broken") ||
+          url.pathname.includes("404")
+        ) {
+          console.warn("Broken avatar URL detected:", avatarUrl);
+          return null; // Return null to trigger fallback
+        }
+      }
+      return avatarUrl;
+    } catch (error) {
+      console.warn("Invalid avatar URL:", avatarUrl, error);
+      return null;
+    }
+  }
+
+  return null;
 };
 
 /**
@@ -134,6 +179,27 @@ export const getFreshAvatarUrl = (user) => {
 
   if (!baseUrl) return null;
 
+  // Validate the URL before processing
+  try {
+    const url = new URL(baseUrl);
+    // If it's a Cloudinary URL, check if it contains known broken patterns
+    if (url.hostname.includes("cloudinary.com")) {
+      // Check for known broken image patterns
+      if (
+        url.pathname.includes("default_profile_image_q5j98z") ||
+        url.pathname.includes("default_profile_image") ||
+        url.pathname.includes("broken") ||
+        url.pathname.includes("404")
+      ) {
+        console.warn("Broken avatar URL detected:", baseUrl);
+        return null; // Return null to trigger fallback
+      }
+    }
+  } catch (error) {
+    console.warn("Invalid avatar URL:", baseUrl, error);
+    return null;
+  }
+
   // Remove existing cache-busting parameters
   const cleanUrl = baseUrl.split("?")[0];
 
@@ -168,9 +234,85 @@ export const getSidebarAvatarUrl = (user) => {
     user.profileImageUrl ||
     null;
 
-  // Return the original URL without any cache-busting for maximum stability
-  // The browser's cache will handle freshness appropriately
-  return avatarUrl;
+  // Validate the URL before returning it
+  if (avatarUrl) {
+    // Check if it's a valid URL and not a broken Cloudinary URL
+    try {
+      const url = new URL(avatarUrl);
+      // If it's a Cloudinary URL, check if it contains known broken patterns
+      if (url.hostname.includes("cloudinary.com")) {
+        // Check for known broken image patterns
+        if (
+          url.pathname.includes("default_profile_image_q5j98z") ||
+          url.pathname.includes("default_profile_image") ||
+          url.pathname.includes("broken") ||
+          url.pathname.includes("404")
+        ) {
+          console.warn("Broken avatar URL detected:", avatarUrl);
+          return null; // Return null to trigger fallback
+        }
+      }
+      return avatarUrl;
+    } catch (error) {
+      console.warn("Invalid avatar URL:", avatarUrl, error);
+      return null;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Clean user data by removing broken avatar URLs
+ * @description Removes broken Cloudinary URLs from user object to prevent 404 errors
+ * @param {Object} user - User object
+ * @returns {Object} Cleaned user object
+ */
+export const cleanUserAvatarData = (user) => {
+  if (!user) return user;
+
+  const cleanedUser = { ...user };
+  const avatarFields = [
+    "profileImage",
+    "avatar",
+    "imageUrl",
+    "profilePicture",
+    "image",
+    "profileImageUrl",
+  ];
+
+  avatarFields.forEach((field) => {
+    if (cleanedUser[field]) {
+      try {
+        const url = new URL(cleanedUser[field]);
+        // If it's a Cloudinary URL, check if it contains known broken patterns
+        if (url.hostname.includes("cloudinary.com")) {
+          // Check for known broken image patterns
+          if (
+            url.pathname.includes("default_profile_image_q5j98z") ||
+            url.pathname.includes("default_profile_image") ||
+            url.pathname.includes("broken") ||
+            url.pathname.includes("404")
+          ) {
+            console.warn(
+              `Removing broken avatar URL from ${field}:`,
+              cleanedUser[field]
+            );
+            cleanedUser[field] = null;
+          }
+        }
+      } catch (error) {
+        console.warn(
+          `Removing invalid avatar URL from ${field}:`,
+          cleanedUser[field],
+          error
+        );
+        cleanedUser[field] = null;
+      }
+    }
+  });
+
+  return cleanedUser;
 };
 
 /**

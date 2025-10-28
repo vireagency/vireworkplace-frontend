@@ -71,9 +71,21 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function AdminDashboardMainPage() {
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, loading } = useAuth();
   const navigate = useNavigate();
   const greeting = getGreeting();
+
+  // Show loading state if auth context is still loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 animate-spin border-2 border-green-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Get user's first name, fallback to "Admin" if not available
   const userName = user?.firstName || "Admin";
@@ -83,7 +95,7 @@ export default function AdminDashboardMainPage() {
 
   // State for employee data
   const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // State for HR overview data
@@ -95,7 +107,7 @@ export default function AdminDashboardMainPage() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        setLoading(true);
+        setEmployeesLoading(true);
 
         // Check authentication
         if (!accessToken) {
@@ -143,7 +155,7 @@ export default function AdminDashboardMainPage() {
         console.error("Error fetching employees:", error);
         setError("Failed to load employees");
       } finally {
-        setLoading(false);
+        setEmployeesLoading(false);
       }
     };
 
@@ -671,7 +683,7 @@ export default function AdminDashboardMainPage() {
 
           {/* Employee Table */}
           <div className="overflow-x-auto">
-            {loading ? (
+            {employeesLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading employees...</p>

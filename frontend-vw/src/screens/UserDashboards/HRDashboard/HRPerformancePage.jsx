@@ -21,6 +21,9 @@ import {
   Loader2,
   Edit,
   Trash2,
+  CheckCircle,
+  AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 import { GoalCreationModal } from "@/components/auth/GoalCreationModal";
 import { useAuth } from "@/hooks/useAuth";

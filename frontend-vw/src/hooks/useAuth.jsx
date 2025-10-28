@@ -30,6 +30,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { cleanUserAvatarData } from "@/utils/avatarUtils";
 
 // API base URL for authentication endpoints
 const API_URL = "https://vireworkplace-backend-hpca.onrender.com/api/v1";
@@ -54,7 +55,11 @@ export const AuthProvider = ({ children }) => {
   // Initialize user state from localStorage if available
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
-    return storedUser ? JSON.parse(storedUser) : null;
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      return cleanUserAvatarData(parsedUser);
+    }
+    return null;
   });
 
   // Initialize access token from localStorage
@@ -190,9 +195,10 @@ export const AuthProvider = ({ children }) => {
 
         // Update state and localStorage
         setAccessToken(tokenFromLogin);
-        setUser(userData);
+        const cleanedUserData = cleanUserAvatarData(userData);
+        setUser(cleanedUserData);
         localStorage.setItem("access_token", tokenFromLogin);
-        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("user", JSON.stringify(cleanedUserData));
 
         // Don't fetch profile immediately after login - use the userData from login response
         // This prevents the black screen issue caused by setting loading state during navigation
@@ -298,8 +304,9 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.status === 200) {
-        setUser(response.data.data);
-        return { success: true, data: response.data.data };
+        const cleanedUserData = cleanUserAvatarData(response.data.data);
+        setUser(cleanedUserData);
+        return { success: true, data: cleanedUserData };
       }
     } catch (err) {
       console.error("Error fetching user profile:", err);
@@ -333,8 +340,9 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.status === 200) {
-        setUser(response.data.data);
-        return { success: true, data: response.data.data };
+        const cleanedUserData = cleanUserAvatarData(response.data.data);
+        setUser(cleanedUserData);
+        return { success: true, data: cleanedUserData };
       }
     } catch (err) {
       console.error("Update error:", err.response?.data || err.message);
@@ -481,6 +489,38 @@ export const useAuth = () => {
    */
   const context = useContext(AuthContext);
   if (!context) {
+    // During development/hot reload, sometimes context might not be available immediately
+    // Return a minimal context to prevent crashes
+    if (process.env.NODE_ENV === "development") {
+      console.warn("useAuth context not available, returning fallback context");
+      return {
+        user: null,
+        accessToken: null,
+        loading: true,
+        signIn: async () => ({
+          success: false,
+          error: "Context not available",
+        }),
+        signUp: async () => ({
+          success: false,
+          error: "Context not available",
+        }),
+        signOut: () => {},
+        fetchUserProfile: async () => ({
+          success: false,
+          error: "Context not available",
+        }),
+        updateProfile: async () => ({
+          success: false,
+          error: "Context not available",
+        }),
+        changePassword: async () => ({
+          success: false,
+          error: "Context not available",
+        }),
+        isTokenValid: () => false,
+      };
+    }
     throw new Error("useAuth must be used inside AuthProvider");
   }
   return context;
