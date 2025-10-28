@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { GoalCreationModal } from "@/components/auth/GoalCreationModal";
 import { useAuth } from "@/hooks/useAuth";
-import { adminPerformanceApi } from "@/services/adminPerformanceApi";
+import { adminHrApi } from "@/services/adminHrApi";
 import { toast } from "sonner";
 
 export default function AdminPerformancePage() {
@@ -75,7 +75,7 @@ export default function AdminPerformancePage() {
         "Loading goals with token:",
         accessToken.substring(0, 20) + "..."
       );
-      const result = await adminPerformanceApi.getAllGoals(accessToken);
+      const result = await adminHrApi.getAllGoals(accessToken);
       if (result.success) {
         const goalsData = result.data?.data || result.data || [];
         console.log("Loaded goals raw data:", goalsData);
@@ -118,7 +118,7 @@ export default function AdminPerformancePage() {
         );
 
         // Add pending goals from local storage
-        const pendingGoals = adminPerformanceApi.getPendingGoals();
+        const pendingGoals = adminHrApi.getPendingGoals();
         console.log("Pending goals from localStorage:", pendingGoals);
 
         // Transform pending goals to match the same format
@@ -156,7 +156,7 @@ export default function AdminPerformancePage() {
         toast.error(result.error || "Failed to load goals");
 
         // Even if API fails, show pending goals from localStorage
-        const pendingGoals = adminPerformanceApi.getPendingGoals();
+        const pendingGoals = adminHrApi.getPendingGoals();
         const transformedPendingGoals = pendingGoals.map((goal) => ({
           id: goal.id,
           title: goal.goalTitle || goal.title,
@@ -188,7 +188,7 @@ export default function AdminPerformancePage() {
       toast.error("Failed to load goals - showing pending goals only");
 
       // Show pending goals even if there's an error
-      const pendingGoals = adminPerformanceApi.getPendingGoals();
+      const pendingGoals = adminHrApi.getPendingGoals();
       const transformedPendingGoals = pendingGoals.map((goal) => ({
         id: goal.id,
         title: goal.goalTitle || goal.title,
@@ -221,12 +221,17 @@ export default function AdminPerformancePage() {
 
     setIsLoadingTrends(true);
     try {
-      const result = await adminPerformanceApi.getPerformanceTrends(
-        accessToken
-      );
+      const result = await adminHrApi.getPerformanceTrends(accessToken);
       if (result.success) {
         setPerformanceTrends(result.data);
         console.log("Loaded performance trends:", result.data);
+
+        // Show notification if using fallback data
+        if (result.isFallback) {
+          toast.warning(
+            "Using fallback performance data - Backend permission issue needs to be resolved"
+          );
+        }
       } else {
         toast.error(result.error || "Failed to load performance trends");
         // Fallback to static data if API fails
@@ -247,10 +252,17 @@ export default function AdminPerformancePage() {
 
     setIsLoadingOverview(true);
     try {
-      const result = await adminPerformanceApi.getOverview(accessToken);
+      const result = await adminHrApi.getOverview(accessToken);
       if (result.success) {
         setHrOverview(result.data);
         console.log("Loaded HR overview:", result.data);
+
+        // Show notification if using fallback data
+        if (result.isFallback) {
+          toast.warning(
+            "Using fallback data - Backend permission issue needs to be resolved"
+          );
+        }
       } else {
         toast.error(result.error || "Failed to load HR overview");
         // Fallback to static data if API fails
@@ -271,10 +283,17 @@ export default function AdminPerformancePage() {
 
     setIsLoadingStaffOverview(true);
     try {
-      const result = await adminPerformanceApi.getStaffOverview(accessToken);
+      const result = await adminHrApi.getStaffOverview(accessToken);
       if (result.success) {
         setStaffOverview(result.data);
         console.log("Loaded staff overview:", result.data);
+
+        // Show notification if using fallback data
+        if (result.isFallback) {
+          toast.warning(
+            "Using fallback staff data - Backend permission issue needs to be resolved"
+          );
+        }
       } else {
         toast.error(result.error || "Failed to load staff overview");
         // Fallback to static data if API fails
@@ -359,7 +378,7 @@ export default function AdminPerformancePage() {
 
     setIsDeletingGoal(goalId);
     try {
-      const result = await adminPerformanceApi.deleteGoal(goalId, accessToken);
+      const result = await adminHrApi.deleteGoal(goalId, accessToken);
       if (result.success) {
         toast.success("Goal deleted successfully");
         loadGoals(); // Reload goals
@@ -1109,8 +1128,8 @@ export default function AdminPerformancePage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <span>
-                        Current Quarter ({performanceTrends?.period || "Q4-2025"}
-                        )
+                        Current Quarter (
+                        {performanceTrends?.period || "Q4-2025"})
                       </span>
                       <div className="flex items-center gap-1 text-green-600 font-medium">
                         <TrendingUp className="h-4 w-4" />
