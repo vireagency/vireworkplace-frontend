@@ -65,8 +65,8 @@ import { adminDashboardConfig } from "@/config/dashboardConfigs";
 // Authentication
 import { useAuth } from "@/hooks/useAuth";
 
-// API Configuration
-import { getApiUrl } from "@/config/apiConfig";
+// API Services
+import { tasksApi } from "@/services/tasksApi";
 
 // Status Badge Component with instant updates
 const StatusBadge = ({ status, onStatusChange, taskId, canEdit = false }) => {
@@ -242,21 +242,13 @@ const AssigneeSearchInput = ({
           throw new Error("No access token available. Please log in again.");
         }
 
-        const searchUrl = getAssigneeSearchApiUrl();
-        const response = await axios.get(searchUrl, {
-          params: {
-            query: query.trim(),
-          },
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          timeout: 10000,
-        });
+        const result = await tasksApi.searchAssignees(
+          accessToken,
+          query.trim()
+        );
 
-        if (response.data && response.data.success) {
-          const userData = response.data.users || [];
+        if (result.success) {
+          const userData = result.data.users || [];
           const validUsers = userData
             .filter((user) => {
               const hasValidId = user && user._id;
@@ -307,12 +299,12 @@ const AssigneeSearchInput = ({
           setIsOpen(validUsers.length > 0);
           setSelectedIndex(-1);
         } else {
-          if (response.data.message === "No matching users found") {
+          if (result.data.message === "No matching users found") {
             setUsers([]);
             setIsOpen(false);
             setSearchError(null);
           } else {
-            setSearchError(response.data.message || "Search request failed");
+            setSearchError(result.data.message || "Search request failed");
             setUsers([]);
             setIsOpen(false);
           }
@@ -1237,45 +1229,6 @@ export default function AdminTasksPage() {
   // Performance optimization: Track updates in progress
   const [updatingTasks, setUpdatingTasks] = useState(new Set());
 
-  // API configuration
-  const getFullApiUrl = () => {
-    const baseUrl = getApiUrl();
-    const cleanBaseUrl = baseUrl
-      ? baseUrl.replace(/\/+$/, "")
-      : "https://vireworkplace-backend-hpca.onrender.com";
-    const noApiV1 = cleanBaseUrl.replace(/\/api\/v1$/, "");
-    return `${noApiV1}/api/v1`;
-  };
-
-  // Create axios instance with optimizations
-  const apiClient = axios.create({
-    baseURL: getFullApiUrl(),
-    timeout: 30000,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  // Add request interceptor
-  apiClient.interceptors.request.use((config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  });
-
-  // Add response interceptor for better error handling
-  apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please log in again.");
-        navigate("/login");
-      }
-      return Promise.reject(error);
-    }
-  );
-
   // Fetch tasks with optimized loading states
   const fetchTasks = useCallback(
     async (showSuccessToast = false) => {
@@ -1288,19 +1241,16 @@ export default function AdminTasksPage() {
           throw new Error("No access token available. Please log in again.");
         }
 
-        const params = new URLSearchParams();
-        if (statusFilter !== "all") params.append("status", statusFilter);
-        if (priorityFilter !== "all") params.append("priority", priorityFilter);
-        if (dueDateFilter) params.append("dueDate", dueDateFilter);
+        const filters = {};
+        if (statusFilter !== "all") filters.status = statusFilter;
+        if (priorityFilter !== "all") filters.priority = priorityFilter;
+        if (dueDateFilter) filters.dueDate = dueDateFilter;
 
-        const queryString = params.toString();
-        const url = `/tasks${queryString ? `?${queryString}` : ""}`;
+        const result = await tasksApi.getAllTasks(accessToken, filters);
 
-        const response = await apiClient.get(url);
-
-        if (response.data && response.data.success) {
+        if (result.success) {
           const apiData =
-            response.data.data || response.data.tasks || response.data || [];
+            result.data.data || result.data.tasks || result.data || [];
 
           if (Array.isArray(apiData)) {
             const transformedTasks = apiData.map((task) => ({
@@ -1333,9 +1283,9 @@ export default function AdminTasksPage() {
             console.warn("API response data is not an array:", apiData);
             setTasks([]);
           }
-        } else if (response.data && Array.isArray(response.data)) {
+        } else if (result.data && Array.isArray(result.data)) {
           // Handle case where API returns array directly
-          const transformedTasks = response.data.map((task) => ({
+          const transformedTasks = result.data.map((task) => ({
             id: task._id || task.id,
             title: task.title || "Untitled Task",
             description: task.description || "No description provided",
@@ -1362,23 +1312,17 @@ export default function AdminTasksPage() {
             toast.success(`Loaded ${transformedTasks.length} tasks`);
           }
         } else {
-          console.warn("API response indicates failure:", response.data);
+          console.warn("API response indicates failure:", result.data);
 
           // Try to extract tasks from any response format
           let extractedTasks = [];
-          if (response.data) {
-            if (Array.isArray(response.data)) {
-              extractedTasks = response.data;
-            } else if (
-              response.data.tasks &&
-              Array.isArray(response.data.tasks)
-            ) {
-              extractedTasks = response.data.tasks;
-            } else if (
-              response.data.data &&
-              Array.isArray(response.data.data)
-            ) {
-              extractedTasks = response.data.data;
+          if (result.data) {
+            if (Array.isArray(result.data)) {
+              extractedTasks = result.data;
+            } else if (result.data.tasks && Array.isArray(result.data.tasks)) {
+              extractedTasks = result.data.tasks;
+            } else if (result.data.data && Array.isArray(result.data.data)) {
+              extractedTasks = result.data.data;
             }
           }
 
@@ -1410,8 +1354,8 @@ export default function AdminTasksPage() {
             }
           } else {
             setTasks([]);
-            if (response.data?.message) {
-              throw new Error(response.data.message);
+            if (result.data?.message) {
+              throw new Error(result.data.message);
             }
           }
         }
@@ -1451,7 +1395,6 @@ export default function AdminTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      const url = `/tasks/create`;
       const preparedTaskData = {
         title: taskData.title?.trim(),
         description: taskData.description?.trim() || "",
@@ -1467,17 +1410,13 @@ export default function AdminTasksPage() {
         throw new Error("Task must be assigned to someone");
       }
 
-      const response = await apiClient.post(url, preparedTaskData);
+      const result = await tasksApi.createTask(accessToken, preparedTaskData);
 
-      if (response.data && response.data.success) {
-        await fetchTasks();
-        toast.success("Task created and assigned successfully!");
-      } else if (response.data && response.status === 201) {
-        // Handle case where API returns 201 but no success flag
+      if (result.success) {
         await fetchTasks();
         toast.success("Task created and assigned successfully!");
       } else {
-        throw new Error(response.data?.message || "Failed to add task");
+        throw new Error(result.error || "Failed to add task");
       }
     } catch (err) {
       console.error("Error adding task:", err);
@@ -1525,22 +1464,18 @@ export default function AdminTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      const response = await apiClient.patch(`/tasks/${taskId}/status`, {
-        status: newStatus,
-      });
+      const result = await tasksApi.updateTaskStatus(
+        accessToken,
+        taskId,
+        newStatus
+      );
 
-      if (response.data && response.data.success) {
+      if (result.success) {
         toast.success(`Task status updated to ${newStatus}!`);
         // Refresh to get latest data from server
         await fetchTasks();
-      } else if (response.data && response.status === 200) {
-        // Handle case where API returns 200 but no success flag
-        toast.success(`Task status updated to ${newStatus}!`);
-        await fetchTasks();
       } else {
-        throw new Error(
-          response.data?.message || "Failed to update task status"
-        );
+        throw new Error(result.error || "Failed to update task status");
       }
     } catch (err) {
       console.error("Error updating task status:", err);
@@ -1572,17 +1507,13 @@ export default function AdminTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      const response = await apiClient.delete(`/tasks/${taskId}`);
+      const result = await tasksApi.deleteTask(accessToken, taskId);
 
-      if (response.data && response.data.success) {
-        await fetchTasks();
-        toast.success("Task deleted successfully!");
-      } else if (response.data && response.status === 200) {
-        // Handle case where API returns 200 but no success flag
+      if (result.success) {
         await fetchTasks();
         toast.success("Task deleted successfully!");
       } else {
-        throw new Error(response.data?.message || "Failed to delete task");
+        throw new Error(result.error || "Failed to delete task");
       }
     } catch (err) {
       console.error("Error deleting task:", err);
@@ -1597,7 +1528,6 @@ export default function AdminTasksPage() {
         throw new Error("No access token available. Please log in again.");
       }
 
-      const url = `/tasks/${taskId}`;
       const preparedTaskData = {
         title: taskData.title?.trim(),
         description: taskData.description?.trim() || "",
@@ -1614,17 +1544,17 @@ export default function AdminTasksPage() {
         throw new Error("Task must be assigned to someone");
       }
 
-      const response = await apiClient.put(url, preparedTaskData);
+      const result = await tasksApi.updateTask(
+        accessToken,
+        taskId,
+        preparedTaskData
+      );
 
-      if (response.data && response.data.success) {
-        await fetchTasks();
-        toast.success("Task updated successfully!");
-      } else if (response.data && response.status === 200) {
-        // Handle case where API returns 200 but no success flag
+      if (result.success) {
         await fetchTasks();
         toast.success("Task updated successfully!");
       } else {
-        throw new Error(response.data?.message || "Failed to update task");
+        throw new Error(result.error || "Failed to update task");
       }
     } catch (err) {
       console.error("Error updating task:", err);

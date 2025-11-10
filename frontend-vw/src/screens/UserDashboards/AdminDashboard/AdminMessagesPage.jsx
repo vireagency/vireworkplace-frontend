@@ -340,7 +340,7 @@ export default function AdminMessagesPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">
                 Admin Messages
-              </h1>
+            </h1>
               {!isConnected && (
                 <Badge
                   variant="outline"
@@ -369,7 +369,7 @@ export default function AdminMessagesPage() {
             >
               <Send className="w-4 h-4 mr-2" />
               Send Message
-            </Button>
+          </Button>
           </div>
         </div>
 
@@ -406,8 +406,8 @@ export default function AdminMessagesPage() {
                 </p>
               </div>
               <CheckCheck className="w-8 h-8 text-green-400" />
-            </div>
-          </div>
+              </div>
+              </div>
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -418,21 +418,21 @@ export default function AdminMessagesPage() {
               </div>
               <Info className="w-8 h-8 text-orange-400" />
             </div>
-          </div>
+              </div>
         </div>
 
-        {/* Search and Filters */}
+            {/* Search and Filters */}
         <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
           {/* Search Bar */}
-          <div className="relative">
+                <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
+                  <Input
               placeholder="Search notifications..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+                    className="pl-10"
+                  />
+                </div>
 
           {/* Filter Controls */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -470,7 +470,7 @@ export default function AdminMessagesPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+              </div>
 
             {/* Priority Filter */}
             <div className="space-y-2">
@@ -480,15 +480,15 @@ export default function AdminMessagesPage() {
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Priorities" />
-                </SelectTrigger>
-                <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                   {filterOptions.priority.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
             </div>
 
             {/* Date Filter */}
@@ -499,17 +499,17 @@ export default function AdminMessagesPage() {
               <Select value={dateFilter} onValueChange={setDateFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Time" />
-                </SelectTrigger>
-                <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                   {filterOptions.date.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
 
           {/* Filter Actions */}
           <div className="flex items-center justify-between">
@@ -528,7 +528,7 @@ export default function AdminMessagesPage() {
                   notifications
                 </span>
               )}
-            </div>
+                                </div>
 
             <div className="flex items-center space-x-2">
               <Button
@@ -549,9 +549,9 @@ export default function AdminMessagesPage() {
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
-            </div>
-          </div>
-        </div>
+                                </div>
+                              </div>
+                            </div>
 
         {/* Bulk Actions */}
         {showBulkActions && (
@@ -569,7 +569,7 @@ export default function AdminMessagesPage() {
                 >
                   Clear Selection
                 </Button>
-              </div>
+                                </div>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
@@ -598,9 +598,9 @@ export default function AdminMessagesPage() {
                   )}
                   Delete
                 </Button>
-              </div>
-            </div>
-          </div>
+                                </div>
+                              </div>
+                            </div>
         )}
 
         {/* Messages List */}
@@ -609,7 +609,7 @@ export default function AdminMessagesPage() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
               <span className="text-gray-500">Loading notifications...</span>
-            </div>
+                            </div>
           ) : displayNotifications.length === 0 ? (
             <div className="text-center py-8">
               <Bell className="w-12 h-12 mx-auto text-gray-300 mb-4" />
@@ -631,7 +631,7 @@ export default function AdminMessagesPage() {
                   Clear Filters
                 </Button>
               )}
-            </div>
+                            </div>
           ) : (
             displayNotifications.map((notification) => {
               const priorityStyle = getPriorityStyle(
@@ -647,7 +647,7 @@ export default function AdminMessagesPage() {
                   className={`bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
                     !notification.isRead ? "bg-blue-50 border-blue-200" : ""
                   } ${isSelected ? "ring-2 ring-blue-500 bg-blue-50" : ""}`}
-                  onClick={() =>
+                                  onClick={() =>
                     handleNotificationSelection(notificationId, !isSelected)
                   }
                 >
@@ -676,8 +676,8 @@ export default function AdminMessagesPage() {
                         )}`}
                       >
                         {getNotificationTypeIcon(notificationType)}
-                      </div>
-                    </div>
+                </div>
+      </div>
 
                     {/* Message Content */}
                     <div className="flex-1 min-w-0">
@@ -704,7 +704,7 @@ export default function AdminMessagesPage() {
                                 New
                               </Badge>
                             )}
-                          </div>
+            </div>
                           <p className="text-sm text-gray-600 mb-1">
                             {notification.sender || "System"}
                           </p>
@@ -713,9 +713,9 @@ export default function AdminMessagesPage() {
                               notification.description ||
                               "No message content"}
                           </p>
-                        </div>
-                      </div>
-                    </div>
+              </div>
+              </div>
+            </div>
 
                     {/* Actions and Timestamp */}
                     <div className="flex flex-col items-end space-y-2 flex-shrink-0">
@@ -729,14 +729,14 @@ export default function AdminMessagesPage() {
                               notification.date
                           )}
                         </span>
-                      </div>
+            </div>
 
                       {/* Action Buttons */}
                       <div className="flex space-x-2">
                         {canMarkAsRead(notification) && (
-                          <Button
+              <Button
                             size="sm"
-                            variant="outline"
+                variant="outline"
                             className="text-xs px-2 py-1 h-6 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -752,13 +752,13 @@ export default function AdminMessagesPage() {
                                 Mark Read
                               </>
                             )}
-                          </Button>
+              </Button>
                         )}
 
                         {canDeleteNotification(notification) && (
-                          <Button
+                <Button
                             size="sm"
-                            variant="outline"
+                  variant="outline"
                             className="text-xs px-2 py-1 h-6 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -774,12 +774,12 @@ export default function AdminMessagesPage() {
                                 Delete
                               </>
                             )}
-                          </Button>
+                </Button>
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
+              </div>
+            </div>
               );
             })
           )}

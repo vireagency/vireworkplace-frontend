@@ -15,6 +15,7 @@
 
 import axios from "axios";
 import { apiConfig } from "@/config/apiConfig";
+import { log, logError, logWarn } from "@/utils/logger";
 
 // Base URLs for HR APIs that support admin access
 const HR_OVERVIEW_API_BASE = `${apiConfig.baseURL}/dashboard/hr/overview`;
@@ -39,20 +40,20 @@ const getAuthHeaders = (accessToken) => ({
  * @returns {Object} Error response object
  */
 const handleApiError = (error, operation) => {
-  console.error(`Error in ${operation}:`, error);
-  console.error("Error response:", error.response);
-  console.error("Error response data:", error.response?.data);
-  console.error("Error response status:", error.response?.status);
+  logError(`Error in ${operation}:`, error);
+  logError("Error response:", error.response);
+  logError("Error response data:", error.response?.data);
+  logError("Error response status:", error.response?.status);
 
   // Check if it's a 403 Forbidden error (role permission issue)
   if (error.response?.status === 403) {
-    console.error(
+    logError(
       "🚫 PERMISSION ERROR: Admin user does not have permission to access HR endpoints"
     );
-    console.error(
+    logError(
       "🔧 SOLUTION: Backend needs to allow Admin role to access HR endpoints"
     );
-    console.error(
+    logError(
       '📋 API Documentation states: "Get performance overview for Admin and HR"'
     );
 
@@ -84,19 +85,19 @@ export const adminHrApi = {
    */
   getOverview: async (accessToken) => {
     try {
-      console.log("Fetching HR overview for admin...");
+      log("Fetching HR overview for admin...");
       const response = await axios.get(HR_OVERVIEW_API_BASE, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("HR overview response for admin:", response.data);
+      log("HR overview response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       const errorResult = handleApiError(error, "fetching HR overview");
 
       // If it's a permission error, return fallback data
       if (errorResult.isPermissionError) {
-        console.log("Returning fallback overview data for admin...");
+        log("Returning fallback overview data for admin...");
         return {
           success: true,
           data: {
@@ -147,19 +148,19 @@ export const adminHrApi = {
    */
   getPerformanceTrends: async (accessToken) => {
     try {
-      console.log("Fetching performance trends for admin...");
+      log("Fetching performance trends for admin...");
       const response = await axios.get(HR_TRENDS_API_BASE, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Performance trends response for admin:", response.data);
+      log("Performance trends response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       const errorResult = handleApiError(error, "fetching performance trends");
 
       // If it's a permission error, return fallback data
       if (errorResult.isPermissionError) {
-        console.log("Returning fallback performance trends data for admin...");
+        log("Returning fallback performance trends data for admin...");
         return {
           success: true,
           data: {
@@ -250,7 +251,7 @@ export const adminHrApi = {
    */
   getAllGoals: async (accessToken, filters = {}) => {
     try {
-      console.log("Fetching performance goals for admin...");
+      log("Fetching performance goals for admin...");
 
       // Build query parameters
       const params = new URLSearchParams();
@@ -267,14 +268,14 @@ export const adminHrApi = {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Performance goals response for admin:", response.data);
+      log("Performance goals response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       const errorResult = handleApiError(error, "fetching performance goals");
 
       // If it's a permission error, return fallback data
       if (errorResult.isPermissionError) {
-        console.log("Returning fallback goals data for admin...");
+        log("Returning fallback goals data for admin...");
         return {
           success: true,
           data: {
@@ -390,12 +391,12 @@ export const adminHrApi = {
    */
   createGoal: async (accessToken, goalData) => {
     try {
-      console.log("Creating performance goal for admin...");
+      log("Creating performance goal for admin...");
       const response = await axios.post(HR_GOALS_API_BASE, goalData, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Goal creation response for admin:", response.data);
+      log("Goal creation response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error, "creating performance goal");
@@ -411,7 +412,7 @@ export const adminHrApi = {
    */
   updateGoal: async (accessToken, goalId, goalData) => {
     try {
-      console.log("Updating performance goal for admin...");
+      log("Updating performance goal for admin...");
       const response = await axios.patch(
         `${HR_GOALS_API_BASE}/${goalId}`,
         goalData,
@@ -420,7 +421,7 @@ export const adminHrApi = {
         }
       );
 
-      console.log("Goal update response for admin:", response.data);
+      log("Goal update response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error, "updating performance goal");
@@ -435,12 +436,12 @@ export const adminHrApi = {
    */
   deleteGoal: async (accessToken, goalId) => {
     try {
-      console.log("Deleting performance goal for admin...");
+      log("Deleting performance goal for admin...");
       const response = await axios.delete(`${HR_GOALS_API_BASE}/${goalId}`, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Goal deletion response for admin:", response.data);
+      log("Goal deletion response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error, "deleting performance goal");
@@ -454,19 +455,19 @@ export const adminHrApi = {
    */
   getStaffOverview: async (accessToken) => {
     try {
-      console.log("Fetching staff overview for admin...");
+      log("Fetching staff overview for admin...");
       const response = await axios.get(STAFF_OVERVIEW_API_BASE, {
         headers: getAuthHeaders(accessToken),
       });
 
-      console.log("Staff overview response for admin:", response.data);
+      log("Staff overview response for admin:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       const errorResult = handleApiError(error, "fetching staff overview");
 
       // If it's a permission error, return fallback data
       if (errorResult.isPermissionError) {
-        console.log("Returning fallback staff overview data for admin...");
+        log("Returning fallback staff overview data for admin...");
         return {
           success: true,
           data: {
@@ -496,7 +497,7 @@ export const adminHrApi = {
       const pendingGoals = localStorage.getItem("pendingGoals");
       return pendingGoals ? JSON.parse(pendingGoals) : [];
     } catch (error) {
-      console.error("Error getting pending goals:", error);
+      logError("Error getting pending goals:", error);
       return [];
     }
   },
@@ -509,7 +510,7 @@ export const adminHrApi = {
     try {
       localStorage.setItem("pendingGoals", JSON.stringify(goals));
     } catch (error) {
-      console.error("Error saving pending goals:", error);
+      logError("Error saving pending goals:", error);
     }
   },
 };

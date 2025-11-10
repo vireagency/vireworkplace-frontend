@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
 import { Card } from "@/components/ui/card";
@@ -50,10 +50,17 @@ import {
   Trash2,
   Settings,
 } from "lucide-react";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
+import { employeesApi } from "@/services/employeesApi";
 import { contextSearchApi } from "@/services/contextSearchApi";
 import { toast } from "sonner";
+import {
+  log,
+  logWarn,
+  logError,
+  logInfo,
+  logDebug,
+} from "@/utils/logger";
 
 // API configuration - using the centralized API config
 import { getApiUrl } from "@/config/apiConfig";
@@ -81,18 +88,6 @@ export default function AdminEmployeesPage() {
     getTokenExpiration,
   } = useAuth();
 
-  // Show loading state if auth context is still loading
-  if (employeesLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 animate-spin border-2 border-green-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
   const [employees, setEmployees] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,41 +104,42 @@ export default function AdminEmployeesPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Fetch employees from API
+  // Track component mount status to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  // Fetch employees from API with retry mechanism
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchEmployees = async (retryCount = 0) => {
       try {
+        log("[AdminEmployees] fetchEmployees:start", { retryCount });
         setEmployeesLoading(true);
+        setError(null); // Clear any previous errors
 
         // Check authentication
         if (!accessToken) {
-          console.log("Authentication status:", {
+          log("Authentication status:", {
             isAuthenticated,
             hasToken: !!accessToken,
           });
           throw new Error("No access token available. Please log in again.");
         }
 
-        console.log("Making API call to:", `${API_URL}/employees/list`);
-        console.log("User:", user);
-        console.log("User role:", user?.role);
-        console.log("Access token:", accessToken);
-        console.log("Token length:", accessToken?.length);
-        console.log("Token starts with:", accessToken?.substring(0, 20));
-        console.log("Token valid:", isTokenValid());
-        console.log("Token expires at:", getTokenExpiration());
+        log("Making API call to fetch employees...");
+        log("User:", user);
+        log("User role:", user?.role);
+        log("Access token:", accessToken);
+        log("Token length:", accessToken?.length);
+        log("Token starts with:", accessToken?.substring(0, 20));
+        log("Token valid:", isTokenValid());
+        log("Token expires at:", getTokenExpiration());
 
-        const response = await axios.get(`${API_URL}/employees/list`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-        console.log("Response received:", response);
+        // Fetch employees using centralized service
+        const result = await employeesApi.getAllEmployees(accessToken);
+        log("[AdminEmployees] API result:", result);
 
-        if (response.data.success) {
+        if (result.success) {
           // Transform API data to match our component structure
-          const transformedEmployees = response.data.data.map((emp) => ({
+          const transformedEmployees = result.data.data.map((emp) => ({
             id: emp._id,
             name: `${emp.firstName} ${emp.lastName}`,
             email: emp.email, // Use the actual email field from API
@@ -156,20 +152,28 @@ export default function AdminEmployeesPage() {
             avatar: emp.avatar || null,
           }));
 
-          setEmployees(transformedEmployees);
-          console.log("API Response:", response.data);
-          console.log("Transformed Employees:", transformedEmployees);
-          console.log(
-            "Employees state set to:",
-            transformedEmployees.length,
-            "employees"
-          );
+          // Only update state if component is still mounted
+          if (isMountedRef.current) {
+            setEmployees(transformedEmployees);
+            setError(null); // Clear the "Loading real data" message
+            log("API Response:", result.data);
+            log("Transformed Employees:", transformedEmployees);
+            log(
+              "Employees state set to:",
+              transformedEmployees.length,
+              "employees"
+            );
+          }
         } else {
-          setError("Failed to fetch employees");
+          // Only update state if component is still mounted
+          if (isMountedRef.current) {
+            logWarn("[AdminEmployees] API returned success=false", result);
+            setError(result.error || "Failed to fetch employees");
+          }
         }
       } catch (err) {
-        console.error("Error fetching employees:", err);
-        console.error("Error details:", {
+        logError("[AdminEmployees] Error fetching employees:", err);
+        logError("Error details:", {
           message: err.message,
           status: err.response?.status,
           statusText: err.response?.statusText,
@@ -178,23 +182,70 @@ export default function AdminEmployeesPage() {
 
         // Log the full error response for debugging
         if (err.response?.data) {
-          console.error("Backend error response:", err.response.data);
+          logError("Backend error response:", err.response.data);
         }
 
         // Set a more specific error message
         if (err.response?.status === 403) {
-          setError(
-            "Access denied. You may not have permission to view employee data."
-          );
+          if (isMountedRef.current) {
+            setError(
+              "Access denied. You may not have permission to view employee data."
+            );
+          }
         } else {
-          setError(`Error fetching employees: ${err.message}`);
+          if (isMountedRef.current) {
+            setError(`Error fetching employees: ${err.message}`);
+            // Retry once if it's a network error and we haven't retried yet
+            if (
+              retryCount === 0 &&
+              (err.message.includes("timeout") ||
+                err.message.includes("Network Error"))
+            ) {
+              log("[AdminEmployees] Retrying API call...");
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  fetchEmployees(1);
+                }
+              }, 2000);
+              return;
+            }
+          }
         }
       } finally {
-        setEmployeesLoading(false);
+        if (isMountedRef.current) {
+          log(
+            "[AdminEmployees] fetchEmployees:finally -> setEmployeesLoading(false)"
+          );
+          setEmployeesLoading(false);
+        }
       }
     };
 
-    fetchEmployees();
+    fetchEmployees(0); // Start with retry count 0
+  }, []);
+
+  // Watchdog: stop loading if it exceeds 3s
+  useEffect(() => {
+    if (!employeesLoading) return;
+    const t = setTimeout(() => {
+      if (isMountedRef.current && employeesLoading) {
+        logWarn(
+          "[AdminEmployees] Watchdog timeout hit (3s), stopping loader"
+        );
+        setEmployeesLoading(false);
+        setError(
+          "Request took too long. Please try again or check your connection."
+        );
+      }
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [employeesLoading]);
+
+  // Cleanup effect to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   // Contextual search function
@@ -214,14 +265,14 @@ export default function AdminEmployeesPage() {
     setHasSearched(true);
 
     try {
-      console.log("Performing contextual search for employees:", query);
+      log("Performing contextual search for employees:", query);
       const result = await contextSearchApi.searchEmployees(
         query.trim(),
         accessToken
       );
 
       if (result.success) {
-        console.log("Contextual search results:", result.data);
+        log("Contextual search results:", result.data);
 
         // Transform API data to match our component structure
         const transformedResults = result.data.results.map((emp) => ({
@@ -242,12 +293,12 @@ export default function AdminEmployeesPage() {
           `Found ${transformedResults.length} employees matching "${query}"`
         );
       } else {
-        console.error("Contextual search failed:", result.error);
+        logError("Contextual search failed:", result.error);
         toast.error(result.error || "Search failed");
         setSearchResults([]);
       }
     } catch (error) {
-      console.error("Contextual search error:", error);
+      logError("Contextual search error:", error);
       toast.error("Search failed. Please try again.");
       setSearchResults([]);
     } finally {
@@ -271,7 +322,7 @@ export default function AdminEmployeesPage() {
 
   // Filter employees based on search and filters
   const filteredEmployees = useMemo(() => {
-    console.log("Filtering employees:", employees.length, "total employees");
+    log("Filtering employees:", employees.length, "total employees");
 
     // If we have search results, use them; otherwise use all employees
     const employeesToFilter =
@@ -285,7 +336,7 @@ export default function AdminEmployeesPage() {
 
       return matchesStatus && matchesDepartment;
     });
-    console.log(
+    log(
       "Filtered employees:",
       filtered.length,
       "employees after filtering"
@@ -301,7 +352,7 @@ export default function AdminEmployeesPage() {
   );
   const hasMoreItems = currentEmployees.length < totalItems && totalItems > 0;
 
-  console.log("Pagination debug:", {
+  log("Pagination debug:", {
     totalItems,
     currentPage,
     itemsPerPage,
@@ -313,9 +364,44 @@ export default function AdminEmployeesPage() {
     setCurrentPage((prev) => prev + 1);
   };
 
-  const handleViewEmployee = (employee) => {
-    setSelectedEmployee(employee);
-    setIsModalOpen(true);
+  const handleViewEmployee = async (employee) => {
+    try {
+      // First set the basic employee data
+      setSelectedEmployee(employee);
+      setIsModalOpen(true);
+
+      // Then fetch detailed employee data
+      if (accessToken && employee.id) {
+        log("Fetching detailed data for employee:", employee.id);
+        const result = await employeesApi.getEmployeeById(
+          accessToken,
+          employee.id
+        );
+
+        if (result.success) {
+          // Update the selected employee with detailed data
+          const detailedEmployee = {
+            ...employee,
+            ...result.data.data,
+            // Ensure we keep the basic structure but add detailed info
+            profile: result.data.data.profile,
+            workStatus: result.data.data.workStatus,
+            tasksCompletedToday: result.data.data.tasksCompletedToday,
+          };
+          // Only update state if component is still mounted
+          if (isMountedRef.current) {
+            setSelectedEmployee(detailedEmployee);
+            log("Detailed employee data loaded:", detailedEmployee);
+          }
+        } else {
+          logWarn("Failed to fetch detailed employee data:", result.error);
+          // Keep the basic employee data if detailed fetch fails
+        }
+      }
+    } catch (error) {
+      logError("Error fetching detailed employee data:", error);
+      // Keep the basic employee data if detailed fetch fails
+    }
   };
 
   // Function to determine arrival status based on isLate field from API
@@ -686,10 +772,7 @@ export default function AdminEmployeesPage() {
                           </Button>
                           <DropdownMenu
                             onOpenChange={(open) =>
-                              console.log(
-                                "Employee actions dropdown open:",
-                                open
-                              )
+                              log("Employee actions dropdown open:", open)
                             }
                           >
                             <DropdownMenuTrigger asChild>
@@ -881,24 +964,95 @@ export default function AdminEmployeesPage() {
                 </div>
               </div>
 
-              {/* Quick Stats */}
-              <div className="border-t border-gray-200 pt-4">
-                <h4 className="font-medium text-gray-900 mb-3">Quick Stats</h4>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-2xl font-bold text-blue-600">85%</p>
-                    <p className="text-sm text-gray-600">Performance</p>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-2xl font-bold text-green-600">12</p>
-                    <p className="text-sm text-gray-600">Projects</p>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <p className="text-2xl font-bold text-purple-600">2.5</p>
-                    <p className="text-sm text-gray-600">Years</p>
+              {/* Additional Details from API */}
+              {selectedEmployee.profile && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h4 className="font-medium text-gray-900 mb-4">
+                    Additional Information
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedEmployee.workStatus && (
+                      <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                        <Briefcase className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-blue-600">Work Status</p>
+                          <p className="font-medium text-blue-900">
+                            {selectedEmployee.workStatus}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedEmployee.tasksCompletedToday !== undefined && (
+                      <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                        <Users className="w-5 h-5 text-green-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-green-600">
+                            Tasks Completed Today
+                          </p>
+                          <p className="font-medium text-green-900">
+                            {selectedEmployee.tasksCompletedToday}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedEmployee.profile.personalInfo && (
+                      <>
+                        {selectedEmployee.profile.personalInfo.nationality && (
+                          <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+                            <MapPin className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm text-purple-600">
+                                Nationality
+                              </p>
+                              <p className="font-medium text-purple-900">
+                                {
+                                  selectedEmployee.profile.personalInfo
+                                    .nationality
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedEmployee.profile.personalInfo
+                          .maritalStatus && (
+                          <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
+                            <Users className="w-5 h-5 text-orange-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm text-orange-600">
+                                Marital Status
+                              </p>
+                              <p className="font-medium text-orange-900">
+                                {
+                                  selectedEmployee.profile.personalInfo
+                                    .maritalStatus
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {selectedEmployee.profile.contactInfo &&
+                      selectedEmployee.profile.contactInfo.phoneNumber && (
+                        <div className="flex items-center space-x-3 p-3 bg-indigo-50 rounded-lg">
+                          <Mail className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-indigo-600">
+                              Phone Number
+                            </p>
+                            <p className="font-medium text-indigo-900">
+                              {selectedEmployee.profile.contactInfo.phoneNumber}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-gray-200 space-y-4">

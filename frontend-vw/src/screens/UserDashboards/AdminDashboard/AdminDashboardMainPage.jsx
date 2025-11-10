@@ -160,7 +160,7 @@ export default function AdminDashboardMainPage() {
     };
 
     if (accessToken) {
-      fetchEmployees();
+    fetchEmployees();
     }
   }, [accessToken, API_URL]);
 
@@ -397,7 +397,7 @@ export default function AdminDashboardMainPage() {
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-500">No data available</p>
-          </div>
+            </div>
         )}
       </div>
 
@@ -408,11 +408,11 @@ export default function AdminDashboardMainPage() {
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Department Performance Overview
-              </h3>
+            </h3>
               <p className="text-sm text-gray-500">
                 Check-in rates and attendance by department
-              </p>
-            </div>
+            </p>
+          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(hrOverviewData.data.departmentPerformance).map(
@@ -450,8 +450,8 @@ export default function AdminDashboardMainPage() {
                     </div>
                   </div>
                 )
-              )}
-            </div>
+        )}
+      </div>
           </div>
         </div>
       )}
@@ -536,7 +536,7 @@ export default function AdminDashboardMainPage() {
 
             {/* Chart Area */}
             <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center text-gray-500">
+                <div className="text-center text-gray-500">
                 <div className="text-4xl mb-2">📊</div>
                 <p>Chart will be displayed here</p>
               </div>
@@ -555,45 +555,45 @@ export default function AdminDashboardMainPage() {
             </div>
 
             <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Active Employees
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Active Employees
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
                     {hrOverviewData?.data?.activeEmployees || 0}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{
                       width: `${
                         ((hrOverviewData?.data?.activeEmployees || 0) / 50) *
                         100
                       }%`,
-                    }}
-                  ></div>
+                      }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Inactive for 60+mins
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Inactive for 60+mins
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
                     {Math.max(
                       0,
                       (hrOverviewData?.data?.activeEmployees || 0) -
                         (hrOverviewData?.data?.totalRemoteWorkersToday || 0)
                     )}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                    style={{
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                      style={{
                       width: `${
                         (Math.max(
                           0,
@@ -603,55 +603,55 @@ export default function AdminDashboardMainPage() {
                           50) *
                         100
                       }%`,
-                    }}
-                  ></div>
+                      }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    No Check-In
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      No Check-In
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
                     {hrOverviewData?.data?.noCheckInToday || 0}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{
                       width: `${
                         ((hrOverviewData?.data?.noCheckInToday || 0) / 50) * 100
                       }%`,
-                    }}
-                  ></div>
+                      }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Incomplete Tasks
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Incomplete Tasks
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
                     {hrOverviewData?.data?.incompleteTasks || 0}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-red-500 h-2 rounded-full transition-all duration-300"
-                    style={{
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{
                       width: `${
                         ((hrOverviewData?.data?.incompleteTasks || 0) / 50) *
                         100
                       }%`,
-                    }}
-                  ></div>
+                      }}
+                    ></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+                </div>
         </div>
       </div>
 
@@ -760,7 +760,7 @@ export default function AdminDashboardMainPage() {
                         {employee.department}
                       </TableCell>
                       <TableCell className="py-4 px-4">
-                        {employee.role}
+                          {employee.role}
                       </TableCell>
                       <TableCell className="py-4 px-4">
                         <StatusBadge status={employee.status} />

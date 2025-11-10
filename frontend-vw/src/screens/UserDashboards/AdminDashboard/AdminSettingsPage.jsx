@@ -685,7 +685,7 @@ export default function AdminSettingsPage() {
           <div className="px-6 py-4">
             <div className="bg-gray-100 rounded-lg p-1 inline-flex">
               {tabs.map((tab) => (
-                <button
+            <button
                   key={tab.id}
                   onClick={() => setProfileSubTab(tab.id)}
                   className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 cursor-pointer ${
@@ -696,9 +696,9 @@ export default function AdminSettingsPage() {
                 >
                   {tab.icon ? <tab.icon size={16} /> : null}
                   <span>{tab.label}</span>
-                </button>
+            </button>
               ))}
-            </div>
+          </div>
           </div>
         )}
 
@@ -716,7 +716,7 @@ export default function AdminSettingsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
-                    <div className="space-y-6">
+            <div className="space-y-6">
                       <div className="space-y-2">
                         <Label
                           htmlFor="firstName"
@@ -724,18 +724,18 @@ export default function AdminSettingsPage() {
                         >
                           First Name
                         </Label>
-                        <Input
+                      <Input
                           id="firstName"
                           value={formData.firstName}
-                          onChange={(e) =>
+                        onChange={(e) =>
                             setFormData({
                               ...formData,
                               firstName: e.target.value,
                             })
                           }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       <div className="space-y-2">
                         <Label
@@ -744,7 +744,7 @@ export default function AdminSettingsPage() {
                         >
                           Username
                         </Label>
-                        <Input
+                      <Input
                           id="username"
                           value={formData.username}
                           onChange={(e) =>
@@ -754,8 +754,8 @@ export default function AdminSettingsPage() {
                             })
                           }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       <div className="space-y-2">
                         <Label
@@ -855,8 +855,8 @@ export default function AdminSettingsPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                     {/* Right Column */}
                     <div className="space-y-6">
@@ -897,8 +897,8 @@ export default function AdminSettingsPage() {
                             })
                           }
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       <div className="space-y-2">
                         <Label
@@ -907,16 +907,16 @@ export default function AdminSettingsPage() {
                         >
                           Gender
                         </Label>
-                        <Select
+                      <Select
                           value={formData.gender}
-                          onValueChange={(value) =>
+                        onValueChange={(value) =>
                             setFormData({ ...formData, gender: value })
-                          }
-                        >
+                        }
+                      >
                           <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
                             <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
+                        </SelectTrigger>
+                        <SelectContent>
                             <SelectItem value="Male" className="cursor-pointer">
                               Male
                             </SelectItem>
@@ -932,9 +932,9 @@ export default function AdminSettingsPage() {
                             >
                               Other
                             </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                       <div className="space-y-2">
                         <Label
@@ -982,9 +982,9 @@ export default function AdminSettingsPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
                     </div>
                   </div>
+                </div>
 
                   {/* Save Button */}
                   <div className="flex justify-end">
@@ -1010,13 +1010,13 @@ export default function AdminSettingsPage() {
                           className="text-sm font-semibold text-gray-800"
                         >
                           Email
-                        </Label>
-                        <Input
+                      </Label>
+                      <Input
                           id="email"
                           value="admin@vireworkplace.com"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       <div className="space-y-2">
                         <Label
@@ -1044,8 +1044,8 @@ export default function AdminSettingsPage() {
                           value="Greater Accra"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                     {/* Right Column */}
                     <div className="space-y-6">
@@ -1060,8 +1060,8 @@ export default function AdminSettingsPage() {
                           id="phone"
                           value="(+233) 0248940734"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       <div className="space-y-2">
                         <Label
@@ -1088,19 +1088,19 @@ export default function AdminSettingsPage() {
                           id="postalCode"
                           value="GP-2448"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
                     </div>
                   </div>
+                </div>
 
                   {/* Save Button */}
                   <div className="flex justify-end mt-6">
                     <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                       Save
                     </Button>
-                  </div>
-                </div>
-              )}
+              </div>
+            </div>
+          )}
 
               {/* Emergency Contact Tab */}
               {profileSubTab === "emergency" && (
@@ -1110,7 +1110,7 @@ export default function AdminSettingsPage() {
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
-                    <div className="space-y-6">
+            <div className="space-y-6">
                       <div className="space-y-2">
                         <Label
                           htmlFor="ec_fullName"
@@ -1118,12 +1118,12 @@ export default function AdminSettingsPage() {
                         >
                           Full Name
                         </Label>
-                        <Input
+                          <Input
                           id="ec_fullName"
                           value="Emergency Contact"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                          />
+                        </div>
 
                       <div className="space-y-2">
                         <Label
@@ -1132,12 +1132,12 @@ export default function AdminSettingsPage() {
                         >
                           Alt Phone Number (Optional)
                         </Label>
-                        <Input
+                          <Input
                           id="ec_altPhone"
                           placeholder="Enter optional phone number"
                           className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
-                        />
-                      </div>
+                          />
+                        </div>
 
                       <div className="space-y-2">
                         <Label
@@ -1405,9 +1405,9 @@ export default function AdminSettingsPage() {
                   <div className="flex justify-end mt-6">
                     <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
                       Save
-                    </Button>
-                  </div>
-                </div>
+                        </Button>
+                      </div>
+                    </div>
               )}
 
               {/* Qualifications Tab */}
@@ -1430,7 +1430,7 @@ export default function AdminSettingsPage() {
                           <div className="flex items-center space-x-4">
                             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                               <IconSchool className="w-5 h-5 text-gray-600" />
-                            </div>
+              </div>
                             <div>
                               <h3 className="font-semibold text-gray-800">
                                 Education
@@ -1484,11 +1484,11 @@ export default function AdminSettingsPage() {
                                         <span className="text-gray-700 text-sm">
                                           {entry.description}
                                         </span>
-                                      </div>
+                              </div>
                                       <p className="text-gray-500 text-sm">
                                         {entry.duration}
                                       </p>
-                                    </div>
+                                </div>
                                     <div className="flex items-center space-x-2 ml-4">
                                       <button
                                         className="p-1 hover:bg-blue-50 rounded transition-colors"
@@ -1517,9 +1517,9 @@ export default function AdminSettingsPage() {
                                       >
                                         <IconTrash className="w-4 h-4 text-red-600" />
                                       </button>
-                                    </div>
-                                  </div>
                                 </div>
+                              </div>
+                            </div>
                               ))}
                             </div>
                           </div>
@@ -1545,8 +1545,8 @@ export default function AdminSettingsPage() {
                       Employment Documents
                     </h2>
                     <div className="flex items-center gap-3">
-                      <Button
-                        variant="outline"
+                              <Button
+                                variant="outline"
                         className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
                       >
                         <svg
@@ -1564,7 +1564,7 @@ export default function AdminSettingsPage() {
                           <path d="M20.49 15A9 9 0 016.36 18.36L1 14"></path>
                         </svg>
                         Reset
-                      </Button>
+                              </Button>
                       <Button className="bg-green-500 hover:bg-green-600 text-white cursor-pointer">
                         Save Changes
                       </Button>
@@ -1596,14 +1596,14 @@ export default function AdminSettingsPage() {
                       <p className="text-xs text-gray-400 mt-1">
                         PDF,DOC,DOCX files up to 10MB
                       </p>
-                      <Button
-                        variant="outline"
+                              <Button
+                                variant="outline"
                         className="mt-4 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                      >
+                              >
                         Choose File
-                      </Button>
-                    </div>
-                  </div>
+                              </Button>
+                            </div>
+                </div>
 
                   {/* National ID */}
                   <div className="mb-8">
@@ -1636,8 +1636,8 @@ export default function AdminSettingsPage() {
                       >
                         Choose File
                       </Button>
+                      </div>
                     </div>
-                  </div>
 
                   {/* Certificate */}
                   <div className="mb-2">
@@ -1670,9 +1670,9 @@ export default function AdminSettingsPage() {
                       >
                         Choose File
                       </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
               )}
 
               {/* System Settings Tab */}
@@ -1733,9 +1733,9 @@ export default function AdminSettingsPage() {
                           id="accessLevel"
                           value="Full System Access"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
                     </div>
+                      </div>
                     <div className="space-y-6">
                       <div className="space-y-2">
                         <Label
@@ -1748,8 +1748,8 @@ export default function AdminSettingsPage() {
                           id="lastLogin"
                           value="Today, 09:30 AM"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
                       <div className="space-y-2">
                         <Label
                           htmlFor="sessionTimeout"
@@ -1788,15 +1788,15 @@ export default function AdminSettingsPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                    </div>
                   </div>
+                </div>
+              </div>
                   <div className="flex justify-end mt-6">
                     <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                       Save
                     </Button>
                   </div>
-                </div>
+            </div>
               )}
             </>
           )}
@@ -1816,7 +1816,7 @@ export default function AdminSettingsPage() {
                     className="text-sm font-semibold text-gray-800"
                   >
                     Current Password
-                  </Label>
+                      </Label>
                   <div className="relative">
                     <Input
                       id="currentPassword"
@@ -1859,7 +1859,7 @@ export default function AdminSettingsPage() {
                     className="text-sm font-semibold text-gray-800"
                   >
                     New password
-                  </Label>
+                      </Label>
                   <div className="relative">
                     <Input
                       id="newPassword"
@@ -1887,7 +1887,7 @@ export default function AdminSettingsPage() {
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
-                  </div>
+                    </div>
 
                   {/* Password Strength Indicator */}
                   {passwordState.formData.newPassword && (
@@ -1917,7 +1917,7 @@ export default function AdminSettingsPage() {
                               }`}
                             />
                           ))}
-                        </div>
+                  </div>
                       </div>
                       <p className="text-xs text-gray-500">
                         {passwordState.formData.newPassword.length < 8
@@ -2003,8 +2003,8 @@ export default function AdminSettingsPage() {
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-red-700 text-sm">
                       {passwordState.error}
-                    </p>
-                  </div>
+                      </p>
+                    </div>
                 )}
 
                 {/* Success Display */}
@@ -2112,7 +2112,7 @@ export default function AdminSettingsPage() {
                                     </p>
                                   </div>
                                   <div className="ml-4">
-                                    <Switch
+                    <Switch
                                       checked={
                                         notificationState.notificationSettings
                                           .systemManagement.toggles.systemAlerts
@@ -2124,18 +2124,18 @@ export default function AdminSettingsPage() {
                                         )
                                       }
                                       className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
-                                    />
-                                  </div>
-                                </div>
+                    />
+                  </div>
+                </div>
                               </div>
                             )}
-                          </div>
-                        </div>
-                      )}
+              </div>
+            </div>
+          )}
                     </div>
                   );
                 })}
-              </div>
+        </div>
 
               {/* Error Display */}
               {notificationState.error && (
@@ -2143,7 +2143,7 @@ export default function AdminSettingsPage() {
                   <p className="text-red-700 text-sm">
                     Error: {notificationState.error}
                   </p>
-                </div>
+        </div>
               )}
 
               {/* Save Preferences Button */}
@@ -2157,7 +2157,7 @@ export default function AdminSettingsPage() {
                     ? "Saving..."
                     : "Save Preferences"}
                 </Button>
-              </div>
+      </div>
             </div>
           )}
         </div>

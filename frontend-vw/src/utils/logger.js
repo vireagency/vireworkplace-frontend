@@ -4,31 +4,38 @@
  */
 
 const isDevelopment = import.meta.env.DEV;
+const isProduction = import.meta.env.PROD;
+
+const shouldLog = !isProduction;
 
 /**
  * Production-safe console.log
  * Only logs in development environment
  */
 export const log = (...args) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.log(...args);
   }
 };
 
 /**
  * Production-safe console.error
- * Always logs errors, even in production
+ * Errors are suppressed in production console; extend here for remote reporting
  */
 export const logError = (...args) => {
-  console.error(...args);
+  if (shouldLog || isDevelopment) {
+    console.error(...args);
+  }
 };
 
 /**
  * Production-safe console.warn
- * Always logs warnings, even in production
+ * Only logs outside production builds
  */
 export const logWarn = (...args) => {
-  console.warn(...args);
+  if (shouldLog) {
+    console.warn(...args);
+  }
 };
 
 /**
@@ -36,7 +43,7 @@ export const logWarn = (...args) => {
  * Only logs in development environment
  */
 export const logInfo = (...args) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.info(...args);
   }
 };
@@ -46,7 +53,7 @@ export const logInfo = (...args) => {
  * Only logs in development environment
  */
 export const logDebug = (...args) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.debug(...args);
   }
 };
@@ -56,7 +63,7 @@ export const logDebug = (...args) => {
  * Only logs in development environment
  */
 export const logGroup = (label) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.group(label);
   }
 };
@@ -66,7 +73,7 @@ export const logGroup = (label) => {
  * Only logs in development environment
  */
 export const logGroupEnd = () => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.groupEnd();
   }
 };
@@ -76,7 +83,7 @@ export const logGroupEnd = () => {
  * Only logs in development environment
  */
 export const logTable = (data) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.table(data);
   }
 };
@@ -86,7 +93,7 @@ export const logTable = (data) => {
  * Only logs in development environment
  */
 export const logTime = (label) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.time(label);
   }
 };
@@ -96,7 +103,7 @@ export const logTime = (label) => {
  * Only logs in development environment
  */
 export const logTimeEnd = (label) => {
-  if (isDevelopment) {
+  if (shouldLog) {
     console.timeEnd(label);
   }
 };

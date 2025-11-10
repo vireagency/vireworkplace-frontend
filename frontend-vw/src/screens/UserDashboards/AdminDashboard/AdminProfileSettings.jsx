@@ -263,8 +263,8 @@ export default function AdminProfileSettings() {
             <span className="font-bold text-black">Account Settings</span>
             <span className="text-gray-500"> / </span>
             <span className="text-gray-500">Profile</span>
-          </p>
-        </div>
+            </p>
+          </div>
 
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
@@ -394,7 +394,7 @@ export default function AdminProfileSettings() {
                               d="M19 9l-7 7-7-7"
                             />
                           </svg>
-                        </Button>
+                </Button>
                       </PopoverTrigger>
                       <PopoverContent
                         className="w-auto overflow-hidden p-0 bg-popover border border-border rounded-md shadow-md"
@@ -671,7 +671,7 @@ export default function AdminProfileSettings() {
               <div className="flex justify-end mt-6">
                 <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                   Save
-                </Button>
+              </Button>
               </div>
             </div>
           )}
@@ -697,7 +697,7 @@ export default function AdminProfileSettings() {
                       value="Michael Gyamfi"
                       className="bg-white border-gray-300 rounded-md text-gray-600"
                     />
-                  </div>
+          </div>
 
                   <div className="space-y-2">
                     <Label
@@ -711,7 +711,7 @@ export default function AdminProfileSettings() {
                       placeholder="Enter optional phone number"
                       className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
                     />
-                  </div>
+        </div>
 
                   <div className="space-y-2">
                     <Label
@@ -794,8 +794,8 @@ export default function AdminProfileSettings() {
                   Save
                 </Button>
               </div>
-            </div>
-          )}
+                      </div>
+                    )}
 
           {/* Employment Details Tab */}
           {activeTab === "employment" && (
@@ -996,7 +996,7 @@ export default function AdminProfileSettings() {
                         <div>
                           <h3 className="font-semibold text-gray-800">
                             Education
-                          </h3>
+                    </h3>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
@@ -1057,7 +1057,7 @@ export default function AdminProfileSettings() {
                                   <p className="text-gray-500 text-sm">
                                     {entry.duration}
                                   </p>
-                                </div>
+                    </div>
 
                                 {/* Action Buttons */}
                                 <div className="flex items-center space-x-2 ml-4">
@@ -1090,8 +1090,8 @@ export default function AdminProfileSettings() {
                                   >
                                     <IconTrash className="w-4 h-4 text-red-600" />
                                   </button>
-                                </div>
-                              </div>
+                  </div>
+                </div>
                             </div>
                           ))}
                         </div>
@@ -1133,7 +1133,7 @@ export default function AdminProfileSettings() {
                           placeholder="University of Example"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
-                      </div>
+                  </div>
 
                       {/* Description Field */}
                       <div className="space-y-2">
@@ -1306,8 +1306,8 @@ export default function AdminProfileSettings() {
                                       <IconMapPin className="w-3 h-3 text-red-500" />
                                       <span className="text-gray-500 text-sm">
                                         {entry.location}
-                                      </span>
-                                    </div>
+                    </span>
+                  </div>
 
                                     {/* Duration */}
                                     <p className="text-gray-500 text-sm mb-2">
@@ -1321,10 +1321,10 @@ export default function AdminProfileSettings() {
                                       </span>
                                       <span className="text-gray-500">
                                         {entry.skills}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
+                    </span>
+                  </div>
+                </div>
+          </div>
 
                                 {/* Action Buttons */}
                                 <div className="flex items-center space-x-2 ml-4">
@@ -1393,19 +1393,19 @@ export default function AdminProfileSettings() {
                         >
                           Job Title
                         </Label>
-                        <Input
+                      <Input
                           id="jobTitle"
                           value={experienceForm.jobTitle}
-                          onChange={(e) =>
+                        onChange={(e) =>
                             setExperienceForm({
                               ...experienceForm,
                               jobTitle: e.target.value,
                             })
-                          }
+                        }
                           placeholder="Software Engineer"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       {/* Organization/Company Field */}
                       <div className="space-y-2">
@@ -1415,19 +1415,19 @@ export default function AdminProfileSettings() {
                         >
                           Organization/Company
                         </Label>
-                        <Input
+                      <Input
                           id="organization"
                           value={experienceForm.organization}
-                          onChange={(e) =>
+                        onChange={(e) =>
                             setExperienceForm({
                               ...experienceForm,
                               organization: e.target.value,
                             })
-                          }
+                        }
                           placeholder="Organization name"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       {/* Description Field */}
                       <div className="space-y-2">
@@ -1449,7 +1449,7 @@ export default function AdminProfileSettings() {
                           placeholder="Job type and responsibilities"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
-                      </div>
+                  </div>
 
                       {/* Location Field */}
                       <div className="space-y-2">
@@ -1459,19 +1459,19 @@ export default function AdminProfileSettings() {
                         >
                           Location
                         </Label>
-                        <Input
+                    <Input
                           id="location"
                           value={experienceForm.location}
-                          onChange={(e) =>
+                      onChange={(e) =>
                             setExperienceForm({
                               ...experienceForm,
                               location: e.target.value,
                             })
-                          }
+                      }
                           placeholder="City, Country"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                    />
+                  </div>
 
                       {/* Skills Field */}
                       <div className="space-y-2">
@@ -1481,10 +1481,10 @@ export default function AdminProfileSettings() {
                         >
                           Skills (comma-separated)
                         </Label>
-                        <Input
+                    <Input
                           id="skills"
                           value={experienceForm.skills}
-                          onChange={(e) =>
+                      onChange={(e) =>
                             setExperienceForm({
                               ...experienceForm,
                               skills: e.target.value,
@@ -1514,9 +1514,9 @@ export default function AdminProfileSettings() {
                           }
                           placeholder="2020 - 2024"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
-                    </div>
+                    />
+                  </div>
+                </div>
 
                     {/* Action Buttons */}
                     <div className="flex justify-end space-x-3 mt-6">
@@ -1590,7 +1590,7 @@ export default function AdminProfileSettings() {
                         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                           <IconAward className="w-5 h-5 text-gray-600" />
                         </div>
-                        <div>
+                    <div>
                           <h3 className="font-semibold text-gray-800">
                             Licenses & Certifications
                           </h3>
@@ -1732,19 +1732,19 @@ export default function AdminProfileSettings() {
                         >
                           Certification Name
                         </Label>
-                        <Input
+                      <Input
                           id="certificationName"
                           value={licensesForm.certificationName}
-                          onChange={(e) =>
+                        onChange={(e) =>
                             setLicensesForm({
                               ...licensesForm,
                               certificationName: e.target.value,
                             })
-                          }
+                        }
                           placeholder="AWS Certified Developer"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       {/* Organization/Company Field */}
                       <div className="space-y-2">
@@ -1754,19 +1754,19 @@ export default function AdminProfileSettings() {
                         >
                           Organization/Company
                         </Label>
-                        <Input
+                      <Input
                           id="organization"
                           value={licensesForm.organization}
-                          onChange={(e) =>
+                        onChange={(e) =>
                             setLicensesForm({
                               ...licensesForm,
                               organization: e.target.value,
                             })
-                          }
+                        }
                           placeholder="Organization name"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
+                      />
+                    </div>
 
                       {/* Description Field */}
                       <div className="space-y-2">
@@ -1788,7 +1788,7 @@ export default function AdminProfileSettings() {
                           placeholder="Certification details"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
                         />
-                      </div>
+                  </div>
 
                       {/* Issue Date Field */}
                       <div className="space-y-2">
@@ -1798,20 +1798,20 @@ export default function AdminProfileSettings() {
                         >
                           Issue Date
                         </Label>
-                        <Input
+                    <Input
                           id="issueDate"
                           value={licensesForm.issueDate}
-                          onChange={(e) =>
+                      onChange={(e) =>
                             setLicensesForm({
                               ...licensesForm,
                               issueDate: e.target.value,
                             })
-                          }
+                      }
                           placeholder="Issued January 2024"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
-                    </div>
+                    />
+                  </div>
+                </div>
 
                     {/* Action Buttons */}
                     <div className="flex justify-end space-x-3 mt-6">
@@ -1874,7 +1874,7 @@ export default function AdminProfileSettings() {
                         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                           <IconBrain className="w-5 h-5 text-gray-600" />
                         </div>
-                        <div>
+                  <div>
                           <h3 className="font-semibold text-gray-800">
                             Skills
                           </h3>
@@ -1965,9 +1965,9 @@ export default function AdminProfileSettings() {
                           }
                           placeholder="Enter skill name"
                           className="bg-white border-gray-300 rounded-md text-gray-600"
-                        />
-                      </div>
-                    </div>
+                    />
+                  </div>
+                </div>
 
                     {/* Action Buttons */}
                     <div className="flex justify-end space-x-3 mt-6">
@@ -1993,18 +1993,18 @@ export default function AdminProfileSettings() {
                       >
                         Add Skill
                       </Button>
-                    </div>
+                      </div>
                   </DialogContent>
                 </Dialog>
-              </div>
+                    </div>
 
               {/* Save Button */}
               <div className="flex justify-end mt-8">
                 <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                   Save
                 </Button>
-              </div>
-            </div>
+                  </div>
+                      </div>
           )}
 
           {/* Documents Tab */}
@@ -2038,8 +2038,8 @@ export default function AdminProfileSettings() {
                   <Button className="bg-green-500 hover:bg-green-600 text-white cursor-pointer">
                     Save Changes
                   </Button>
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               {/* CV/Resume */}
               <div className="mb-8">
@@ -2106,8 +2106,8 @@ export default function AdminProfileSettings() {
                   >
                     Choose File
                   </Button>
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               {/* Certificate */}
               <div className="mb-2">
@@ -2141,10 +2141,10 @@ export default function AdminProfileSettings() {
                     Choose File
                   </Button>
                 </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
+          )}
+      </div>
       </div>
     </DashboardLayout>
   );

@@ -21,6 +21,26 @@ import App from "./App.jsx";
 // Import NotificationProvider for real-time notifications
 import { NotificationProvider } from "./contexts/NotificationProvider.jsx";
 
+// Disable console output in production to prevent exposing diagnostics to end-users
+if (import.meta.env.PROD) {
+  const noop = () => {};
+  [
+    "log",
+    "info",
+    "debug",
+    "warn",
+    "error",
+    "trace",
+    "group",
+    "groupCollapsed",
+    "groupEnd",
+  ].forEach((method) => {
+    if (typeof console[method] === "function") {
+      console[method] = noop;
+    }
+  });
+}
+
 /**
  * Bootstrap the React application by creating a root and rendering the App component
  * @description This is the entry point that mounts the React application to the DOM

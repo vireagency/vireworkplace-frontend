@@ -544,14 +544,14 @@ export default function AdminReportsPage() {
         {/* Page Header */}
         <div className="pb-4">
           <div className="flex justify-between items-start">
-            <div>
+          <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Admin Reports
-              </h1>
+            </h1>
               <p className="text-gray-600 mt-1">
                 Manage and track all system reports and analytics.
-              </p>
-            </div>
+            </p>
+          </div>
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleExportReports}
@@ -565,9 +565,9 @@ export default function AdminReportsPage() {
                 onClick={handleOpenModal}
                 className="bg-green-500 hover:bg-green-600 text-white"
               >
-                <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 mr-2" />
                 Create New Report
-              </Button>
+          </Button>
             </div>
           </div>
         </div>
@@ -607,8 +607,8 @@ export default function AdminReportsPage() {
                         <CardDescription>{card.title}</CardDescription>
                         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                           {card.value}
-                        </CardTitle>
-                      </CardHeader>
+              </CardTitle>
+            </CardHeader>
                       <div className="absolute bottom-3 right-3">
                         <Badge
                           variant="secondary"
@@ -626,10 +626,10 @@ export default function AdminReportsPage() {
                           )}
                           {card.change}
                         </Badge>
-                      </div>
-                    </Card>
+              </div>
+          </Card>
                   ))}
-                </div>
+              </div>
               </div>
 
               {/* Reports Table Section */}
@@ -647,54 +647,54 @@ export default function AdminReportsPage() {
                         </p>
                       </div>
                     </div>
-                  </div>
+        </div>
 
                   {/* Search and Filter Bar */}
                   <div className="flex items-center space-x-4 mb-6">
                     <div className="relative flex-1 max-w-md">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder="Search reports..."
+              <Input
+                placeholder="Search reports..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
+                className="pl-10"
+              />
+            </div>
                     <div className="flex items-center space-x-2">
                       <Filter className="w-4 h-4 text-gray-400" />
                       <Select value={typeFilter} onValueChange={setTypeFilter}>
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="All Types" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Types</SelectItem>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
                           <SelectItem value="system">System</SelectItem>
                           <SelectItem value="performance">
                             Performance
                           </SelectItem>
                           <SelectItem value="security">Security</SelectItem>
                           <SelectItem value="general">General</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
+              </SelectContent>
+            </Select>
+            <Select
                         value={statusFilter}
                         onValueChange={setStatusFilter}
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="All Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="in progress">
                             In Progress
                           </SelectItem>
                           <SelectItem value="draft">Draft</SelectItem>
                           <SelectItem value="overdue">Overdue</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
                   {/* Reports Table */}
                   <div className="overflow-x-auto">
@@ -799,12 +799,12 @@ export default function AdminReportsPage() {
                                           report.description ||
                                           "No description"}
                                       </p>
-                                    </div>
-                                  </div>
+                          </div>
+                        </div>
                                 </TableCell>
                                 <TableCell className="py-4 px-4">
                                   <Badge
-                                    variant="outline"
+                            variant="outline"
                                     className="text-xs font-medium"
                                   >
                                     {reportType}
@@ -839,33 +839,33 @@ export default function AdminReportsPage() {
                                   <div className="flex items-center space-x-2">
                                     <Button
                                       variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleViewReport(report)}
+                            size="sm"
+                            onClick={() => handleViewReport(report)}
                                       className="text-gray-600 hover:text-gray-900"
-                                    >
+                          >
                                       <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button
+                          </Button>
+                          <Button
                                       variant="ghost"
-                                      size="sm"
+                            size="sm"
                                       onClick={() =>
                                         handleOpenEditModal(report)
                                       }
                                       className="text-blue-600 hover:text-blue-900"
-                                    >
+                          >
                                       <Pencil className="w-4 h-4" />
-                                    </Button>
-                                    <Button
+                          </Button>
+                          <Button
                                       variant="ghost"
-                                      size="sm"
+                            size="sm"
                                       onClick={() =>
                                         handleDeleteReport(report._id)
                                       }
                                       className="text-red-600 hover:text-red-900"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                                 </TableCell>
                               </TableRow>
                             );
@@ -873,10 +873,10 @@ export default function AdminReportsPage() {
                         </TableBody>
                       </Table>
                     )}
-                  </div>
+                      </div>
                 </div>
               </div>
-            </TabsContent>
+          </TabsContent>
           )}
 
           {/* My Reports Tab Content */}
@@ -887,14 +887,14 @@ export default function AdminReportsPage() {
                 <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
                   {getCurrentSummaryCards().map((card, index) => (
                     <Card key={index} className="@container/card relative">
-                      <CardHeader>
+              <CardHeader>
                         <CardDescription>{card.title}</CardDescription>
                         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                           {card.value}
                         </CardTitle>
-                      </CardHeader>
+              </CardHeader>
                       <div className="absolute bottom-3 right-3">
-                        <Badge
+                            <Badge
                           variant="secondary"
                           className={
                             card.color === "green"
@@ -909,8 +909,8 @@ export default function AdminReportsPage() {
                               : "text-red-600"
                           )}
                           {card.change}
-                        </Badge>
-                      </div>
+                            </Badge>
+                          </div>
                     </Card>
                   ))}
                 </div>
@@ -929,8 +929,8 @@ export default function AdminReportsPage() {
                         <p className="text-sm text-gray-500">
                           {filteredReports.length} reports
                         </p>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
                   </div>
 
                   {/* Search and Filter Bar */}
@@ -1152,7 +1152,7 @@ export default function AdminReportsPage() {
                                         </button>
                                       </>
                                     )}
-                                  </div>
+                        </div>
                                 </TableCell>
                               </TableRow>
                             );
@@ -1160,10 +1160,10 @@ export default function AdminReportsPage() {
                         </TableBody>
                       </Table>
                     )}
-                  </div>
+                      </div>
                 </div>
               </div>
-            </TabsContent>
+          </TabsContent>
           )}
 
           {/* Security Reports Tab Content */}
@@ -1174,14 +1174,14 @@ export default function AdminReportsPage() {
                 <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
                   {getCurrentSummaryCards().map((card, index) => (
                     <Card key={index} className="@container/card relative">
-                      <CardHeader>
+              <CardHeader>
                         <CardDescription>{card.title}</CardDescription>
                         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                           {card.value}
                         </CardTitle>
-                      </CardHeader>
+              </CardHeader>
                       <div className="absolute bottom-3 right-3">
-                        <Badge
+                            <Badge
                           variant="secondary"
                           className={
                             card.color === "green"
@@ -1196,8 +1196,8 @@ export default function AdminReportsPage() {
                               : "text-red-600"
                           )}
                           {card.change}
-                        </Badge>
-                      </div>
+                            </Badge>
+                          </div>
                     </Card>
                   ))}
                 </div>
@@ -1216,8 +1216,8 @@ export default function AdminReportsPage() {
                         <p className="text-sm text-gray-500">
                           {filteredReports.length} reports
                         </p>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
                   </div>
 
                   {/* Search and Filter Bar */}
@@ -1437,7 +1437,7 @@ export default function AdminReportsPage() {
                                         </button>
                                       </>
                                     )}
-                                  </div>
+                        </div>
                                 </TableCell>
                               </TableRow>
                             );
@@ -1445,10 +1445,10 @@ export default function AdminReportsPage() {
                         </TableBody>
                       </Table>
                     )}
-                  </div>
+                      </div>
                 </div>
               </div>
-            </TabsContent>
+          </TabsContent>
           )}
         </Tabs>
       </div>
@@ -1531,7 +1531,7 @@ export default function AdminReportsPage() {
                         )
                       : "N/A"}
                   </p>
-                </div>
+                          </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">
                     Due Date
@@ -1548,8 +1548,8 @@ export default function AdminReportsPage() {
                         )
                       : "Not set"}
                   </p>
-                </div>
-              </div>
+                          </div>
+                        </div>
 
               {/* Report Description */}
               <div>
@@ -1584,17 +1584,17 @@ export default function AdminReportsPage() {
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <Button
+                          <Button
                   type="button"
-                  variant="outline"
+                            variant="outline"
                   onClick={() => setIsViewModalOpen(false)}
                   className="px-6"
-                >
+                          >
                   Close
-                </Button>
+                          </Button>
                 {(selectedReport.author?._id === user?._id ||
                   selectedReport.author === user?._id) && (
-                  <Button
+                          <Button
                     onClick={() => {
                       setIsViewModalOpen(false);
                       handleOpenEditModal(selectedReport);
@@ -1603,10 +1603,10 @@ export default function AdminReportsPage() {
                   >
                     <Pencil className="w-4 h-4 mr-2" />
                     Edit Report
-                  </Button>
+                          </Button>
                 )}
-              </div>
-            </div>
+                        </div>
+                      </div>
           )}
         </DialogContent>
       </Dialog>
@@ -1630,9 +1630,9 @@ export default function AdminReportsPage() {
               {/* Two Column Layout for first 4 fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
-                <div className="space-y-6">
+            <div className="space-y-6">
                   {/* Report Title */}
-                  <div>
+                <div>
                     <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
                       Report Title *
                     </label>
@@ -1646,7 +1646,7 @@ export default function AdminReportsPage() {
                       className="w-full"
                       required
                     />
-                  </div>
+                    </div>
 
                   {/* Report Type */}
                   <div>
@@ -1671,8 +1671,8 @@ export default function AdminReportsPage() {
                         <SelectItem value="general">General</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
+                    </div>
+                    </div>
 
                 {/* Right Column */}
                 <div className="space-y-6">
@@ -1707,7 +1707,7 @@ export default function AdminReportsPage() {
                         <SelectItem value="marketing">Marketing</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                    </div>
 
                   {/* Priority Level */}
                   <div>
@@ -1735,7 +1735,7 @@ export default function AdminReportsPage() {
               </div>
 
               {/* Due Date - Full Width */}
-              <div>
+                <div>
                 <label className="text-[14px] font-medium text-[#0d141c] mb-2 block">
                   Due Date
                 </label>
@@ -1785,8 +1785,8 @@ export default function AdminReportsPage() {
                     <Loader2 className="w-6 h-6 animate-spin text-green-500 mr-2" />
                     <span className="text-sm text-gray-500">
                       Loading employees...
-                    </span>
-                  </div>
+                          </span>
+                        </div>
                 ) : employees.length === 0 ? (
                   <div className="text-center py-8 border border-gray-200 rounded-lg">
                     <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -1893,9 +1893,9 @@ export default function AdminReportsPage() {
                               No employees match your search
                             </p>
                           </div>
-                        )}
-                      </div>
-                    </div>
+                    )}
+                  </div>
+                </div>
                   </>
                 )}
                 {formData.recipients.length > 0 && (
@@ -1931,7 +1931,7 @@ export default function AdminReportsPage() {
                         </Badge>
                       ) : null;
                     })}
-                  </div>
+              </div>
                 )}
               </div>
 
@@ -1964,7 +1964,7 @@ export default function AdminReportsPage() {
                 </Button>
               </div>
             </form>
-          </div>
+            </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
