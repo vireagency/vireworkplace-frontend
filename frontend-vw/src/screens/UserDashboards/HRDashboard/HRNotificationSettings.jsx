@@ -258,11 +258,11 @@ export default function HRNotificationSettings() {
 
         {/* Profile Section */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
-          <div className="flex items-start space-x-6">
+          <div className="flex items-center gap-6">
             {/* Profile Picture */}
             <div className="relative">
               <Avatar
-                className="w-24 h-24 rounded-full overflow-hidden"
+                className="w-20 h-20 rounded-full overflow-hidden"
                 key={user?.avatarUpdatedAt || user?.avatar}
               >
                 <AvatarImage
@@ -278,44 +278,31 @@ export default function HRNotificationSettings() {
                     : "U"}
                 </AvatarFallback>
               </Avatar>
-              {/* Green plus icon overlay */}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <IconPlus className="w-3 h-3 text-white" />
-              </div>
+              {/* Green status dot */}
+              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
             </div>
 
             {/* Profile Details */}
-            <div className="flex-1">
-              <div className="flex items-center space-x-4 mb-2">
-                <button className="text-red-500 text-sm hover:underline cursor-pointer">
+            <div className="flex-1 text-sm text-gray-700">
+              <div className="flex items-center gap-4 mb-1">
+                <button className="text-red-500 font-medium hover:underline cursor-pointer">
                   Remove
                 </button>
-                <button className="text-green-500 text-sm hover:underline cursor-pointer">
+                <button className="text-green-500 font-medium hover:underline cursor-pointer">
                   Update
                 </button>
               </div>
-              <p className="text-sm text-gray-400 mb-2">
-                Recommended size: 400X400px
+              <p className="text-xs text-gray-500 mb-2">
+                Recommended size: 400x400px
               </p>
-              <h3 className="text-lg font-bold text-gray-800 mb-1">
-                {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
-              </h3>
-              <p className="text-gray-600 mb-3">
-                {user?.jobRole || user?.role || "Loading..."}
+              <p className="font-semibold text-gray-800">
+                Job Title: {user?.jobRole || user?.role || "Human Resource Manager"}
               </p>
-              <div className="flex items-center space-x-6">
-                <StatusBadge status={user?.attendanceStatus || "Active"} />
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">
-                    Work ID: {user?.workId || "N/A"}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">
-                    Arrival: {user?.isLate ? "Late" : "On Time"}
-                  </span>
-                </div>
-              </div>
+              <p>
+                Work ID: {user?.workId || "N/A"} | Status:{" "}
+                {user?.attendanceStatus || "Active"} | Arrival:{" "}
+                {user?.isLate ? "Late" : "On Time"}
+              </p>
             </div>
           </div>
         </div>

@@ -609,37 +609,55 @@ export default function AdminSettingsPage() {
 
         {/* Profile Section (common to all tabs) */}
         <div className="px-6 py-6 bg-white border-b border-gray-200">
-          <div className="flex items-start space-x-6">
+          <div className="flex items-center gap-6">
             {/* Profile Picture Upload */}
-            <ProfileImageUpload
-              size="w-24 h-24"
-              currentImageUrl={user?.avatar}
-              userName={user ? `${user.firstName} ${user.lastName}` : ""}
-              showActions={true}
-              showSizeHint={true}
-            />
+            <div className="relative">
+              <ProfileImageUpload
+                size="w-20 h-20"
+                currentImageUrl={user?.avatar}
+                userName={user ? `${user.firstName} ${user.lastName}` : ""}
+                showActions={false}
+                showSizeHint={false}
+              />
+              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white bg-green-500" />
+            </div>
 
             {/* Profile Details */}
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-gray-800 mb-1">
-                {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
-              </h3>
-              <p className="text-gray-600 mb-3">
-                {user?.jobRole || user?.role || "System Administrator"}
-              </p>
-              <div className="flex items-center space-x-6">
-                <StatusBadge status={user?.attendanceStatus || "Active"} />
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">
-                    Admin ID: {user?.workId || "ADMIN-001"}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-gray-700 text-sm">
-                    Access Level: Full Admin
-                  </span>
-                </div>
+            <div className="flex-1 text-sm text-gray-700">
+              <div className="flex items-center gap-4 mb-1">
+                <button
+                  type="button"
+                  className="text-red-500 font-medium hover:underline"
+                  onClick={() => {
+                    if (profileSubTab !== "system") {
+                      setActiveTab("profile");
+                      setProfileSubTab("system");
+                    }
+                  }}
+                >
+                  Remove
+                </button>
+                <button
+                  type="button"
+                  className="text-green-500 font-medium hover:underline"
+                  onClick={() => {
+                    setActiveTab("profile");
+                    setProfileSubTab("personal");
+                  }}
+                >
+                  Update
+                </button>
               </div>
+              <p className="text-xs text-gray-500 mb-2">
+                Recommended size: 400x400px
+              </p>
+              <p className="font-semibold text-gray-800">
+                Job Title: {user?.jobRole || user?.role || "System Administrator"}
+              </p>
+              <p>
+                Admin ID: {user?.workId || "ADMIN-001"} | Status:{" "}
+                {user?.attendanceStatus || "Active"}
+              </p>
             </div>
           </div>
         </div>
@@ -1795,7 +1813,7 @@ export default function AdminSettingsPage() {
                     <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
                       Save
                     </Button>
-                  </div>
+              </div>
             </div>
               )}
             </>
