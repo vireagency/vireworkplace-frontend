@@ -1,6 +1,5 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
-import adminData from "./adminData.json";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -677,7 +676,6 @@ export default function AdminPerformancePage() {
       showSectionCards={false}
       showChart={false}
       showDataTable={false}
-      dataTableData={adminData}
     >
       {/* Employee Performance Overview Dashboard */}
       <div className="px-4 lg:px-6">
