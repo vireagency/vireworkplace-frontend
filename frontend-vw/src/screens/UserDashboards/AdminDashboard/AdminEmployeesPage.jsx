@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
 import { Card } from "@/components/ui/card";
@@ -80,13 +80,7 @@ const departments = [
 ];
 
 export default function AdminEmployeesPage() {
-  const {
-    accessToken,
-    user,
-    isAuthenticated,
-    isTokenValid,
-    getTokenExpiration,
-  } = useAuth();
+  const { accessToken, user, isTokenValid, getTokenExpiration } = useAuth();
 
   const [employees, setEmployees] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
@@ -106,23 +100,22 @@ export default function AdminEmployeesPage() {
 
   // Track component mount status to prevent state updates after unmount
   const isMountedRef = useRef(true);
+  const hasTriggeredFetchRef = useRef(false);
 
-  // Fetch employees from API with retry mechanism
-  useEffect(() => {
-    const fetchEmployees = async (retryCount = 0) => {
+  const fetchEmployees = useCallback(
+    async (retryCount = 0) => {
+      if (!accessToken) {
+        log("[AdminEmployees] fetchEmployees skipped - no access token yet", {
+          hasToken: !!accessToken,
+        });
+        return;
+      }
+
       try {
+        hasTriggeredFetchRef.current = true;
         log("[AdminEmployees] fetchEmployees:start", { retryCount });
         setEmployeesLoading(true);
         setError(null); // Clear any previous errors
-
-        // Check authentication
-        if (!accessToken) {
-          log("Authentication status:", {
-            isAuthenticated,
-            hasToken: !!accessToken,
-          });
-          throw new Error("No access token available. Please log in again.");
-        }
 
         log("Making API call to fetch employees...");
         log("User:", user);
@@ -164,12 +157,9 @@ export default function AdminEmployeesPage() {
               "employees"
             );
           }
-        } else {
-          // Only update state if component is still mounted
-          if (isMountedRef.current) {
-            logWarn("[AdminEmployees] API returned success=false", result);
-            setError(result.error || "Failed to fetch employees");
-          }
+        } else if (isMountedRef.current) {
+          logWarn("[AdminEmployees] API returned success=false", result);
+          setError(result.error || "Failed to fetch employees");
         }
       } catch (err) {
         logError("[AdminEmployees] Error fetching employees:", err);
@@ -186,14 +176,12 @@ export default function AdminEmployeesPage() {
         }
 
         // Set a more specific error message
-        if (err.response?.status === 403) {
-          if (isMountedRef.current) {
+        if (isMountedRef.current) {
+          if (err.response?.status === 403) {
             setError(
               "Access denied. You may not have permission to view employee data."
             );
-          }
-        } else {
-          if (isMountedRef.current) {
+          } else {
             setError(`Error fetching employees: ${err.message}`);
             // Retry once if it's a network error and we haven't retried yet
             if (
@@ -219,14 +207,23 @@ export default function AdminEmployeesPage() {
           setEmployeesLoading(false);
         }
       }
-    };
+    },
+    [accessToken, getTokenExpiration, isTokenValid, user]
+  );
 
-    fetchEmployees(0); // Start with retry count 0
-  }, []);
-
-  // Watchdog: stop loading if it exceeds 3s
+  // Fetch employees when auth state and token are ready
   useEffect(() => {
-    if (!employeesLoading) return;
+    if (!accessToken) {
+      log("[AdminEmployees] Access token not available yet - waiting");
+      return;
+    }
+
+    fetchEmployees(0);
+  }, [accessToken, fetchEmployees, log]);
+
+  // Watchdog: stop loading if it exceeds 3s after a fetch has started
+  useEffect(() => {
+    if (!hasTriggeredFetchRef.current || !employeesLoading) return;
     const t = setTimeout(() => {
       if (isMountedRef.current && employeesLoading) {
         logWarn(
@@ -480,7 +477,7 @@ export default function AdminEmployeesPage() {
             </h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <Button
-              onClick={() => window.location.reload()}
+              onClick={() => fetchEmployees(0)}
               className="bg-green-500 hover:bg-green-600"
             >
               Try Again
