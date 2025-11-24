@@ -780,13 +780,13 @@ export default function EmployeesPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
                     {selectedEmployee.name}
                   </h3>
-                  <p className="text-gray-600 mb-3">{selectedEmployee.role}</p>
-                  <div className="flex items-center space-x-20">
+                  <p className="text-gray-600 mb-2">{selectedEmployee.role}</p>
+                  <div className="flex items-center gap-4">
                     <StatusBadge status={selectedEmployee.status} />
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-500">Arrival:</span>
                       <div
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
@@ -814,11 +814,11 @@ export default function EmployeesPage() {
                   </div>
 
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <Briefcase className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-500">Department</p>
+                      <p className="text-sm text-gray-500">Work Location</p>
                       <p className="font-medium text-gray-900 truncate">
-                        {selectedEmployee.department}
+                        {selectedEmployee.location || "Not specified"}
                       </p>
                     </div>
                   </div>
@@ -826,11 +826,11 @@ export default function EmployeesPage() {
 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <Briefcase className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-500">Work Location</p>
+                      <p className="text-sm text-gray-500">Department</p>
                       <p className="font-medium text-gray-900 truncate">
-                        {selectedEmployee.location}
+                        {selectedEmployee.department}
                       </p>
                     </div>
                   </div>
@@ -840,28 +840,9 @@ export default function EmployeesPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Last Check-in</p>
                       <p className="font-medium text-gray-900 truncate">
-                        {selectedEmployee.checkIn}
+                        {selectedEmployee.checkIn || "N/A"}
                       </p>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="border-t border-gray-200 pt-4">
-                <h4 className="font-medium text-gray-900 mb-3">Quick Stats</h4>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-2xl font-bold text-blue-600">85%</p>
-                    <p className="text-sm text-gray-600">Performance</p>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-2xl font-bold text-green-600">12</p>
-                    <p className="text-sm text-gray-600">Projects</p>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <p className="text-2xl font-bold text-purple-600">2.5</p>
-                    <p className="text-sm text-gray-600">Years</p>
                   </div>
                 </div>
               </div>
