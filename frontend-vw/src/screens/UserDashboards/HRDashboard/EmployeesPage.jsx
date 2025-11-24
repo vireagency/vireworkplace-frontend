@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { hrDashboardConfig } from "@/config/dashboardConfigs";
 import { Card } from "@/components/ui/card";
@@ -66,6 +67,7 @@ const departments = [
 ];
 
 export default function EmployeesPage() {
+  const navigate = useNavigate();
   const {
     accessToken,
     user,
@@ -885,7 +887,13 @@ export default function EmployeesPage() {
                   </Button>
                 </div>
                 <div className="flex justify-center">
-                  <Button className="bg-[#04b435] hover:bg-[#04b435]/90 text-white px-6 py-2 cursor-pointer">
+                  <Button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      navigate(`/human-resource-manager/employees/${selectedEmployee.id}`);
+                    }}
+                    className="bg-[#04b435] hover:bg-[#04b435]/90 text-white px-6 py-2 cursor-pointer"
+                  >
                     View Complete Profile
                   </Button>
                 </div>

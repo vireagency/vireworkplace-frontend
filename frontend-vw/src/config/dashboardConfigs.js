@@ -257,7 +257,6 @@ export const adminDashboardConfig = {
       title: "Tasks",
       url: "/admin/tasks",
       icon: IconListDetails,
-      badge: "35",
     },
     {
       title: "Employees",

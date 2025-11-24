@@ -97,6 +97,7 @@ export function NavCategorized({
     // Map item titles to count keys
     const titleMapping = {
       Evaluations: "evaluations",
+      Tasks: "tasks",
       Employees: "employees",
       Messages: "messages",
       Reports: "reports",

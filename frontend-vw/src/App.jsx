@@ -95,6 +95,7 @@ import EvaluationCreator from "./screens/UserDashboards/HRDashboard/EvaluationCr
 import HRPerformancePage from "./screens/UserDashboards/HRDashboard/HRPerformancePage";
 import HRHiringPage from "./screens/UserDashboards/HRDashboard/HRHiringPage";
 import EmployeesPage from "./screens/UserDashboards/HRDashboard/EmployeesPage";
+import HREmployeeProfileView from "./screens/UserDashboards/HRDashboard/HREmployeeProfileView";
 import HRMessagesPage from "./screens/UserDashboards/HRDashboard/HRMessagesPage";
 import HRReportsPage from "./screens/UserDashboards/HRDashboard/HRReportsPage";
 
@@ -116,6 +117,7 @@ import AdminInventoryPage from "./screens/UserDashboards/AdminDashboard/AdminInv
 import AdminMessagesPage from "./screens/UserDashboards/AdminDashboard/AdminMessagesPage";
 import AdminPerformancePage from "./screens/UserDashboards/AdminDashboard/AdminPerformancePage";
 import AdminTasksPage from "./screens/UserDashboards/AdminDashboard/AdminTasksPage";
+import AdminEmployeeProfileView from "./screens/UserDashboards/AdminDashboard/AdminEmployeeProfileView";
 import StaffDashboardMainPage from "./screens/UserDashboards/StaffDashboard/StaffDashboardMainPage";
 
 // Staff Dashboard Components - Lazy loaded for better performance
@@ -336,6 +338,14 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/human-resource-manager/employees/:id"
+                  element={
+                    <ProtectedRoute requiredRole="Human Resource Manager">
+                      <HREmployeeProfileView />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/human-resource-manager/messages"
                   element={
                     <ProtectedRoute requiredRole="Human Resource Manager">
@@ -402,6 +412,14 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole="Admin">
                       <AdminEmployeesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/employees/:id"
+                  element={
+                    <ProtectedRoute requiredRole="Admin">
+                      <AdminEmployeeProfileView />
                     </ProtectedRoute>
                   }
                 />

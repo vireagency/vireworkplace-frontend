@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { adminDashboardConfig } from "@/config/dashboardConfigs";
 import { Card } from "@/components/ui/card";
@@ -50,17 +51,10 @@ import {
   Trash2,
   Settings,
 } from "lucide-react";
+import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import { employeesApi } from "@/services/employeesApi";
 import { contextSearchApi } from "@/services/contextSearchApi";
 import { toast } from "sonner";
-import {
-  log,
-  logWarn,
-  logError,
-  logInfo,
-  logDebug,
-} from "@/utils/logger";
 
 // API configuration - using the centralized API config
 import { getApiUrl } from "@/config/apiConfig";
@@ -80,10 +74,16 @@ const departments = [
 ];
 
 export default function AdminEmployeesPage() {
-  const { accessToken, user, isTokenValid, getTokenExpiration } = useAuth();
-
+  const navigate = useNavigate();
+  const {
+    accessToken,
+    user,
+    isAuthenticated,
+    isTokenValid,
+    getTokenExpiration,
+  } = useAuth();
   const [employees, setEmployees] = useState([]);
-  const [employeesLoading, setEmployeesLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -98,72 +98,67 @@ export default function AdminEmployeesPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Track component mount status to prevent state updates after unmount
-  const isMountedRef = useRef(true);
-  const hasTriggeredFetchRef = useRef(false);
-
-  const fetchEmployees = useCallback(
-    async (retryCount = 0) => {
-      if (!accessToken) {
-        log("[AdminEmployees] fetchEmployees skipped - no access token yet", {
-          hasToken: !!accessToken,
-        });
-        return;
-      }
-
+  // Fetch employees from API
+  useEffect(() => {
+    const fetchEmployees = async () => {
       try {
-        hasTriggeredFetchRef.current = true;
-        log("[AdminEmployees] fetchEmployees:start", { retryCount });
-        setEmployeesLoading(true);
-        setError(null); // Clear any previous errors
+        setLoading(true);
 
-        log("Making API call to fetch employees...");
-        log("User:", user);
-        log("User role:", user?.role);
-        log("Access token:", accessToken);
-        log("Token length:", accessToken?.length);
-        log("Token starts with:", accessToken?.substring(0, 20));
-        log("Token valid:", isTokenValid());
-        log("Token expires at:", getTokenExpiration());
+        // Check authentication
+        if (!accessToken) {
+          console.log("Authentication status:", {
+            isAuthenticated,
+            hasToken: !!accessToken,
+          });
+          throw new Error("No access token available. Please log in again.");
+        }
 
-        // Fetch employees using centralized service
-        const result = await employeesApi.getAllEmployees(accessToken);
-        log("[AdminEmployees] API result:", result);
+        console.log("Making API call to:", `${API_URL}/employees/list`);
+        console.log("User:", user);
+        console.log("User role:", user?.role);
+        console.log("Access token:", accessToken);
+        console.log("Token length:", accessToken?.length);
+        console.log("Token starts with:", accessToken?.substring(0, 20));
+        console.log("Token valid:", isTokenValid());
+        console.log("Token expires at:", getTokenExpiration());
 
-        if (result.success) {
+        const response = await axios.get(`${API_URL}/employees/list`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        console.log("Response received:", response);
+
+        if (response.data.success) {
           // Transform API data to match our component structure
-          const transformedEmployees = result.data.data.map((emp) => ({
+          const transformedEmployees = response.data.data.map((emp) => ({
             id: emp._id,
             name: `${emp.firstName} ${emp.lastName}`,
             email: emp.email, // Use the actual email field from API
             role: emp.jobRole,
-            department: emp.department, // Use the actual department field from API
-            status: emp.attendanceStatus,
+            department: emp.department || emp.departmentName || "Unknown", // Use the actual department field from API
+            status: emp.attendanceStatus || emp.status || "Unknown",
             location: emp.locationToday,
             checkIn: emp.checkInTime,
             isLate: emp.isLate, // Use the isLate field from API
             avatar: emp.avatar || null,
           }));
 
-          // Only update state if component is still mounted
-          if (isMountedRef.current) {
-            setEmployees(transformedEmployees);
-            setError(null); // Clear the "Loading real data" message
-            log("API Response:", result.data);
-            log("Transformed Employees:", transformedEmployees);
-            log(
-              "Employees state set to:",
-              transformedEmployees.length,
-              "employees"
-            );
-          }
-        } else if (isMountedRef.current) {
-          logWarn("[AdminEmployees] API returned success=false", result);
-          setError(result.error || "Failed to fetch employees");
+          setEmployees(transformedEmployees);
+          console.log("API Response:", response.data);
+          console.log("Transformed Employees:", transformedEmployees);
+          console.log(
+            "Employees state set to:",
+            transformedEmployees.length,
+            "employees"
+          );
+        } else {
+          setError("Failed to fetch employees");
         }
       } catch (err) {
-        logError("[AdminEmployees] Error fetching employees:", err);
-        logError("Error details:", {
+        console.error("Error fetching employees:", err);
+        console.error("Error details:", {
           message: err.message,
           status: err.response?.status,
           statusText: err.response?.statusText,
@@ -172,78 +167,24 @@ export default function AdminEmployeesPage() {
 
         // Log the full error response for debugging
         if (err.response?.data) {
-          logError("Backend error response:", err.response.data);
+          console.error("Backend error response:", err.response.data);
         }
 
         // Set a more specific error message
-        if (isMountedRef.current) {
-          if (err.response?.status === 403) {
-            setError(
-              "Access denied. You may not have permission to view employee data."
-            );
-          } else {
-            setError(`Error fetching employees: ${err.message}`);
-            // Retry once if it's a network error and we haven't retried yet
-            if (
-              retryCount === 0 &&
-              (err.message.includes("timeout") ||
-                err.message.includes("Network Error"))
-            ) {
-              log("[AdminEmployees] Retrying API call...");
-              setTimeout(() => {
-                if (isMountedRef.current) {
-                  fetchEmployees(1);
-                }
-              }, 2000);
-              return;
-            }
-          }
+        if (err.response?.status === 403) {
+          setError(
+            "Access denied. You may not have permission to view employee data."
+          );
+        } else {
+          setError(`Error fetching employees: ${err.message}`);
         }
       } finally {
-        if (isMountedRef.current) {
-          log(
-            "[AdminEmployees] fetchEmployees:finally -> setEmployeesLoading(false)"
-          );
-          setEmployeesLoading(false);
-        }
+        setLoading(false);
       }
-    },
-    [accessToken, getTokenExpiration, isTokenValid, user]
-  );
-
-  // Fetch employees when auth state and token are ready
-  useEffect(() => {
-    if (!accessToken) {
-      log("[AdminEmployees] Access token not available yet - waiting");
-      return;
-    }
-
-    fetchEmployees(0);
-  }, [accessToken, fetchEmployees, log]);
-
-  // Watchdog: stop loading if it exceeds 3s after a fetch has started
-  useEffect(() => {
-    if (!hasTriggeredFetchRef.current || !employeesLoading) return;
-    const t = setTimeout(() => {
-      if (isMountedRef.current && employeesLoading) {
-        logWarn(
-          "[AdminEmployees] Watchdog timeout hit (3s), stopping loader"
-        );
-        setEmployeesLoading(false);
-        setError(
-          "Request took too long. Please try again or check your connection."
-        );
-      }
-    }, 3000);
-    return () => clearTimeout(t);
-  }, [employeesLoading]);
-
-  // Cleanup effect to prevent state updates after unmount
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
     };
-  }, []);
+
+    fetchEmployees();
+  }, [accessToken, isAuthenticated, isTokenValid, getTokenExpiration, user]);
 
   // Contextual search function
   const performContextualSearch = async (query) => {
@@ -262,14 +203,14 @@ export default function AdminEmployeesPage() {
     setHasSearched(true);
 
     try {
-      log("Performing contextual search for employees:", query);
+      console.log("Performing contextual search for employees:", query);
       const result = await contextSearchApi.searchEmployees(
         query.trim(),
         accessToken
       );
 
       if (result.success) {
-        log("Contextual search results:", result.data);
+        console.log("Contextual search results:", result.data);
 
         // Transform API data to match our component structure
         const transformedResults = result.data.results.map((emp) => ({
@@ -290,12 +231,12 @@ export default function AdminEmployeesPage() {
           `Found ${transformedResults.length} employees matching "${query}"`
         );
       } else {
-        logError("Contextual search failed:", result.error);
+        console.error("Contextual search failed:", result.error);
         toast.error(result.error || "Search failed");
         setSearchResults([]);
       }
     } catch (error) {
-      logError("Contextual search error:", error);
+      console.error("Contextual search error:", error);
       toast.error("Search failed. Please try again.");
       setSearchResults([]);
     } finally {
@@ -319,21 +260,31 @@ export default function AdminEmployeesPage() {
 
   // Filter employees based on search and filters
   const filteredEmployees = useMemo(() => {
-    log("Filtering employees:", employees.length, "total employees");
+    console.log("Filtering employees:", employees.length, "total employees");
+
+    const normalizedStatusFilter = (statusFilter || "all").toLowerCase();
+    const normalizedDepartmentFilter = (departmentFilter || "all").toLowerCase();
 
     // If we have search results, use them; otherwise use all employees
     const employeesToFilter =
       hasSearched && searchResults.length > 0 ? searchResults : employees;
 
     const filtered = employeesToFilter.filter((employee) => {
+      const employeeStatus = (employee.status || "unknown").toLowerCase();
+      const employeeDepartment = (employee.department || "unknown").toLowerCase();
+
       const matchesStatus =
-        statusFilter === "all" || employee.status === statusFilter;
+        normalizedStatusFilter === "all" ||
+        employeeStatus === normalizedStatusFilter;
+
       const matchesDepartment =
-        departmentFilter === "all" || employee.department === departmentFilter;
+        normalizedDepartmentFilter === "all" ||
+        employeeDepartment === normalizedDepartmentFilter;
 
       return matchesStatus && matchesDepartment;
     });
-    log(
+
+    console.log(
       "Filtered employees:",
       filtered.length,
       "employees after filtering"
@@ -349,7 +300,7 @@ export default function AdminEmployeesPage() {
   );
   const hasMoreItems = currentEmployees.length < totalItems && totalItems > 0;
 
-  log("Pagination debug:", {
+  console.log("Pagination debug:", {
     totalItems,
     currentPage,
     itemsPerPage,
@@ -361,44 +312,9 @@ export default function AdminEmployeesPage() {
     setCurrentPage((prev) => prev + 1);
   };
 
-  const handleViewEmployee = async (employee) => {
-    try {
-      // First set the basic employee data
-      setSelectedEmployee(employee);
-      setIsModalOpen(true);
-
-      // Then fetch detailed employee data
-      if (accessToken && employee.id) {
-        log("Fetching detailed data for employee:", employee.id);
-        const result = await employeesApi.getEmployeeById(
-          accessToken,
-          employee.id
-        );
-
-        if (result.success) {
-          // Update the selected employee with detailed data
-          const detailedEmployee = {
-            ...employee,
-            ...result.data.data,
-            // Ensure we keep the basic structure but add detailed info
-            profile: result.data.data.profile,
-            workStatus: result.data.data.workStatus,
-            tasksCompletedToday: result.data.data.tasksCompletedToday,
-          };
-          // Only update state if component is still mounted
-          if (isMountedRef.current) {
-            setSelectedEmployee(detailedEmployee);
-            log("Detailed employee data loaded:", detailedEmployee);
-          }
-        } else {
-          logWarn("Failed to fetch detailed employee data:", result.error);
-          // Keep the basic employee data if detailed fetch fails
-        }
-      }
-    } catch (error) {
-      logError("Error fetching detailed employee data:", error);
-      // Keep the basic employee data if detailed fetch fails
-    }
+  const handleViewEmployee = (employee) => {
+    setSelectedEmployee(employee);
+    setIsModalOpen(true);
   };
 
   // Function to determine arrival status based on isLate field from API
@@ -442,7 +358,7 @@ export default function AdminEmployeesPage() {
   };
 
   // Loading state
-  if (employeesLoading) {
+  if (loading) {
     return (
       <DashboardLayout
         sidebarConfig={adminDashboardConfig}
@@ -477,7 +393,7 @@ export default function AdminEmployeesPage() {
             </h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <Button
-              onClick={() => fetchEmployees(0)}
+              onClick={() => window.location.reload()}
               className="bg-green-500 hover:bg-green-600"
             >
               Try Again
@@ -732,7 +648,7 @@ export default function AdminEmployeesPage() {
                         <div className="flex items-center">
                           <MapPin className="w-4 h-4 mr-2 text-gray-400" />
                           <span className="text-sm text-gray-900">
-                            {employee.location}
+                            {employee.location || "Not specified"}
                           </span>
                         </div>
                       </TableCell>
@@ -743,7 +659,7 @@ export default function AdminEmployeesPage() {
                             variant="outline"
                             className="text-xs border-gray-300 text-gray-700"
                           >
-                            {employee.checkIn}
+                            {employee.checkIn || "N/A"}
                           </Badge>
                         </div>
                       </TableCell>
@@ -767,11 +683,7 @@ export default function AdminEmployeesPage() {
                             <Edit className="w-4 h-4 mr-1" />
                             Edit
                           </Button>
-                          <DropdownMenu
-                            onOpenChange={(open) =>
-                              log("Employee actions dropdown open:", open)
-                            }
-                          >
+                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
@@ -944,7 +856,7 @@ export default function AdminEmployeesPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Work Location</p>
                       <p className="font-medium text-gray-900 truncate">
-                        {selectedEmployee.location}
+                        {selectedEmployee.location || "Not specified"}
                       </p>
                     </div>
                   </div>
@@ -954,102 +866,31 @@ export default function AdminEmployeesPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Last Check-in</p>
                       <p className="font-medium text-gray-900 truncate">
-                        {selectedEmployee.checkIn}
+                        {selectedEmployee.checkIn || "N/A"}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Additional Details from API */}
-              {selectedEmployee.profile && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h4 className="font-medium text-gray-900 mb-4">
-                    Additional Information
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedEmployee.workStatus && (
-                      <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                        <Briefcase className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm text-blue-600">Work Status</p>
-                          <p className="font-medium text-blue-900">
-                            {selectedEmployee.workStatus}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedEmployee.tasksCompletedToday !== undefined && (
-                      <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                        <Users className="w-5 h-5 text-green-400 flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm text-green-600">
-                            Tasks Completed Today
-                          </p>
-                          <p className="font-medium text-green-900">
-                            {selectedEmployee.tasksCompletedToday}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedEmployee.profile.personalInfo && (
-                      <>
-                        {selectedEmployee.profile.personalInfo.nationality && (
-                          <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-                            <MapPin className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm text-purple-600">
-                                Nationality
-                              </p>
-                              <p className="font-medium text-purple-900">
-                                {
-                                  selectedEmployee.profile.personalInfo
-                                    .nationality
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedEmployee.profile.personalInfo
-                          .maritalStatus && (
-                          <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
-                            <Users className="w-5 h-5 text-orange-400 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm text-orange-600">
-                                Marital Status
-                              </p>
-                              <p className="font-medium text-orange-900">
-                                {
-                                  selectedEmployee.profile.personalInfo
-                                    .maritalStatus
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {selectedEmployee.profile.contactInfo &&
-                      selectedEmployee.profile.contactInfo.phoneNumber && (
-                        <div className="flex items-center space-x-3 p-3 bg-indigo-50 rounded-lg">
-                          <Mail className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm text-indigo-600">
-                              Phone Number
-                            </p>
-                            <p className="font-medium text-indigo-900">
-                              {selectedEmployee.profile.contactInfo.phoneNumber}
-                            </p>
-                          </div>
-                        </div>
-                      )}
+              {/* Quick Stats */}
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="font-medium text-gray-900 mb-3">Quick Stats</h4>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-2xl font-bold text-blue-600">85%</p>
+                    <p className="text-sm text-gray-600">Performance</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-2xl font-bold text-green-600">12</p>
+                    <p className="text-sm text-gray-600">Projects</p>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                    <p className="text-2xl font-bold text-purple-600">2.5</p>
+                    <p className="text-sm text-gray-600">Years</p>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-gray-200 space-y-4">
@@ -1074,7 +915,13 @@ export default function AdminEmployeesPage() {
                   </Button>
                 </div>
                 <div className="flex justify-center">
-                  <Button className="bg-[#04b435] hover:bg-[#04b435]/90 text-white px-6 py-2 cursor-pointer">
+                  <Button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      navigate(`/admin/employees/${selectedEmployee.id}`);
+                    }}
+                    className="bg-[#04b435] hover:bg-[#04b435]/90 text-white px-6 py-2 cursor-pointer"
+                  >
                     View Complete Profile
                   </Button>
                 </div>

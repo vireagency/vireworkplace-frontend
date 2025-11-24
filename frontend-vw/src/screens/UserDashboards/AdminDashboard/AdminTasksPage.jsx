@@ -1415,6 +1415,13 @@ export default function AdminTasksPage() {
       if (result.success) {
         await fetchTasks();
         toast.success("Task created and assigned successfully!");
+        
+        // Dispatch event to update sidebar count
+        window.dispatchEvent(
+          new CustomEvent("adminTaskCreated", {
+            detail: { taskId: result.data?.task?._id || result.data?._id },
+          })
+        );
       } else {
         throw new Error(result.error || "Failed to add task");
       }
@@ -1472,6 +1479,22 @@ export default function AdminTasksPage() {
 
       if (result.success) {
         toast.success(`Task status updated to ${newStatus}!`);
+        
+        // Get the old status before update
+        const oldTask = tasks.find((t) => t.id === taskId);
+        const oldStatus = oldTask?.status;
+        
+        // Dispatch event to update sidebar count
+        window.dispatchEvent(
+          new CustomEvent("adminTaskStatusChanged", {
+            detail: {
+              taskId,
+              oldStatus,
+              newStatus,
+            },
+          })
+        );
+        
         // Refresh to get latest data from server
         await fetchTasks();
       } else {
@@ -1512,6 +1535,13 @@ export default function AdminTasksPage() {
       if (result.success) {
         await fetchTasks();
         toast.success("Task deleted successfully!");
+        
+        // Dispatch event to update sidebar count
+        window.dispatchEvent(
+          new CustomEvent("adminTaskDeleted", {
+            detail: { taskId },
+          })
+        );
       } else {
         throw new Error(result.error || "Failed to delete task");
       }
@@ -1553,6 +1583,13 @@ export default function AdminTasksPage() {
       if (result.success) {
         await fetchTasks();
         toast.success("Task updated successfully!");
+        
+        // Dispatch event to update sidebar count
+        window.dispatchEvent(
+          new CustomEvent("adminTaskUpdated", {
+            detail: { taskId, taskData },
+          })
+        );
       } else {
         throw new Error(result.error || "Failed to update task");
       }

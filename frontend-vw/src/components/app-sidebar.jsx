@@ -75,6 +75,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { getSidebarAvatarUrl } from "@/utils/avatarUtils";
 import { useHRSidebarCounts } from "@/hooks/useHRSidebarCounts";
+import { useAdminSidebarCounts } from "@/hooks/useAdminSidebarCounts";
 
 /**
  * AppSidebar Component
@@ -102,6 +103,9 @@ export function AppSidebar({
 
   // Get HR sidebar counts for HR users
   const { counts: hrCounts } = useHRSidebarCounts();
+  
+  // Get Admin sidebar counts for Admin users
+  const { counts: adminCounts } = useAdminSidebarCounts();
 
   // ============================================================================
   // DEFAULT NAVIGATION CONFIGURATION
@@ -406,7 +410,13 @@ export function AppSidebar({
           teams={userData.teams}
           productivity={userData.productivity}
           company={userData.company}
-          counts={user?.role === "Human Resource Manager" ? hrCounts : {}}
+          counts={
+            user?.role === "Human Resource Manager"
+              ? hrCounts
+              : user?.role === "Admin"
+              ? adminCounts
+              : {}
+          }
         />
 
         {/* Documents navigation (Data Library, Reports, Word Assistant) */}
