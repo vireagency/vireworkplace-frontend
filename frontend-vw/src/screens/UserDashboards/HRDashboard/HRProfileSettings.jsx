@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 // HRProfileSettings - Profile settings for HR Manager
 import HRDashboardLayout from "@/components/dashboard/HRDashboardLayout";
 import { hrDashboardConfig } from "@/config/dashboardConfigs";
@@ -36,6 +36,8 @@ import {
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
+import { settingsApi } from "@/services/settingsApi";
+import { toast } from "sonner";
 import {
   IconPlus,
   IconUser,
@@ -57,7 +59,7 @@ import {
 } from "@tabler/icons-react";
 
 export default function HRProfileSettings() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState("personal");
   const [selectedDate, setSelectedDate] = useState(null);
   const [dateOpen, setDateOpen] = useState(false);
@@ -167,6 +169,331 @@ export default function HRProfileSettings() {
     personalPronouns: user?.personalPronouns || "",
   });
 
+  // Contact information state
+  const [contactData, setContactData] = useState({
+    email: user?.email || "",
+    phoneNumber: user?.phoneNumber || "",
+    address: user?.address || "",
+    city: user?.city || "",
+    regionOrState: user?.regionOrState || "",
+    postalCode: user?.postalCode || "",
+  });
+
+  // Emergency contact state
+  const [emergencyData, setEmergencyData] = useState({
+    fullName: user?.emergencyContact?.fullName || "",
+    relationship: user?.emergencyContact?.relationship || "",
+    phoneNumber: user?.emergencyContact?.phoneNumber || "",
+    address: user?.emergencyContact?.address || "",
+    city: user?.emergencyContact?.city || "",
+    regionOrState: user?.emergencyContact?.regionOrState || "",
+    altPhoneNumber: user?.emergencyContact?.altPhoneNumber || "",
+  });
+
+  // Employment details state
+  const [employmentData, setEmploymentData] = useState({
+    employeeId: user?.workId || "",
+    jobTitle: user?.jobTitle || user?.role || "",
+    department: user?.department || "",
+    employmentType: user?.employmentType || "Full Time",
+    location: user?.location || "",
+    dateHired: user?.dateHired || "",
+    supervisor: user?.supervisorName || "",
+    status: user?.employmentStatus || "Active",
+  });
+
+  // Form submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Edit mode state
+  const [isProfileEditing, setIsProfileEditing] = useState(false);
+  const [originalData, setOriginalData] = useState(null);
+
+  // Function to enable edit mode and store original data
+  const enableEditMode = useCallback(() => {
+    setOriginalData({
+      formData: { ...formData },
+      contactData: { ...contactData },
+      emergencyData: { ...emergencyData },
+      employmentData: { ...employmentData },
+      educationEntries: JSON.parse(JSON.stringify(educationEntries)),
+      skillsEntries: [...skillsEntries],
+    });
+    setIsProfileEditing(true);
+  }, [formData, contactData, emergencyData, employmentData, educationEntries, skillsEntries]);
+
+  // Function to cancel edit mode and restore original data
+  const cancelEditMode = useCallback(() => {
+    if (originalData) {
+      setFormData(originalData.formData);
+      setContactData(originalData.contactData);
+      setEmergencyData(originalData.emergencyData);
+      setEmploymentData(originalData.employmentData);
+      setEducationEntries(originalData.educationEntries);
+      setSkillsEntries(originalData.skillsEntries);
+    }
+    setIsProfileEditing(false);
+    setOriginalData(null);
+  }, [originalData]);
+
+  // Function to check if data has changed
+  const hasChanges = useCallback(() => {
+    if (!originalData || !isProfileEditing) return false;
+
+    // Compare formData
+    const formDataChanged = JSON.stringify(formData) !== JSON.stringify(originalData.formData);
+    const contactDataChanged = JSON.stringify(contactData) !== JSON.stringify(originalData.contactData);
+    const emergencyDataChanged = JSON.stringify(emergencyData) !== JSON.stringify(originalData.emergencyData);
+    const employmentDataChanged = JSON.stringify(employmentData) !== JSON.stringify(originalData.employmentData);
+    const educationChanged = JSON.stringify(educationEntries) !== JSON.stringify(originalData.educationEntries);
+    const skillsChanged = JSON.stringify(skillsEntries) !== JSON.stringify(originalData.skillsEntries);
+
+    return formDataChanged || contactDataChanged || emergencyDataChanged || 
+           employmentDataChanged || educationChanged || skillsChanged;
+  }, [formData, contactData, emergencyData, employmentData, educationEntries, skillsEntries, originalData, isProfileEditing]);
+
+  // Profile update function
+  const saveProfile = useCallback(async () => {
+    if (!accessToken) {
+      toast.error("Please log in to save your profile");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Helper function to clean values - return undefined for empty strings so they can be omitted
+      const cleanValue = (value) => {
+        if (value === "" || value === undefined || value === null) return undefined;
+        return value;
+      };
+
+      // Format date of birth properly
+      let formattedDateOfBirth = undefined;
+      if (formData.dateOfBirth) {
+        if (formData.dateOfBirth instanceof Date) {
+          formattedDateOfBirth = formData.dateOfBirth.toISOString().split('T')[0];
+        } else if (typeof formData.dateOfBirth === 'string' && formData.dateOfBirth.trim()) {
+          formattedDateOfBirth = formData.dateOfBirth.split('T')[0];
+        }
+      }
+
+      // Validate required fields
+      if (!formData.firstName?.trim() || !formData.lastName?.trim()) {
+        toast.error("First name and last name are required");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Build profile data object, only including fields with values
+      const profileData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+      };
+
+      // Add optional top-level fields only if they have values
+      if (contactData.phoneNumber?.trim()) {
+        profileData.phoneNumber = contactData.phoneNumber.trim();
+      }
+      if (formattedDateOfBirth) {
+        profileData.dateOfBirth = formattedDateOfBirth;
+      }
+      if (employmentData.jobTitle?.trim()) {
+        profileData.jobTitle = employmentData.jobTitle.trim();
+        profileData.role = employmentData.jobTitle.trim();
+      }
+      if (employmentData.department?.trim()) {
+        profileData.department = employmentData.department.trim();
+      }
+
+      // Build personalInfo object
+      const personalInfo = {};
+      if (formData.nationality?.trim()) {
+        personalInfo.nationality = formData.nationality.trim();
+      }
+      if (formData.maritalStatus?.trim()) {
+        personalInfo.maritalStatus = formData.maritalStatus.trim();
+      }
+      if (formData.gender?.trim()) {
+        personalInfo.gender = formData.gender.trim();
+      }
+      if (formData.personalPronouns?.trim()) {
+        personalInfo.personalPronouns = [formData.personalPronouns.trim()];
+      }
+      if (Object.keys(personalInfo).length > 0) {
+        profileData.personalInfo = personalInfo;
+      }
+
+      // Build contactInfo object
+      const contactInfo = {};
+      if (contactData.email?.trim()) {
+        contactInfo.email = contactData.email.trim();
+      }
+      if (contactData.phoneNumber?.trim()) {
+        contactInfo.phoneNumber = contactData.phoneNumber.trim();
+      }
+      if (contactData.address?.trim()) {
+        contactInfo.address = contactData.address.trim();
+      }
+      if (contactData.city?.trim()) {
+        contactInfo.city = contactData.city.trim();
+      }
+      if (contactData.regionOrState?.trim()) {
+        contactInfo.regionOrState = contactData.regionOrState.trim();
+      }
+      if (contactData.postalCode?.trim()) {
+        contactInfo.postalCode = contactData.postalCode.trim();
+      }
+      if (Object.keys(contactInfo).length > 0) {
+        profileData.contactInfo = contactInfo;
+      }
+
+      // Build emergencyContact object
+      const emergencyContact = {};
+      if (emergencyData.fullName?.trim()) {
+        emergencyContact.fullName = emergencyData.fullName.trim();
+      }
+      if (emergencyData.relationship?.trim()) {
+        emergencyContact.relationship = emergencyData.relationship.trim();
+      }
+      if (emergencyData.phoneNumber?.trim()) {
+        emergencyContact.phoneNumber = emergencyData.phoneNumber.trim();
+      }
+      if (emergencyData.address?.trim()) {
+        emergencyContact.address = emergencyData.address.trim();
+      }
+      if (Object.keys(emergencyContact).length > 0) {
+        profileData.emergencyContact = emergencyContact;
+      }
+
+      // Build employmentDetails object
+      const employmentDetails = {};
+      if (employmentData.jobTitle?.trim()) {
+        employmentDetails.jobTitle = employmentData.jobTitle.trim();
+      }
+      if (employmentData.department?.trim()) {
+        employmentDetails.department = employmentData.department.trim();
+      }
+      if (employmentData.employmentType?.trim()) {
+        // Convert "Full Time" or "Full-Time" to "Full-time" (API expects lowercase 't')
+        let employmentType = employmentData.employmentType.trim();
+        employmentType = employmentType.replace(/\s+/g, '-'); // Replace spaces with hyphens
+        // Convert to lowercase except first letter: "Full-Time" -> "Full-time"
+        employmentType = employmentType.charAt(0).toUpperCase() + employmentType.slice(1).toLowerCase();
+        employmentDetails.employmentType = employmentType;
+      }
+      if (employmentData.supervisor?.trim()) {
+        employmentDetails.supervisorName = employmentData.supervisor.trim();
+      }
+      if (employmentData.status?.trim()) {
+        // Ensure employmentStatus is a valid status (not employmentType)
+        const status = employmentData.status.trim();
+        // Map common values to valid statuses
+        const validStatuses = ['Active', 'Inactive', 'On Leave', 'Terminated', 'Suspended'];
+        if (validStatuses.includes(status) || status === 'Full-time' || status === 'Part-time') {
+          // If status is actually an employment type, use 'Active' as default
+          employmentDetails.employmentStatus = status === 'Full-time' || status === 'Part-time' ? 'Active' : status;
+        } else {
+          employmentDetails.employmentStatus = status;
+        }
+      }
+      if (Object.keys(employmentDetails).length > 0) {
+        profileData.employmentDetails = employmentDetails;
+      }
+
+      // Build qualifications object
+      const qualifications = {
+        education: [],
+        skills: []
+      };
+
+      if (educationEntries.length > 0) {
+        qualifications.education = educationEntries
+          .map((edu) => {
+            const educationEntry = {};
+            
+            if (edu.level?.trim()) {
+              educationEntry.level = edu.level.trim();
+            } else {
+              educationEntry.level = "Bachelor's"; // Default
+            }
+            
+            if (edu.description?.trim() || edu.degree?.trim()) {
+              educationEntry.degree = (edu.description || edu.degree).trim();
+            }
+            
+            if (edu.institution?.trim()) {
+              educationEntry.institution = edu.institution.trim();
+            }
+            
+            if (edu.description?.trim()) {
+              educationEntry.description = edu.description.trim();
+            }
+
+            // Parse duration to extract start and end dates
+            // Note: API spec shows both month and year are expected, but we only have year from duration
+            // Try sending with empty month string - server may accept it
+            if (edu.duration?.trim()) {
+              const parts = edu.duration.split('-').map(s => s.trim());
+              if (parts.length === 2 && parts[0] && parts[1]) {
+                // Include both month and year - use empty string for month since not available
+                educationEntry.startDate = { month: "", year: parts[0] };
+                educationEntry.endDate = { month: "", year: parts[1] };
+              } else if (parts.length === 1 && parts[0]) {
+                educationEntry.startDate = { month: "", year: parts[0] };
+                educationEntry.endDate = { month: "", year: parts[0] };
+              }
+            }
+            
+            // Only return entry if it has at least level and institution
+            if (!educationEntry.level || !educationEntry.institution) {
+              return null;
+            }
+
+            return educationEntry;
+          })
+          .filter(entry => entry !== null); // Remove null entries
+      }
+
+      if (skillsEntries && skillsEntries.length > 0) {
+        qualifications.skills = skillsEntries.filter(skill => skill?.trim());
+      }
+
+      // Only add qualifications if there's actual data
+      if (qualifications.education.length > 0 || qualifications.skills.length > 0) {
+        profileData.qualifications = qualifications;
+      }
+
+      console.log("Sending profile data:", JSON.stringify(profileData, null, 2));
+
+      const result = await settingsApi.updateProfile(profileData, accessToken);
+
+      if (result.success) {
+        toast.success("Profile updated successfully!");
+        // Exit edit mode after successful save
+        setIsProfileEditing(false);
+        setOriginalData(null);
+      } else {
+        const errorMsg = result.error || "Unknown error";
+        console.error("Profile update error:", errorMsg);
+        toast.error("Failed to update profile: " + errorMsg);
+      }
+    } catch (error) {
+      console.error("Profile update exception:", error);
+      toast.error("Error updating profile: " + (error.message || "Unknown error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    accessToken,
+    formData,
+    contactData,
+    emergencyData,
+    employmentData,
+    educationEntries,
+    skillsEntries,
+  ]);
+
   // Update form data when user data changes
   useEffect(() => {
     if (user) {
@@ -195,6 +522,36 @@ export default function HRProfileSettings() {
         nationality: user.nationality || "Ghanaian",
         gender: user.gender || "",
         personalPronouns: user.personalPronouns || "",
+      });
+
+      setContactData({
+        email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
+        address: user.address || "",
+        city: user.city || "",
+        regionOrState: user.regionOrState || "",
+        postalCode: user.postalCode || "",
+      });
+
+      setEmergencyData({
+        fullName: user.emergencyContact?.fullName || "",
+        relationship: user.emergencyContact?.relationship || "",
+        phoneNumber: user.emergencyContact?.phoneNumber || "",
+        address: user.emergencyContact?.address || "",
+        city: user.emergencyContact?.city || "",
+        regionOrState: user.emergencyContact?.regionOrState || "",
+        altPhoneNumber: user.emergencyContact?.altPhoneNumber || "",
+      });
+
+      setEmploymentData({
+        employeeId: user.workId || "",
+        jobTitle: user.jobTitle || user?.role || "",
+        department: user.department || "",
+        employmentType: user.employmentType || "Full Time",
+        location: user.location || "",
+        dateHired: user.dateHired || "",
+        supervisor: user.supervisorName || "",
+        status: user.employmentStatus || "Active",
       });
     }
   }, [user]);
@@ -338,9 +695,37 @@ export default function HRProfileSettings() {
           {/* Personal Information Section */}
           {activeTab === "personal" && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-6">
-                Personal Information
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Personal Information
+                </h2>
+                {!isProfileEditing ? (
+                  <Button
+                    onClick={enableEditMode}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <IconEdit size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={cancelEditMode}
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={saveProfile}
+                      disabled={!hasChanges() || isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
@@ -358,7 +743,8 @@ export default function HRProfileSettings() {
                       onChange={(e) =>
                         setFormData({ ...formData, firstName: e.target.value })
                       }
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -375,7 +761,8 @@ export default function HRProfileSettings() {
                       onChange={(e) =>
                         setFormData({ ...formData, username: e.target.value })
                       }
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -391,7 +778,8 @@ export default function HRProfileSettings() {
                         <Button
                           variant="outline"
                           id="dateOfBirth"
-                          className="w-full justify-between font-normal bg-white border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer"
+                          disabled={!isProfileEditing}
+                          className="w-full justify-between font-normal bg-white border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
                           {selectedDate
                             ? selectedDate.toLocaleDateString()
@@ -446,8 +834,9 @@ export default function HRProfileSettings() {
                       onValueChange={(value) =>
                         setFormData({ ...formData, maritalStatus: value })
                       }
+                      disabled={!isProfileEditing}
                     >
-                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed">
                         <SelectValue placeholder="Select marital status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -483,7 +872,8 @@ export default function HRProfileSettings() {
                       onChange={(e) =>
                         setFormData({ ...formData, lastName: e.target.value })
                       }
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -503,7 +893,8 @@ export default function HRProfileSettings() {
                           nationality: e.target.value,
                         })
                       }
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -519,8 +910,9 @@ export default function HRProfileSettings() {
                       onValueChange={(value) =>
                         setFormData({ ...formData, gender: value })
                       }
+                      disabled={!isProfileEditing}
                     >
-                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -549,8 +941,9 @@ export default function HRProfileSettings() {
                       onValueChange={(value) =>
                         setFormData({ ...formData, personalPronouns: value })
                       }
+                      disabled={!isProfileEditing}
                     >
-                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer">
+                      <SelectTrigger className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed">
                         <SelectValue placeholder="Select pronouns" />
                       </SelectTrigger>
                       <SelectContent>
@@ -576,20 +969,54 @@ export default function HRProfileSettings() {
               </div>
 
               {/* Save Button */}
-              <div className="flex justify-end">
-                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                  Save
-                </Button>
-              </div>
+              {isProfileEditing && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={saveProfile}
+                    disabled={!hasChanges() || isSubmitting}
+                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
           {/* Contact Information Tab */}
           {activeTab === "contact" && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-6">
-                Contact Information
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Contact Information
+                </h2>
+                {!isProfileEditing ? (
+                  <Button
+                    onClick={enableEditMode}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <IconEdit size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={cancelEditMode}
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={saveProfile}
+                      disabled={!hasChanges() || isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
@@ -602,8 +1029,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="email"
-                      value="hr.manager@vireworkplace.com"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={contactData.email}
+                      onChange={(e) =>
+                        setContactData({ ...contactData, email: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -616,8 +1047,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="address"
-                      value="New site, Adenta"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={contactData.address}
+                      onChange={(e) =>
+                        setContactData({ ...contactData, address: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -630,8 +1065,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="region"
-                      value="Greater Accra"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={contactData.regionOrState}
+                      onChange={(e) =>
+                        setContactData({ ...contactData, regionOrState: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -647,7 +1086,10 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="phone"
-                      value="(+233) 0248940734"
+                      value={contactData.phoneNumber}
+                      onChange={(e) =>
+                        setContactData({ ...contactData, phoneNumber: e.target.value })
+                      }
                       className="bg-white border-blue-300 rounded-md text-gray-600"
                     />
                   </div>
@@ -661,8 +1103,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="city"
-                      value="Accra"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={contactData.city}
+                      onChange={(e) =>
+                        setContactData({ ...contactData, city: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -675,8 +1121,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="postalCode"
-                      value="GP-2448"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={contactData.postalCode}
+                      onChange={(e) =>
+                        setContactData({ ...contactData, postalCode: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -684,8 +1134,12 @@ export default function HRProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-6">
-                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                  Save
+                <Button
+                  onClick={saveProfile}
+                  disabled={isSubmitting}
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>
@@ -694,9 +1148,37 @@ export default function HRProfileSettings() {
           {/* Emergency Contact Tab */}
           {activeTab === "emergency" && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-6">
-                Emergency Contact Information
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Emergency Contact Information
+                </h2>
+                {!isProfileEditing ? (
+                  <Button
+                    onClick={enableEditMode}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <IconEdit size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={cancelEditMode}
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={saveProfile}
+                      disabled={!hasChanges() || isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
@@ -709,8 +1191,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_fullName"
-                      value="Michael Gyamfi"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={emergencyData.fullName}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, fullName: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -723,6 +1209,10 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_altPhone"
+                      value={emergencyData.altPhoneNumber}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, altPhoneNumber: e.target.value })
+                      }
                       placeholder="Enter optional phone number"
                       className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
                     />
@@ -737,8 +1227,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_region"
-                      value="Greater Accra"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={emergencyData.regionOrState}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, regionOrState: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -751,8 +1245,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_address"
-                      value="Ecomog, Hasto"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={emergencyData.address}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, address: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -768,8 +1266,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_phone"
-                      value="(+233) 0245678901"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={emergencyData.phoneNumber}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, phoneNumber: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -782,8 +1284,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_city"
-                      value="Accra"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={emergencyData.city}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, city: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -796,8 +1302,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="ec_relationship"
-                      value="Father"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={emergencyData.relationship}
+                      onChange={(e) =>
+                        setEmergencyData({ ...emergencyData, relationship: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -805,8 +1315,12 @@ export default function HRProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-6">
-                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                  Save
+                <Button
+                  onClick={saveProfile}
+                  disabled={isSubmitting}
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>
@@ -815,9 +1329,37 @@ export default function HRProfileSettings() {
           {/* Employment Details Tab */}
           {activeTab === "employment" && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-6">
-                Employment Details
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Employment Details
+                </h2>
+                {!isProfileEditing ? (
+                  <Button
+                    onClick={enableEditMode}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <IconEdit size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={cancelEditMode}
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={saveProfile}
+                      disabled={!hasChanges() || isSubmitting}
+                      className="bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
@@ -830,8 +1372,9 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="emp_employeeId"
-                      value="VIRE-HR-001"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={employmentData.employeeId}
+                      readOnly
+                      className="bg-gray-100 border-gray-300 rounded-md text-gray-600 cursor-not-allowed"
                     />
                   </div>
 
@@ -844,8 +1387,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="emp_department"
-                      value="Human Resources"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={employmentData.department}
+                      onChange={(e) =>
+                        setEmploymentData({ ...employmentData, department: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -856,7 +1403,12 @@ export default function HRProfileSettings() {
                     >
                       Employment Type
                     </Label>
-                    <Select defaultValue="Full Time">
+                    <Select
+                      value={employmentData.employmentType}
+                      onValueChange={(value) =>
+                        setEmploymentData({ ...employmentData, employmentType: value })
+                      }
+                    >
                       <SelectTrigger
                         id="emp_type"
                         className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
@@ -898,6 +1450,10 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="emp_location"
+                      value={employmentData.location}
+                      onChange={(e) =>
+                        setEmploymentData({ ...employmentData, location: e.target.value })
+                      }
                       placeholder="(Optional)"
                       className="bg-white border-gray-300 rounded-md text-gray-600 placeholder:text-gray-400"
                     />
@@ -915,8 +1471,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="emp_jobTitle"
-                      value="Human Resources Manager"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={employmentData.jobTitle}
+                      onChange={(e) =>
+                        setEmploymentData({ ...employmentData, jobTitle: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -929,8 +1489,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="emp_dateHired"
-                      value="15 - 01 - 2024"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={employmentData.dateHired}
+                      onChange={(e) =>
+                        setEmploymentData({ ...employmentData, dateHired: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -943,8 +1507,12 @@ export default function HRProfileSettings() {
                     </Label>
                     <Input
                       id="emp_supervisor"
-                      value="CEO - Nana Gyamfi Addae"
-                      className="bg-white border-gray-300 rounded-md text-gray-600"
+                      value={employmentData.supervisor}
+                      onChange={(e) =>
+                        setEmploymentData({ ...employmentData, supervisor: e.target.value })
+                      }
+                      disabled={!isProfileEditing}
+                      className="bg-white border-gray-300 rounded-md text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -955,7 +1523,12 @@ export default function HRProfileSettings() {
                     >
                       Status
                     </Label>
-                    <Select defaultValue="Active">
+                    <Select
+                      value={employmentData.status}
+                      onValueChange={(value) =>
+                        setEmploymentData({ ...employmentData, status: value })
+                      }
+                    >
                       <SelectTrigger
                         id="emp_status"
                         className="bg-white border-gray-300 rounded-md text-gray-600 cursor-pointer"
@@ -980,8 +1553,12 @@ export default function HRProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-6">
-                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium cursor-pointer">
-                  Save
+                <Button
+                  onClick={saveProfile}
+                  disabled={isSubmitting}
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>
@@ -2015,8 +2592,12 @@ export default function HRProfileSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-8">
-                <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium">
-                  Save
+                <Button
+                  onClick={saveProfile}
+                  disabled={isSubmitting}
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>

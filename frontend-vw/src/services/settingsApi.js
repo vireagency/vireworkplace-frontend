@@ -96,7 +96,7 @@ export const settingsApi = {
    */
   updateProfile: async (profileData, accessToken) => {
     try {
-      console.log("Updating user profile:", profileData);
+      console.log("Updating user profile:", JSON.stringify(profileData, null, 2));
 
       const response = await axios.patch(
         `${apiConfig.baseURL}/settings/profile`,
@@ -115,38 +115,60 @@ export const settingsApi = {
       };
     } catch (error) {
       console.error("Error updating profile:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("Error response headers:", error.response?.headers);
+      console.error("Request payload:", JSON.stringify(profileData, null, 2));
+      console.error("Full error object:", error);
+      
+      // Log the full response if available
+      if (error.response?.data) {
+        console.error("Full error response data:", JSON.stringify(error.response.data, null, 2));
+      }
 
       if (error.response) {
         const status = error.response.status;
+        const responseData = error.response.data;
         let errorMessage;
 
-        switch (status) {
-          case 400:
-            errorMessage =
-              error.response.data?.message || "Invalid profile data provided";
-            break;
-          case 401:
-            errorMessage = "Unauthorized: Please log in again";
-            break;
-          case 404:
-            errorMessage = "User not found";
-            break;
-          case 500:
-            errorMessage = "Server error: Please try again later";
-            break;
-          default:
-            errorMessage =
-              error.response.data?.message || `Server error: ${status}`;
+        // Try to get detailed error message from response
+        if (responseData?.message) {
+          errorMessage = responseData.message;
+        } else if (responseData?.error) {
+          errorMessage = responseData.error;
+        } else if (typeof responseData === 'string') {
+          errorMessage = responseData;
+        } else {
+          // Fallback to status-based messages
+          switch (status) {
+            case 400:
+              errorMessage = "Invalid profile data provided. Please check all fields.";
+              break;
+            case 401:
+              errorMessage = "Unauthorized: Please log in again";
+              break;
+            case 404:
+              errorMessage = "User not found";
+              break;
+            case 422:
+              errorMessage = "Validation error: " + (responseData?.errors ? JSON.stringify(responseData.errors) : "Please check your input");
+              break;
+            case 500:
+              errorMessage = responseData?.message || "Server error: Please try again later";
+              break;
+            default:
+              errorMessage = `Server error (${status}): ${responseData?.message || "Please try again later"}`;
+          }
         }
 
         return { success: false, error: errorMessage };
       } else if (error.request) {
         return {
           success: false,
-          error: "Network error: Unable to reach server",
+          error: "Network error: Unable to reach server. Please check your connection.",
         };
       } else {
-        return { success: false, error: error.message };
+        return { success: false, error: error.message || "An unexpected error occurred" };
       }
     }
   },
